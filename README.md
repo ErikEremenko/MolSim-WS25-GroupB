@@ -10,3 +10,9 @@ MolSim GroupB
   - Program arguments: input/eingabe-sonne.txt
   - Working directory: \$ProjectFileDir$ (the project root containing input/ and src/)
 - Now you can run the MolSim Application using CMake
+
+### Build and run (CLI)
+From project root execute the following commands in that order:
+- cmake CMakeLists.txt
+- make
+- ./MolSim input/eingabe-sonne.txt #(you can use any appropriate input file here)
