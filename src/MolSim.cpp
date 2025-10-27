@@ -21,34 +21,35 @@ void calculateF();
 /**
  * calculate the position for all particles
  */
-void calculateX();
+void calculateX(double delta_t);
 
 /**
  * calculate the position for all particles
  */
-void calculateV();
+void calculateV(double delta_t);
 
 /**
  * plot the particles to a xyz-file
  */
 void plotParticles(int iteration);
 
-constexpr double start_time = 0;
-constexpr double end_time = 1000;
-constexpr double delta_t = 0.014;
-
-// TODO: what data structure to pick?
 std::vector<Particle> particles;
 
 int main(int argc, char *argsv[]) {
   std::cout << "Hello from MolSim for PSE!" << std::endl;
-  if (argc != 2) {
+  if (argc != 4) {
     std::cout << "Erroneous programme call! " << std::endl;
-    std::cout << "./molsym filename" << std::endl;
+    std::cout << "./molsym filename t_end delta_t" << std::endl;
+    return 1;
   }
 
+  char *filename = argsv[1];
+  const double end_time = std::stod(argsv[2]);
+  const double delta_t = std::stod(argsv[3]);
+  constexpr double start_time = 0;
+
   FileReader fileReader;
-  fileReader.readFile(particles, argsv[1]);
+  fileReader.readFile(particles, filename);
 
   double current_time = start_time;
 
@@ -57,14 +58,14 @@ int main(int argc, char *argsv[]) {
   // for this loop, we assume: current x, current f and current v are known
   while (current_time < end_time) {
     // calculate new x
-    calculateX();
+    calculateX(delta_t);
     for (auto &p : particles) {
       p.set_old_f(p.getF()); // store f(t_n) for v update
     }
     // calculate new f
     calculateF();
     // calculate new v
-    calculateV();
+    calculateV(delta_t);
 
     iteration++;
     if (iteration % 10 == 0) {
@@ -126,7 +127,7 @@ void calculateF() {
   }
 }
 
-void calculateX() {
+void calculateX(double delta_t) {
   for (auto &p : particles) {
     std::array<double, 3> x_curr = p.getX();
     std::array<double, 3> x_new;
@@ -146,7 +147,7 @@ void calculateX() {
   }
 }
 
-void calculateV() {
+void calculateV(double delta_t) {
   for (auto &p : particles) {
     std::array<double, 3> v_curr = p.getV();
     std::array<double, 3> v_new;
