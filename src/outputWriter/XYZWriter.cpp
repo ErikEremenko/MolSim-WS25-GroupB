@@ -7,7 +7,9 @@
 
 #include "outputWriter/XYZWriter.h"
 
+#include <filesystem>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 
 namespace outputWriter {
@@ -17,9 +19,18 @@ XYZWriter::XYZWriter() = default;
 XYZWriter::~XYZWriter() = default;
 
 void XYZWriter::plotParticles(const std::vector<Particle>& particles, const std::string &filename, int iteration) {
+  // create separate output directory
+  const std::string output_directory = "output";
+  try {
+    std::filesystem::create_directories(output_directory);
+  } catch (const std::filesystem::filesystem_error &err) {
+    std::cerr << "Error wile creating directory " << output_directory << ": " << err.what() << std::endl;
+    return;
+  }
+
   std::ofstream file;
   std::stringstream strstr;
-  strstr << filename << "_" << std::setfill('0') << std::setw(4) << iteration << ".xyz";
+  strstr <<  output_directory << "/" << filename << "_" << std::setfill('0') << std::setw(4) << iteration << ".xyz";
 
   file.open(strstr.str().c_str());
   file << particles.size() << std::endl;

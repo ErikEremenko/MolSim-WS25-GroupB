@@ -25,4 +25,5 @@ if(ENABLE_VTK_OUTPUT)
             PRIVATE
             ${VTK_LIBRARIES}
     )
+    target_compile_definitions(MolSim PRIVATE ENABLE_VTK_OUTPUT)
 endif()

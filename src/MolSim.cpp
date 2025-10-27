@@ -6,6 +6,7 @@
 
 #include "FileReader.h"
 #include "outputWriter/XYZWriter.h"
+#include "outputWriter/VTKWriter.h"
 #include "utils/ArrayUtils.h"
 
 #define EPSILON 1e-12
@@ -162,6 +163,9 @@ void calculateV() {
 
 void plotParticles(const int iteration) {
   const std::string out_name("MD_vtk");
-  outputWriter::XYZWriter writer;
-  outputWriter::XYZWriter::plotParticles(particles, out_name, iteration);
+  /*outputWriter::XYZWriter writer;
+  outputWriter::XYZWriter::plotParticles(particles, out_name, iteration);*/
+  outputWriter::VTKWriter writer;
+  writer.plotParticles(particles, out_name, iteration);
+
 }

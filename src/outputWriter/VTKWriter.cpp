@@ -14,13 +14,23 @@
 #include <vtkIntArray.h>
 #include <vtkPointData.h>
 #include <vtkXMLUnstructuredGridWriter.h>
+#include <filesystem>
 
 #include <iomanip>
 #include <sstream>
 
 namespace outputWriter {
 
-void VTKWriter::plotParticles(std::list<Particle> particles, const std::string &filename, int iteration) {
+void VTKWriter::plotParticles(const std::vector<Particle> &particles, const std::string &filename,
+                              const int iteration) {
+  // create separate output directory
+  const std::string output_directory = "output";
+  try {
+    std::filesystem::create_directories(output_directory);
+  } catch (const std::filesystem::filesystem_error &err) {
+    std::cerr << "Error wile creating directory " << output_directory << ": " << err.what() << std::endl;
+    return;
+  }
   // Initialize points
   auto points = vtkSmartPointer<vtkPoints>::New();
 
@@ -61,13 +71,14 @@ void VTKWriter::plotParticles(std::list<Particle> particles, const std::string &
 
   // Create filename with iteration number
   std::stringstream strstr;
-  strstr << filename << "_" << std::setfill('0') << std::setw(4) << iteration << ".vtu";
+  strstr << output_directory << "/" << filename << "_" << std::setfill('0') << std::setw(4) << iteration << ".vtu";
 
   // Create writer and set data
   vtkNew<vtkXMLUnstructuredGridWriter> writer;
   writer->SetFileName(strstr.str().c_str());
   writer->SetInputData(grid);
   writer->SetDataModeToAscii();
+  writer->SetDataModeToBinary();
 
   // Write the file
   writer->Write();
