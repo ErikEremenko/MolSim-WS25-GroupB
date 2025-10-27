@@ -72,13 +72,30 @@ int main(int argc, char *argsv[]) {
 }
 
 void calculateF() {
-  std::list<Particle>::iterator iterator;
-  iterator = particles.begin();
+  for (auto &p_i : particles) {
+    std::array<double, 3> force_i = {0., 0., 0.};
+    for (auto &p_j : particles) {
+      if (p_i == p_j) {
+        continue;
+      }
 
-  for (auto &p1 : particles) {
-    for (auto &p2 : particles) {
-      // @TODO: insert calculation of forces here!
+      std::array<double, 3> dist;
+      double norm_squared = 0.;
+      for (int i = 0; i < 3; i++) {
+        dist[i] = p_j.getX()[i] - p_i.getX()[i];
+        norm_squared += dist[i] * dist[i];
+      }
+      if (norm_squared == 0) {
+        // avoid division by zero when particles are at the same position
+        continue;
+      }
+      double norm = std::sqrt(norm_squared);
+      double norm_cubed = norm_squared * norm;
+      for (int i = 0; i < 3; i++) {
+        force_i[i] += (p_i.getM() * p_j.getM()) / norm_cubed * (dist[i]);
+      }
     }
+    p_i.set_f(force_i);
   }
 }
 

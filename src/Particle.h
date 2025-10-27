@@ -45,7 +45,6 @@ class Particle {
 
  public:
   explicit Particle(int type = 0);
-
   Particle(const Particle &other);
 
   Particle(
@@ -66,6 +65,10 @@ class Particle {
   double getM() const;
 
   int getType() const;
+
+  void set_f(const std::array<double, 3> &f) { this->f = f; }
+
+  void set_old_f(const std::array<double, 3> &old_f) { this->old_f = old_f; }
 
   bool operator==(Particle &other);
 
