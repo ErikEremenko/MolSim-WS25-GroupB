@@ -70,6 +70,10 @@ class Particle {
 
   void set_old_f(const std::array<double, 3> &old_f) { this->old_f = old_f; }
 
+  void set_x(const std::array<double, 3> &x) { this->x = x; }
+
+  void set_v(const std::array<double, 3> &v) { this->v = v; }
+
   bool operator==(Particle &other);
 
   std::string toString() const;

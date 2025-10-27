@@ -57,6 +57,9 @@ int main(int argc, char *argsv[]) {
   while (current_time < end_time) {
     // calculate new x
     calculateX();
+    for (auto &p : particles) {
+      p.set_old_f(p.getF()); // store f(t_n) for v update
+    }
     // calculate new f
     calculateF();
     // calculate new v
@@ -100,10 +103,10 @@ void calculateF() {
       }
       double norm = std::sqrt(norm_squared);
       double norm_cubed = norm_squared * norm;
-      std::array<double, 3> f_vector;
+      std::array<double, 3> F_vector;
 
       for (int k = 0; k < 3; ++k) {
-        f_vector[k] = (p_i.getM() * p_j.getM()) / norm_cubed * dist[k];
+        F_vector[k] = (p_i.getM() * p_j.getM()) / norm_cubed * dist[k];
       }
 
       // apply forces using Newton's third law
@@ -113,8 +116,8 @@ void calculateF() {
 
       for (int k = 0; k < 3; ++k) {
         // actio est reactio
-        force_i[k] += f_vector[k];
-        force_j[k] -= f_vector[k];
+        force_i[k] += F_vector[k];
+        force_j[k] -= F_vector[k];
       }
       p_i.set_f(force_i);
       p_j.set_f(force_j);
@@ -124,13 +127,36 @@ void calculateF() {
 
 void calculateX() {
   for (auto &p : particles) {
-    // @TODO: insert calculation of position updates here!
+    std::array<double, 3> x_curr = p.getX();
+    std::array<double, 3> x_new;
+    double m_i = p.getM();
+    std::array<double, 3> F_i = p.getF();
+    std::array<double, 3> v_i = p.getV();
+    std::array<double, 3> a_i;
+
+    // calculate component-wise acceleration and coordinates
+    for (int j = 0; j < 3; ++j) {
+      a_i[j] = F_i[j] / (2 * m_i);
+    }
+    for (int j = 0; j < 3; ++j) {
+      x_new[j] = x_curr[j] + delta_t * v_i[j] + (delta_t * delta_t) * a_i[j];
+    }
+    p.set_x(x_new);
   }
 }
 
 void calculateV() {
   for (auto &p : particles) {
-    // @TODO: insert calculation of veclocity updates here!
+    std::array<double, 3> v_curr = p.getV();
+    std::array<double, 3> v_new;
+    const double m_i = p.getM();
+    std::array<double, 3> F_i = p.getF();
+    std::array<double, 3> F_i_old = p.getOldF();
+
+    for (int j = 0; j < 3; ++j) {
+      v_new[j] = v_curr[j] + delta_t * (F_i_old[j] + F_i[j]) / (2*m_i);
+    }
+    p.set_v(v_new);
   }
 }
 
