@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <list>
+#include <vector>
 
 #include "Particle.h"
 
@@ -16,5 +16,5 @@ class FileReader {
   FileReader();
   virtual ~FileReader();
 
-  void readFile(std::list<Particle> &particles, char *filename);
+  static void readFile(std::vector<Particle> &particles, char *filename);
 };
