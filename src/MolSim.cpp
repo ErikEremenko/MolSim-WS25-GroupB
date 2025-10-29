@@ -144,7 +144,7 @@ void calculateX(double delta_t) {
       a_i[j] = F_i[j] / (2 * m_i);
     }
     for (int j = 0; j < 3; ++j) {
-      x_new[j] = x_curr[j] + delta_t * v_i[j] + (delta_t * delta_t) * .5 * a_i[j];
+      x_new[j] = x_curr[j] + delta_t * v_i[j] + (delta_t * delta_t) * a_i[j];
     }
     p.set_x(x_new);
   }
