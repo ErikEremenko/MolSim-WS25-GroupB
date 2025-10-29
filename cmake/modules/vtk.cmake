@@ -16,7 +16,7 @@ if(ENABLE_VTK_OUTPUT)
     endif ()
 
     if(VTK_VERSION VERSION_GREATER_EQUAL 8.9)
-         include_directories(${VTK_INCLUDE_DIRS})
+        include_directories(${VTK_INCLUDE_DIRS})
     else()
         include(${VTK_USE_FILE})
     endif ()

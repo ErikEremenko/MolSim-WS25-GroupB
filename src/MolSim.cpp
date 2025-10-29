@@ -82,8 +82,10 @@ int main(int argc, char *argsv[]) {
 
 void calculateF() {
 
+  const double softening_squared = 1e-9;
+
   for (auto &p : particles) {
-    p.set_f({0., 0., 0.});
+    p.set_f({});
   }
 
   const size_t n_particles = particles.size();
@@ -93,7 +95,7 @@ void calculateF() {
       Particle &p_i = particles[i];
       Particle &p_j = particles[j];
 
-      std::array<double, 3> dist;
+      std::array<double, 3> dist{};
       double norm_squared = 0.;
       for (int k= 0; k < 3; ++k) {
         dist[k] = p_j.getX()[k] - p_i.getX()[k];
@@ -103,9 +105,10 @@ void calculateF() {
         // avoid division by zero and numerical explosion when particles are at the same position or very close
         continue;
       }
-      double norm = std::sqrt(norm_squared);
-      double norm_cubed = norm_squared * norm;
-      std::array<double, 3> F_vector;
+      double norm_squared_softened = norm_squared + softening_squared;
+      double norm = std::sqrt(norm_squared_softened);
+      double norm_cubed = norm_squared_softened * norm;
+      std::array<double, 3> F_vector{};
 
       for (int k = 0; k < 3; ++k) {
         F_vector[k] = (p_i.getM() * p_j.getM()) / norm_cubed * dist[k];
@@ -130,18 +133,18 @@ void calculateF() {
 void calculateX(double delta_t) {
   for (auto &p : particles) {
     std::array<double, 3> x_curr = p.getX();
-    std::array<double, 3> x_new;
+    std::array<double, 3> x_new{};
     double m_i = p.getM();
     std::array<double, 3> F_i = p.getF();
     std::array<double, 3> v_i = p.getV();
-    std::array<double, 3> a_i;
+    std::array<double, 3> a_i{};
 
     // calculate component-wise acceleration and coordinates
     for (int j = 0; j < 3; ++j) {
       a_i[j] = F_i[j] / (2 * m_i);
     }
     for (int j = 0; j < 3; ++j) {
-      x_new[j] = x_curr[j] + delta_t * v_i[j] + (delta_t * delta_t) * a_i[j];
+      x_new[j] = x_curr[j] + delta_t * v_i[j] + (delta_t * delta_t) * .5 * a_i[j];
     }
     p.set_x(x_new);
   }
@@ -150,7 +153,7 @@ void calculateX(double delta_t) {
 void calculateV(double delta_t) {
   for (auto &p : particles) {
     std::array<double, 3> v_curr = p.getV();
-    std::array<double, 3> v_new;
+    std::array<double, 3> v_new{};
     const double m_i = p.getM();
     std::array<double, 3> F_i = p.getF();
     std::array<double, 3> F_i_old = p.getOldF();
