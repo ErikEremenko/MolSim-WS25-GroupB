@@ -60,7 +60,7 @@ int main(int argc, char *argsv[]) {
     // calculate new x
     calculateX(delta_t);
     for (auto &p : particles) {
-      p.set_old_f(p.getF());  // store f(t_n) for v update
+      p.setOldF(p.getF());  // store f(t_n) for v update
     }
     // calculate new f
     calculateF();
@@ -81,16 +81,15 @@ int main(int argc, char *argsv[]) {
 }
 
 void calculateF() {
-  const double soft_const = 1e-9;
-
   for (auto &p : particles) {
-    p.set_f({});
+    p.setF({});
   }
 
   const size_t n_particles = particles.size();
   for (size_t i = 0; i < n_particles; ++i) {
     // index offset for Newton's third law
     for (size_t j = i + 1; j < n_particles; ++j) {
+      constexpr double norm_squared_soft_const = 1e-9;
       auto &p_i = particles[i];
       auto &p_j = particles[j];
 
@@ -100,7 +99,7 @@ void calculateF() {
         // avoid division by zero and numerical explosion when particles are at the same position or very close
         continue;
       }
-      const double norm_squared_softened = norm * norm + soft_const;
+      const double norm_squared_softened = norm * norm + norm_squared_soft_const;
       const double norm_cubed_softened = norm_squared_softened * norm;
 
       const auto F_vector = ((p_i.getM() * p_j.getM()) / norm_cubed_softened) * dist;
@@ -111,8 +110,8 @@ void calculateF() {
       // actio est reactio
       F_i = F_i + F_vector;
       F_j = F_j - F_vector;
-      p_i.set_f(F_i);
-      p_j.set_f(F_j);
+      p_i.setF(F_i);
+      p_j.setF(F_j);
     }
   }
 }
@@ -125,7 +124,7 @@ void calculateX(const double delta_t) {
     std::array<double, 3> v = p.getV();
     const auto a = (1.0 / m) * F;
     const auto x_new = x_curr + delta_t * v + 0.5 * (delta_t * delta_t) * a;
-    p.set_x(x_new);
+    p.setX(x_new);
   }
 }
 
@@ -136,7 +135,7 @@ void calculateV(const double delta_t) {
     const auto F = p.getF();
     const auto F_old = p.getOldF();
     const auto v_new = v_curr + (delta_t / (2.0 * m_i)) * (F_old + F);
-    p.set_v(v_new);
+    p.setV(v_new);
   }
 }
 
