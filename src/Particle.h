@@ -52,32 +52,36 @@ class Particle {
   Particle(
       // for visualization, we need always 3 coordinates
       // -> in case of 2d, we use only the first and the second
-      const std::array<double, 3> &x_arg, const std::array<double, 3> &v_arg, double m_arg, int type_arg = 0);
+      const std::array<double, 3>& x_arg, const std::array<double, 3>& v_arg,
+      double m_arg, int type_arg = 0);
 
   // Rule of Five
-  Particle(const Particle &other) = default;
-  Particle &operator=(const Particle &other) = default;
-  Particle(Particle &&other) noexcept = default;
-  Particle &operator=(Particle &&other) noexcept = default;
+  Particle(const Particle& other) = default;
+  Particle& operator=(const Particle& other) = default;
+  Particle(Particle&& other) noexcept = default;
+  Particle& operator=(Particle&& other) noexcept = default;
   ~Particle() = default;
 
   // Getters
-  [[nodiscard]] const std::array<double, 3> &getX() const;
-  [[nodiscard]] const std::array<double, 3> &getV() const;
-  [[nodiscard]] const std::array<double, 3> &getF() const;
-  [[nodiscard]] const std::array<double, 3> &getOldF() const;
+  [[nodiscard]] const std::array<double, 3>& getX() const;
+  [[nodiscard]] const std::array<double, 3>& getV() const;
+  [[nodiscard]] const std::array<double, 3>& getF() const;
+  [[nodiscard]] const std::array<double, 3>& getOldF() const;
   [[nodiscard]] double getM() const;
   [[nodiscard]] int getType() const;
 
   // Setters
-  void setF(const std::array<double, 3> &val) { this->f = val; }
-  void setOldF(const std::array<double, 3> &val) { this->old_f = val; }
-  void setX(const std::array<double, 3> &val) { this->x = val; }
-  void setV(const std::array<double, 3> &val) { this->v = val; }
+  void setF(const std::array<double, 3>& val) { this->f = val; }
+
+  void setOldF(const std::array<double, 3>& val) { this->old_f = val; }
+
+  void setX(const std::array<double, 3>& val) { this->x = val; }
+
+  void setV(const std::array<double, 3>& val) { this->v = val; }
 
   // Operators + Utilities
-  bool operator==(const Particle &other) const;
+  bool operator==(const Particle& other) const;
   std::string toString() const;
 };
 
-std::ostream &operator<<(std::ostream &stream, const Particle &p);
+std::ostream& operator<<(std::ostream& stream, const Particle& p);

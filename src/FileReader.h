@@ -16,5 +16,5 @@ class FileReader {
   FileReader();
   virtual ~FileReader();
 
-  static void readFile(std::vector<Particle> &particles, char *filename);
+  static void readFile(std::vector<Particle>& particles, char* filename);
 };
