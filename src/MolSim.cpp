@@ -38,7 +38,7 @@ void plotParticles(int iteration);
 
 std::vector<Particle> particles;
 
-int main(int argc, char *argsv[]) {
+int main(int argc, char* argsv[]) {
   std::cout << "Hello from MolSim for PSE!" << std::endl;
   if (argc != 4) {
     std::cout << "Erroneous programme call! " << std::endl;
@@ -46,7 +46,7 @@ int main(int argc, char *argsv[]) {
     return 1;
   }
 
-  char *filename = argsv[1];
+  char* filename = argsv[1];
   const double end_time = std::stod(argsv[2]);
   const double delta_t = std::stod(argsv[3]);
   constexpr double start_time = 0;
@@ -62,7 +62,7 @@ int main(int argc, char *argsv[]) {
   while (current_time < end_time) {
     // calculate new x
     calculateX(delta_t);
-    for (auto &p : particles) {
+    for (auto& p : particles) {
       p.setOldF(p.getF());  // store f(t_n) for v update
     }
     // calculate new f
@@ -74,7 +74,7 @@ int main(int argc, char *argsv[]) {
     if (iteration % 10 == 0) {
       plotParticles(iteration);
     }
-    std::cout << "Iteration " << iteration << " finished." << std::endl;
+    // std::cout << "Iteration " << iteration << " finished." << std::endl;
 
     current_time += delta_t;
   }
@@ -84,7 +84,7 @@ int main(int argc, char *argsv[]) {
 }
 
 void calculateF() {
-  for (auto &p : particles) {
+  for (auto& p : particles) {
     p.setF({});
   }
 
@@ -93,8 +93,8 @@ void calculateF() {
     // index offset for Newton's third law
     for (size_t j = i + 1; j < n_particles; ++j) {
       constexpr double norm_squared_soft_const = 1e-9;
-      auto &p_i = particles[i];
-      auto &p_j = particles[j];
+      auto& p_i = particles[i];
+      auto& p_j = particles[j];
 
       const auto dist = p_j.getX() - p_i.getX();
       const double norm = ArrayUtils::L2Norm(dist);
@@ -102,10 +102,12 @@ void calculateF() {
         // avoid division by zero and numerical explosion when particles are at the same position or very close
         continue;
       }
-      const double norm_squared_softened = norm * norm + norm_squared_soft_const;
+      const double norm_squared_softened =
+          norm * norm + norm_squared_soft_const;
       const double norm_cubed_softened = norm_squared_softened * norm;
 
-      const auto F_vector = ((p_i.getM() * p_j.getM()) / norm_cubed_softened) * dist;
+      const auto F_vector =
+          ((p_i.getM() * p_j.getM()) / norm_cubed_softened) * dist;
 
       // apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
       auto F_i = p_i.getF();
@@ -120,7 +122,7 @@ void calculateF() {
 }
 
 void calculateX(const double delta_t) {
-  for (auto &p : particles) {
+  for (auto& p : particles) {
     const auto x_curr = p.getX();
     const double m = p.getM();
     std::array<double, 3> F = p.getF();
@@ -132,7 +134,7 @@ void calculateX(const double delta_t) {
 }
 
 void calculateV(const double delta_t) {
-  for (auto &p : particles) {
+  for (auto& p : particles) {
     const auto v_curr = p.getV();
     const double m_i = p.getM();
     const auto F = p.getF();

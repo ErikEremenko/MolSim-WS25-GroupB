@@ -18,19 +18,22 @@ XYZWriter::XYZWriter() = default;
 
 XYZWriter::~XYZWriter() = default;
 
-void XYZWriter::plotParticles(const std::vector<Particle>& particles, const std::string &filename, int iteration) {
+void XYZWriter::plotParticles(const std::vector<Particle>& particles,
+                              const std::string& filename, int iteration) {
   // create separate output directory
   const std::string output_directory = "output";
   try {
     std::filesystem::create_directories(output_directory);
-  } catch (const std::filesystem::filesystem_error &err) {
-    std::cerr << "Error wile creating directory " << output_directory << ": " << err.what() << std::endl;
+  } catch (const std::filesystem::filesystem_error& err) {
+    std::cerr << "Error wile creating directory " << output_directory << ": "
+              << err.what() << std::endl;
     return;
   }
 
   std::ofstream file;
   std::stringstream strstr;
-  strstr <<  output_directory << "/" << filename << "_" << std::setfill('0') << std::setw(4) << iteration << ".xyz";
+  strstr << output_directory << "/" << filename << "_" << std::setfill('0')
+         << std::setw(4) << iteration << ".xyz";
 
   file.open(strstr.str().c_str());
   file << particles.size() << std::endl;
@@ -38,12 +41,12 @@ void XYZWriter::plotParticles(const std::vector<Particle>& particles, const std:
           "file format doku."
        << std::endl;
 
-  for (auto &p : particles) {
+  for (auto& p : particles) {
     std::array<double, 3> x = p.getX();
     file << "Ar ";
     file.setf(std::ios_base::showpoint);
 
-    for (auto &xi : x) {
+    for (auto& xi : x) {
       file << xi << " ";
     }
 

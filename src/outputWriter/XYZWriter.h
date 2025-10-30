@@ -20,7 +20,8 @@ class XYZWriter {
 
   virtual ~XYZWriter();
 
-  static void plotParticles(const std::vector<Particle>& particles, const std::string &filename, int iteration);
+  static void plotParticles(const std::vector<Particle>& particles,
+                            const std::string& filename, int iteration);
 };
 
 }  // namespace outputWriter

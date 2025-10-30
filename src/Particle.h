@@ -82,28 +82,31 @@ class Particle {
   Particle(
       // for visualization, we need always 3 coordinates
       // -> in case of 2d, we use only the first and the second
-      const std::array<double, 3> &x_arg, const std::array<double, 3> &v_arg, double m_arg, int type_arg = 0);
+
+      const std::array<double, 3>& x_arg, const std::array<double, 3>& v_arg
+      , double m_arg, int type_arg = 0);
   ///@}
   /**
    * @brief Rule of Five holds
    */
-  Particle(const Particle &other) = default;
-  Particle &operator=(const Particle &other) = default;
-  Particle(Particle &&other) noexcept = default;
-  Particle &operator=(Particle &&other) noexcept = default;
+  Particle(const Particle& other) = default;
+  Particle &operator=(const Particle& other) = default;
+  Particle(Particle&& other) noexcept = default;
+  Particle &operator=(Particle&& other) noexcept = default;
   ~Particle() = default;
 
   /** @name Getter methods */
   ///@{
   /** @brief get position of particle */
-  [[nodiscard]] const std::array<double, 3> &getX() const;
+  [[nodiscard]] const std::array<double, 3>& getX() const;
   /** @brief get velocity of particle */
-  [[nodiscard]] const std::array<double, 3> &getV() const;
+  [[nodiscard]] const std::array<double, 3>& getV() const;
   /** @brief get force effective on particle */
-  [[nodiscard]] const std::array<double, 3> &getF() const;
+  [[nodiscard]] const std::array<double, 3>& getF() const;
   /** @brief get old force effective on particle */
-  [[nodiscard]] const std::array<double, 3> &getOldF() const;
+  [[nodiscard]] const std::array<double, 3>& getOldF() const;
   /** @brief get mass of particle */
+
   [[nodiscard]] double getM() const;
   /** @brief get type of particle */
   [[nodiscard]] int getType() const;
@@ -131,7 +134,8 @@ class Particle {
 
   /** @name Operators + Utilities */
   bool operator==(const Particle &other) const;
+
   std::string toString() const;
 };
 
-std::ostream &operator<<(std::ostream &stream, const Particle &p);
+std::ostream& operator<<(std::ostream& stream, const Particle& p);
