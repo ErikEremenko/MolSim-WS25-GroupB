@@ -15,9 +15,10 @@
  *
  *  @class Particle
  *  @brief A class representing a particle in 3 dimensional space with position, velocity,
- *  mass, type, force.
+ *  mass, type and force.
  *
- *  The class offers
+ *  A user may use this class to perform a particle simulation in discrete time steps by
+ *  updating the particles' position and speed based on their relative positions.
  */
 class Particle {
  private:
@@ -64,7 +65,7 @@ class Particle {
  public:
 
 
-  /**@name Constructors
+  /**@name Constructors */
   ///@{
   Particle() = default;
   /**
