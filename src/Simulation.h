@@ -42,7 +42,6 @@ class Simulation {
     constexpr double start_time = 0;
 
     // Load particles from file
-    loadParticles();
 
     double current_time = start_time;
     int iteration = 0;
