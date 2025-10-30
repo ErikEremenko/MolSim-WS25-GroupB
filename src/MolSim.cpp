@@ -14,22 +14,25 @@
 /**** forward declaration of the calculation functions ****/
 
 /**
- * calculate the force for all particles
+ * @brief calculate the force for all particles
  */
 void calculateF();
 
 /**
- * calculate the position for all particles
+ * @brief calculate the position for all particles
+ * @param delta_t value for the timestep
  */
 void calculateX(double delta_t);
 
 /**
  * calculate the position for all particles
+ * @param delta_t value for the timestep
  */
 void calculateV(double delta_t);
 
 /**
- * plot the particles to a xyz-file
+ * @brief plot the particles to a xyz-file
+ * @param Iteration number
  */
 void plotParticles(int iteration);
 
