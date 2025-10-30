@@ -9,12 +9,12 @@
 
 #include <vector>
 
-#include "Particle.h"
+#include "ParticleContainer.h"
 
 class FileReader {
  public:
   FileReader();
   virtual ~FileReader();
 
-  static void readFile(std::vector<Particle>& particles, char* filename);
+  static void readFile(ParticleContainer& particles, char* filename);
 };
