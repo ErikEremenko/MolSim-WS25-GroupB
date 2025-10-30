@@ -4,7 +4,8 @@ std::size_t ParticleContainer::size() const {
   return particles.size();
 }
 
-void ParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m) {
+void ParticleContainer::addParticle(std::array<double, 3> x,
+                                    std::array<double, 3> v, double m) {
   particles.emplace_back(x, v, m);
 }
 

@@ -21,7 +21,7 @@
 
 namespace outputWriter {
 
-void VTKWriter::plotParticles(const std::vector<Particle>& particles,
+void VTKWriter::plotParticles(const ParticleContainer& particles,
                               const std::string& filename,
                               const int iteration) {
   // create separate output directory

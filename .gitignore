@@ -42,3 +42,4 @@
 *.xyz
 CMakeFiles/
 cmake-build-default
+doxys_documentation

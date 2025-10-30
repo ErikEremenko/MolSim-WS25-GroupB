@@ -7,14 +7,16 @@
 #include "Particle.h"
 
 class ParticleContainer {
-private:
+ private:
   std::vector<Particle> particles;
-public:
+
+ public:
   ParticleContainer() = default;
   ~ParticleContainer() = default;
 
   [[nodiscard]] std::size_t size() const;
-  void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m);  // function called in FileReader
+  void addParticle(std::array<double, 3> x, std::array<double, 3> v,
+                   double m);  // function called in FileReader
 
   using iterator = std::vector<Particle>::iterator;
   using const_iterator = std::vector<Particle>::const_iterator;

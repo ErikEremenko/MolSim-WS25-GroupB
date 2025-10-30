@@ -8,6 +8,7 @@
 #pragma once
 #ifdef ENABLE_VTK_OUTPUT
 
+#include <ParticleContainer.h>
 #include <vtkSmartPointer.h>
 #include <vtkUnstructuredGrid.h>
 
@@ -37,7 +38,7 @@ class VTKWriter {
    * @param filename Output filename
    * @param iteration Current iteration number
    */
-  static void plotParticles(const std::vector<Particle>& particles,
+  static void plotParticles(const ParticleContainer& particles,
                             const std::string& filename, int iteration);
 };
 
