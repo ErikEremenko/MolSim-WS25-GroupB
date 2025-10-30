@@ -5,8 +5,8 @@
 #include <list>
 
 #include "FileReader.h"
-#include "outputWriter/XYZWriter.h"
 #include "outputWriter/VTKWriter.h"
+#include "outputWriter/XYZWriter.h"
 #include "utils/ArrayUtils.h"
 
 #define EPSILON 1e-12
@@ -60,7 +60,7 @@ int main(int argc, char *argsv[]) {
     // calculate new x
     calculateX(delta_t);
     for (auto &p : particles) {
-      p.set_old_f(p.getF()); // store f(t_n) for v update
+      p.set_old_f(p.getF());  // store f(t_n) for v update
     }
     // calculate new f
     calculateF();
@@ -81,8 +81,7 @@ int main(int argc, char *argsv[]) {
 }
 
 void calculateF() {
-
-  const double softening_squared = 1e-9;
+  const double soft_const = 1e-9;
 
   for (auto &p : particles) {
     p.set_f({});
@@ -92,75 +91,51 @@ void calculateF() {
   for (size_t i = 0; i < n_particles; ++i) {
     // index offset for Newton's third law
     for (size_t j = i + 1; j < n_particles; ++j) {
-      Particle &p_i = particles[i];
-      Particle &p_j = particles[j];
+      auto &p_i = particles[i];
+      auto &p_j = particles[j];
 
-      std::array<double, 3> dist{};
-      double norm_squared = 0.;
-      for (int k= 0; k < 3; ++k) {
-        dist[k] = p_j.getX()[k] - p_i.getX()[k];
-        norm_squared += dist[k] * dist[k];
-      }
-      if (norm_squared < EPSILON) {
+      const auto dist = p_j.getX() - p_i.getX();
+      const double norm = ArrayUtils::L2Norm(dist);
+      if (norm < EPSILON) {
         // avoid division by zero and numerical explosion when particles are at the same position or very close
         continue;
       }
-      double norm_squared_softened = norm_squared + softening_squared;
-      double norm = std::sqrt(norm_squared_softened);
-      double norm_cubed = norm_squared_softened * norm;
-      std::array<double, 3> F_vector{};
+      const double norm_squared_softened = norm * norm + soft_const;
+      const double norm_cubed_softened = norm_squared_softened * norm;
 
-      for (int k = 0; k < 3; ++k) {
-        F_vector[k] = (p_i.getM() * p_j.getM()) / norm_cubed * dist[k];
-      }
+      const auto F_vector = ((p_i.getM() * p_j.getM()) / norm_cubed_softened) * dist;
 
-      // apply forces using Newton's third law
-
-      auto force_i = p_i.getF();
-      auto force_j = p_j.getF();
-
-      for (int k = 0; k < 3; ++k) {
-        // actio est reactio
-        force_i[k] += F_vector[k];
-        force_j[k] -= F_vector[k];
-      }
-      p_i.set_f(force_i);
-      p_j.set_f(force_j);
+      // apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
+      auto F_i = p_i.getF();
+      auto F_j = p_j.getF();
+      // actio est reactio
+      F_i = F_i + F_vector;
+      F_j = F_j - F_vector;
+      p_i.set_f(F_i);
+      p_j.set_f(F_j);
     }
   }
 }
 
-void calculateX(double delta_t) {
+void calculateX(const double delta_t) {
   for (auto &p : particles) {
-    std::array<double, 3> x_curr = p.getX();
-    std::array<double, 3> x_new{};
-    double m_i = p.getM();
-    std::array<double, 3> F_i = p.getF();
-    std::array<double, 3> v_i = p.getV();
-    std::array<double, 3> a_i{};
-
-    // calculate component-wise acceleration and coordinates
-    for (int j = 0; j < 3; ++j) {
-      a_i[j] = F_i[j] / (2 * m_i);
-    }
-    for (int j = 0; j < 3; ++j) {
-      x_new[j] = x_curr[j] + delta_t * v_i[j] + (delta_t * delta_t) * a_i[j];
-    }
+    const auto x_curr = p.getX();
+    const double m = p.getM();
+    std::array<double, 3> F = p.getF();
+    std::array<double, 3> v = p.getV();
+    const auto a = (1.0 / m) * F;
+    const auto x_new = x_curr + delta_t * v + 0.5 * (delta_t * delta_t) * a;
     p.set_x(x_new);
   }
 }
 
-void calculateV(double delta_t) {
+void calculateV(const double delta_t) {
   for (auto &p : particles) {
-    std::array<double, 3> v_curr = p.getV();
-    std::array<double, 3> v_new{};
+    const auto v_curr = p.getV();
     const double m_i = p.getM();
-    std::array<double, 3> F_i = p.getF();
-    std::array<double, 3> F_i_old = p.getOldF();
-
-    for (int j = 0; j < 3; ++j) {
-      v_new[j] = v_curr[j] + delta_t * (F_i_old[j] + F_i[j]) / (2*m_i);
-    }
+    const auto F = p.getF();
+    const auto F_old = p.getOldF();
+    const auto v_new = v_curr + (delta_t / (2.0 * m_i)) * (F_old + F);
     p.set_v(v_new);
   }
 }
@@ -171,5 +146,4 @@ void plotParticles(const int iteration) {
   outputWriter::XYZWriter::plotParticles(particles, out_name, iteration);*/
   outputWriter::VTKWriter writer;
   writer.plotParticles(particles, out_name, iteration);
-
 }
