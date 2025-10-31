@@ -33,3 +33,10 @@ cmake -DBUILD_DOC=ON -DENABLE_VTK_OUTPUT=ON -DVTK_DIR=/usr/local/vtk/lib/cmake/v
 make -j 4 # compilation with (4) parallel jobs
 ./MolSim ../input/eingabe-sonne.txt # any appropriate input file 
 ```
+
+### Simulation
+./MolSim ../input/eingabe-sonne.txt # any appropriate input file  t_end delta_t # appropriate settings
+You will find the generated output files under build/output
+
+### Utility
+in scripts/ you can find a clang-format-project.sh to run clang format on the entire project and, which is used to recompile and build the project code rebuild.sh
