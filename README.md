@@ -12,7 +12,7 @@ MolSim GroupB
   Working directory: $ProjectFileDir$ (the project root containing input/ and src/)
 ```
 When using VTK output, follow these steps:
-- Open CMake settings in File>Settings>Build, Execution, Deployment>CMake 
+- Open CMake settings in File>Settings>Build, Execution, Deployment>CMake
 - Add -DENABLE_VTK_OUTPUT=ON to the CMake options field
 - Now you can run the MolSim Application using CMake
 
@@ -35,8 +35,11 @@ make -j 4 # compilation with (4) parallel jobs
 ```
 
 ### Simulation
-./MolSim ../input/eingabe-sonne.txt # any appropriate input file  t_end delta_t # appropriate settings
+```
+./MolSim ../input/eingabe-sonne.txt t_end delta_t # choose appropriate t_end, delta_t like 1000, 0.014 
+```
+
 You will find the generated output files under build/output
 
 ### Utility
-in scripts/ you can find a clang-format-project.sh to run clang format on the entire project and, which is used to recompile and build the project code rebuild.sh
+In scripts/ you can find a clang-format-project.sh, used run clang format on the entire project and rebuild.sh, which can be used to recompile and build the project code cleanly.
