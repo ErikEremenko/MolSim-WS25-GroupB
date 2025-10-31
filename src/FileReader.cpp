@@ -16,9 +16,9 @@ FileReader::FileReader() = default;
 
 FileReader::~FileReader() = default;
 
-void FileReader::readFile(std::list<Particle> &particles, char *filename) {
-  std::array<double, 3> x;
-  std::array<double, 3> v;
+void FileReader::readFile(ParticleContainer& particles, char* filename) {
+  std::array<double, 3> x{};
+  std::array<double, 3> v{};
   double m;
   int num_particles = 0;
 
@@ -43,18 +43,20 @@ void FileReader::readFile(std::list<Particle> &particles, char *filename) {
     for (int i = 0; i < num_particles; i++) {
       std::istringstream datastream(tmp_string);
 
-      for (auto &xj : x) {
+      for (auto& xj : x) {
         datastream >> xj;
       }
-      for (auto &vj : v) {
+      for (auto& vj : v) {
         datastream >> vj;
       }
       if (datastream.eof()) {
-        std::cout << "Error reading file: eof reached unexpectedly reading from line " << i << std::endl;
+        std::cout
+            << "Error reading file: eof reached unexpectedly reading from line "
+            << i << std::endl;
         exit(-1);
       }
       datastream >> m;
-      particles.emplace_back(x, v, m);
+      particles.addParticle(x, v, m);
 
       getline(input_file, tmp_string);
       std::cout << "Read line: " << tmp_string << std::endl;

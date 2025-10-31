@@ -45,4 +45,8 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 
 include(vtk)
 include(clang-format)
+
+option(BUILD_DOC "Build documentation using Doxygen" ON)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
+
 include(doxygen)
