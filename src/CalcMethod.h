@@ -18,17 +18,17 @@ class CalcMethod {
   ParticleContainer& particles;
   // TODO: Maybe move constructor and destructor to protected?
  public:
-/**
+  /**
  * @brief Constructor
  * @param particles ParticleContainer storing the particles used by the calculation method
  */
   explicit CalcMethod(ParticleContainer& particles) : particles(particles) {}
   virtual ~CalcMethod();
 
-  virtual void calculateX(const double dt) = 0;
-  virtual void calculateV(const double dt) = 0;
+  virtual void calculateX(double dt) = 0;
+  virtual void calculateV(double dt) = 0;
   virtual void calculateF(
-      const double dt) = 0;  // TODO: for now we don't need dt, maybe remove?
+      double dt) = 0;  // TODO: for now we don't need dt, maybe remove?
 };
 
 /**
@@ -38,7 +38,7 @@ class StormerVerletMethod : public CalcMethod {
  public:
   using CalcMethod::CalcMethod;
 
-  void calculateX(const double dt) override;
-  void calculateV(const double dt) override;
-  void calculateF(const double dt) override;
+  void calculateX(double dt) override;
+  void calculateV(double dt) override;
+  void calculateF(double dt) override;
 };

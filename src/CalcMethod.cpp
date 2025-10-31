@@ -41,8 +41,8 @@ void StormerVerletMethod::calculateF(const double dt) {
 
       const auto dist = p_j.getX() - p_i.getX();
       const double norm = ArrayUtils::L2Norm(dist);
-      if (norm < EPSILON) {
-        // avoid division by zero and numerical explosion when particles are at the same position or very close
+      if (norm == 0) {
+        // avoid division by zero
         continue;
       }
       const double norm_squared_softened =
