@@ -19,8 +19,8 @@ class Simulation {
     const std::string out_name("MD_vtk");
     /*outputWriter::XYZWriter writer;
             outputWriter::XYZWriter::plotParticles(particles, out_name, iteration);*/
-    outputWriter::VTKWriter writer;
-    writer.plotParticles(particles, out_name, iteration);
+    // outputWriter::VTKWriter writer;
+    outputWriter::VTKWriter::plotParticles(particles, out_name, iteration);
   }
 
  public:
@@ -34,8 +34,8 @@ class Simulation {
   ~Simulation() = default;
 
   void loadParticles() const {
-    FileReader fileReader;
-    fileReader.readFile(particles, filename);
+    // FileReader fileReader;
+    FileReader::readFile(particles, filename);
   }
 
   void run() const {
