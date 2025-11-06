@@ -20,7 +20,7 @@ class Simulation {
     /*outputWriter::XYZWriter writer;
             outputWriter::XYZWriter::plotParticles(particles, out_name, iteration);*/
     outputWriter::VTKWriter writer;
-    outputWriter::VTKWriter::plotParticles(particles, out_name, iteration);
+    writer.plotParticles(particles, out_name, iteration);
   }
 
  public:
