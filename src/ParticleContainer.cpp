@@ -9,6 +9,10 @@ void ParticleContainer::addParticle(std::array<double, 3> x,
   particles.emplace_back(x, v, m);
 }
 
+void ParticleContainer::addParticle(Particle p) {
+  particles.emplace_back(p.getX(), p.getV(), p.getM());
+}
+
 ParticleContainer::iterator ParticleContainer::begin() {
   return particles.begin();
 }

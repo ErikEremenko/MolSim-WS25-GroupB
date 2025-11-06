@@ -1,52 +1,62 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14)
+project(MolSim_GroupB VERSION 0.0.1 LANGUAGES CXX)
 
-# Enable C++17. You may raise the standard if you want
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# define project name, version
-project(MolSim_GroupB VERSION 0.0.1 LANGUAGES CXX)
-
-# let ccmake and cmake-gui offer the default build type options
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
+endif()
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel")
 
-# set Release as the default build type if it is not yet set.
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING
-            "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
-endif(NOT CMAKE_BUILD_TYPE)
-
-# collect all cpp files
-file(GLOB_RECURSE MY_SRC
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-    # header don't need to be included but this might be necessary for some IDEs
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
-)
-
-# create make target
-add_executable(MolSim ${MY_SRC})
-
-target_include_directories(MolSim
-        PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-
-# activate all compiler warnings. Clean up your code :P
-# depending on the compiler different flags are used
-target_compile_options(MolSim
-        PRIVATE
-            $<$<CXX_COMPILER_ID:GNU>:-Wall>
-            # disable some spam warnings for icpc...
-            $<$<CXX_COMPILER_ID:Intel>:-w3 -wd383,981,1418,1572,2259>
-)
-
-# add additional modules
+# --- Project Modules ---
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
-
-include(vtk)
+include(vtk)            # Defines molsim_enable_vtk()
 include(clang-format)
-
 option(BUILD_DOC "Build documentation using Doxygen" ON)
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
-
 include(doxygen)
+
+# --- Core Library ---
+# Contains all shared application logic
+file(GLOB_RECURSE SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+list(REMOVE_ITEM SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/Simulation.cpp") # Exclude main()
+
+add_library(molsim_core ${SRC_FILES})
+target_include_directories(molsim_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+target_compile_options(molsim_core PRIVATE
+        $<$<CXX_COMPILER_ID:GNU>:-Wall>
+        $<$<CXX_COMPILER_ID:Intel>:-w3 -wd383,981,1418,1572,2259>
+)
+
+# Apply VTK to the core library if enabled
+molsim_enable_vtk(molsim_core)
+
+# --- Main Application Executable ---
+add_executable(MolSim src/Simulation.cpp) # The file containing main()
+target_link_libraries(MolSim PRIVATE molsim_core)
+
+# --- Testing ---
+enable_testing()
+
+include(FetchContent)
+FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG f8d7d77c06936315286eb55f8de22cd23c188571
+)
+FetchContent_MakeAvailable(googletest)
+
+# Test executable
+add_executable(MolSimTests
+        test/ParticleContainerTest.cpp
+)
+
+target_link_libraries(MolSimTests PUBLIC
+        molsim_core      # This link now provides the include directory
+        GTest::gtest_main
+)
+
+# Discover tests for CTest
+include(GoogleTest)
+gtest_discover_tests(MolSimTests)
