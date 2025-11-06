@@ -16,6 +16,7 @@ int main(const int argc, char* argsv[]) {
     std::cout << "./molsym filename t_end delta_t" << std::endl;
     return 1;
   }
+
   ParticleContainer particles;
   StormerVerletMethod svm(particles);
 
