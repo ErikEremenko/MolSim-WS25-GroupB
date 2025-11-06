@@ -6,7 +6,7 @@ on:
   push:
     branches: [ "master", "Assignment2",  "CI-gtest"]
   pull_request:
-    branches: [ "master", "Assignment2" "CI-gtest"]
+    branches: [ "master", "Assignment2", "CI-gtest"]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
