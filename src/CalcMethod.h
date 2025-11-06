@@ -34,7 +34,7 @@ class CalcMethod {
 /**
  * @brief Stormer-Verlet calculation method
  */
-class StormerVerletMethod : public CalcMethod {
+class StormerVerletMethod final : public CalcMethod {
  public:
   using CalcMethod::CalcMethod;
 

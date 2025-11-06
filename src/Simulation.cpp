@@ -20,8 +20,8 @@ int main(const int argc, char* argsv[]) {
   ParticleContainer particles;
   StormerVerletMethod svm(particles);
 
-  Simulation simulation(argsv[1], std::stod(argsv[2]), std::stod(argsv[3]),
-                        particles, svm);
+  const Simulation simulation(argsv[1], std::stod(argsv[2]),
+                              std::stod(argsv[3]), particles, svm);
   simulation.loadParticles();
   simulation.run();
 
