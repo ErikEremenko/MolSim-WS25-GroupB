@@ -15,7 +15,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       # Install VTK and required deps on Ubuntu 24.04
       - name: Install APT packages
         run: |
