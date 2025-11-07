@@ -21,7 +21,7 @@ jobs:
       - name: Cache and install APT packages
         uses: tecolicom/actions-use-apt-tools@v1
         with:
-          tools: libfmt9 doxygen vtk9
+          tools: libfmt9 doxygen vtk9 libvtk9-dev
           cache: yes
           key: ${{ runner.os }}-apt-v2
 
