@@ -39,7 +39,8 @@ class ParticleContainer {
    * @param m mass
    */
   void addParticle(std::array<double, 3> x, std::array<double, 3> v,
-                   double m);  // function called in FileReader
+                   double m);    // function called in FileReader
+  void addParticle(Particle p);  // function called in FileReader
 
   using iterator = std::vector<Particle>::iterator;
   using const_iterator = std::vector<Particle>::const_iterator;
