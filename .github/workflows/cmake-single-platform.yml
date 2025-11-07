@@ -21,9 +21,9 @@ jobs:
       - name: Cache and install APT packages
         uses: tecolicom/actions-use-apt-tools@v1
         with:
-          tools: libfmt9 doxygen vtk9 libvtk9-dev libvtk9.1t64
+          tools: libfmt9 doxygen vtk9 libvtk9-dev libvtk9.1t64 libtbb-dev liblzma-dev
           cache: yes
-          key: ${{ runner.os }}-apt-v4
+          key: ${{ runner.os }}-apt-v5
 
       # Cache FetchContent downloads
       - name: Cache FetchContent
@@ -40,14 +40,6 @@ jobs:
           # Use the environment variable for the directory
           key: ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-${{ github.sha }}
           restore-keys: ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-
-
-      # Cache the CMake build directory
-      - name: Cache Build Directory
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/build
-          key: ${{ runner.os }}-build-${{ env.BUILD_TYPE }}-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-build-${{ env.BUILD_TYPE }}-
 
       - name: Configure CMake
         run: >
