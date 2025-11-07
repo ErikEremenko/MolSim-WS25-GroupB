@@ -8,6 +8,8 @@ on:
 
 env:
   BUILD_TYPE: Debug
+  # Define the ccache directory as an environment variable
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
 
 jobs:
   build:
@@ -31,15 +33,21 @@ jobs:
           key: ${{ runner.os }}-fc-${{ hashFiles('**/CMakeLists.txt','cmake/**','**/FetchContent_*.cmake') }}
           restore-keys: ${{ runner.os }}-fc-
 
-      # Setup ccache and cache ~/.ccache
-      - name: ccache
+      # Setup and cache ccache
+      - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1.2
-      - name: Cache ccache
+        with:
+          # Use the environment variable for the directory
+          key: ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-
+
+      # Cache the CMake build directory
+      - name: Cache Build Directory
         uses: actions/cache@v4
         with:
-          path: ~/.ccache
-          key: ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-${{ hashFiles('**/*.cpp','**/*.h','**/CMakeLists.txt','cmake/**') }}
-          restore-keys: ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-
+          path: ${{ github.workspace }}/build
+          key: ${{ runner.os }}-build-${{ env.BUILD_TYPE }}-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-build-${{ env.BUILD_TYPE }}-
 
       - name: Configure CMake
         run: >
@@ -54,7 +62,12 @@ jobs:
           -DFETCHCONTENT_BASE_DIR=${{ github.workspace }}/.fc
 
       - name: Build
-        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+        run: |
+          # Show ccache stats before the build
+          ccache -s
+          cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+          # Show ccache stats after the build to see the hit/miss ratio
+          ccache -s
 
       - name: Test
         working-directory: ${{github.workspace}}/build
