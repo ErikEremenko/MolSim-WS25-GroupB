@@ -8,24 +8,24 @@ on:
 
 env:
   BUILD_TYPE: Debug
-  # Define the ccache directory as an env variable
-  CCACHE_DIR: ${{ github.workspace }}/.ccache
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # Cache and install APT packages (doxygen, VTK)
-      - name: Cache and install APT packages
-        uses: tecolicom/actions-use-apt-tools@v1
-        with:
-          tools: libfmt9 doxygen
-          cache: yes
-          key: ${{ runner.os }}-apt-v7
+      # Install VTK and required deps on Ubuntu 24.04
+      - name: Install APT packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ccache libfmt9 doxygen \
+            libvtk9-dev libvtk9.1t64 vtk9 \
+            libtbb-dev liblzma-dev
 
-      # Cache FetchContent downloads
+      # Optional: cache FetchContent downloads
       - name: Cache FetchContent
         uses: actions/cache@v4
         with:
@@ -33,32 +33,19 @@ jobs:
           key: ${{ runner.os }}-fc-${{ hashFiles('**/CMakeLists.txt','cmake/**','**/FetchContent_*.cmake') }}
           restore-keys: ${{ runner.os }}-fc-
 
-      # Setup and cache ccache
-      - name: Setup ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          # Use the environment variable for the directory
-          key: ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-
-
       - name: Configure CMake
         run: >
-          cmake -B ${{github.workspace}}/build
+          cmake -S . -B ${{github.workspace}}/build
           -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
           -DCMAKE_C_COMPILER_LAUNCHER=ccache
           -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-          -DCMAKE_CXX_FLAGS="-fsanitize=address -g"
           -DBUILD_DOC=ON
-          -DENABLE_VTK_OUTPUT=OFF
+          -DENABLE_VTK_OUTPUT=ON
           -DFETCHCONTENT_BASE_DIR=${{ github.workspace }}/.fc
+          -U "VTK_*"
 
       - name: Build
-        run: |
-          # Show ccache stats before the build
-          ccache -s
-          cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-          # Show ccache stats after the build to see the hit/miss ratio
-          ccache -s
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
       - name: Test
         working-directory: ${{github.workspace}}/build
