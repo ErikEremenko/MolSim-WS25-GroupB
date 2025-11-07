@@ -9,14 +9,14 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel")
 
-# --- Project Modules ---
+# Project Modules
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
-include(vtk)            # Defines molsim_enable_vtk()
+include(vtk)
 include(clang-format)
 option(BUILD_DOC "Build documentation using Doxygen" ON)
 include(doxygen)
 
-# --- Core Library ---
+# Core Library
 # Contains all shared application logic
 file(GLOB_RECURSE SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(REMOVE_ITEM SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/Simulation.cpp") # Exclude main()
@@ -32,18 +32,19 @@ target_compile_options(molsim_core PRIVATE
 # Apply VTK to the core library if enabled
 molsim_enable_vtk(molsim_core)
 
-# --- Main Application Executable ---
+# Main Application Executable
 add_executable(MolSim src/Simulation.cpp) # The file containing main()
 target_link_libraries(MolSim PRIVATE molsim_core)
 
-# --- Testing ---
+# Testing
 enable_testing()
-
+include(GoogleTest)
 include(FetchContent)
+
 FetchContent_Declare(
         googletest
         GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG f8d7d77c06936315286eb55f8de22cd23c188571
+        GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723
 )
 FetchContent_MakeAvailable(googletest)
 
@@ -53,10 +54,8 @@ add_executable(MolSimTests
 )
 
 target_link_libraries(MolSimTests PUBLIC
-        molsim_core      # This link now provides the include directory
+        molsim_core
         GTest::gtest_main
 )
 
-# Discover tests for CTest
-include(GoogleTest)
 gtest_discover_tests(MolSimTests)
