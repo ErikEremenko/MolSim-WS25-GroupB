@@ -4,8 +4,6 @@ if(NOT DEFINED BUILD_DOC)
     option(BUILD_DOC "Build documentation using Doxygen" ON)
 endif()
 
-find_package(Doxygen REQUIRED)
-
 if(BUILD_DOC)
     find_package(Doxygen REQUIRED) # Only find Doxygen docs are actually needed
 
