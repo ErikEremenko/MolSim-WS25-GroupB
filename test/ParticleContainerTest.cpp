@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-
 #include "ParticleContainer.h"
 
 // Check if ParticleContainer saves new particles
