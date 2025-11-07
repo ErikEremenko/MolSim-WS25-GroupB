@@ -21,9 +21,9 @@ jobs:
       - name: Cache and install APT packages
         uses: tecolicom/actions-use-apt-tools@v1
         with:
-          tools: libfmt9 doxygen vtk9 libvtk9-dev
+          tools: libfmt9 doxygen vtk9 libvtk9-dev libvtk9.1t64
           cache: yes
-          key: ${{ runner.os }}-apt-v3
+          key: ${{ runner.os }}-apt-v4
 
       # Cache FetchContent downloads
       - name: Cache FetchContent
@@ -59,6 +59,7 @@ jobs:
           -DBUILD_DOC=ON
           -DENABLE_VTK_OUTPUT=ON
           -DFETCHCONTENT_BASE_DIR=${{ github.workspace }}/.fc
+          -U "VTK_*"
 
       - name: Build
         run: |
