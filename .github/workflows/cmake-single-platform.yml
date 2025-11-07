@@ -15,22 +15,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      # Install VTK and required deps on Ubuntu 24.04
       - name: Install APT packages
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             ccache libfmt9 doxygen \
             libvtk9-dev libvtk9.1t64 vtk9 \
-            libtbb-dev liblzma-dev
+            libtbb-dev liblzma-dev \
+            libgl1 mesa-common-dev
 
-      # Optional: cache FetchContent downloads
       - name: Cache FetchContent
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.fc
           key: ${{ runner.os }}-fc-${{ hashFiles('**/CMakeLists.txt','cmake/**','**/FetchContent_*.cmake') }}
           restore-keys: ${{ runner.os }}-fc-
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-${{ hashFiles('**/*.cpp','**/*.h','**/CMakeLists.txt','cmake/**') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-
+            ${{ runner.os }}-ccache-
 
       - name: Configure CMake
         run: >
