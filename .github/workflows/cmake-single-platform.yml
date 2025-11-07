@@ -5,7 +5,6 @@ on:
     branches: [ "master", "Assignment2", "CI-gtest" ]
   pull_request:
     branches: [ "master", "Assignment2", "CI-gtest" ]
-
 env:
   BUILD_TYPE: Debug
   # Define the ccache directory as an env variable
