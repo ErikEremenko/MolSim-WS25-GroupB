@@ -23,7 +23,7 @@ jobs:
         with:
           tools: libfmt9 doxygen libvtk9-dev
           cache: yes
-          key: ${{ runner.os }}-apt-v1
+          key: ${{ runner.os }}-apt-v2
 
       # Cache FetchContent downloads
       - name: Cache FetchContent
