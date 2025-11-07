@@ -7,6 +7,8 @@ endif()
 find_package(Doxygen REQUIRED)
 
 if(BUILD_DOC)
+    find_package(Doxygen REQUIRED) # Only find Doxygen docs are actually needed
+
     set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile)
     set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/docs)
 
