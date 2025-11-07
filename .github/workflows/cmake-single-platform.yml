@@ -8,7 +8,7 @@ on:
 
 env:
   BUILD_TYPE: Debug
-  # Define the ccache directory as an environment variable
+  # Define the ccache directory as an env variable
   CCACHE_DIR: ${{ github.workspace }}/.ccache
 
 jobs:
