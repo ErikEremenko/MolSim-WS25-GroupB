@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CalcMethod.h"
+#include "FileCuboidReader.h"
 #include "FileReader.h"
 #include "outputWriter/VTKWriter.h"
 
@@ -28,7 +29,9 @@ class Simulation {
         calcMethod(calcMethod) {}
   ~Simulation() = default;
 
-  void loadParticles() const { FileReader::readFile(particles, filename); }
+  void loadParticles() const {
+    FileCuboidReader::readFile(particles, filename);
+  }
 
   void run() const {
     constexpr double start_time = 0;
@@ -46,7 +49,7 @@ class Simulation {
         p.setOldF(p.getF());  // store f(t_n) for v update
       }
       // calculate new f
-      calcMethod.calculateGravityF();
+      calcMethod.calculateLennardJonesF(5.0, 1.0);
       // calculate new v
       calcMethod.calculateV(dt);
 

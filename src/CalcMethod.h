@@ -37,6 +37,8 @@ class CalcMethod {
 * @brief Calculates the new force that acts on the particle
 */
   virtual void calculateGravityF() = 0;
+  // TODO: refactor force calculation
+  virtual void calculateLennardJonesF(double epsilon, double sigma) = 0;
 };
 
 /**
@@ -49,5 +51,5 @@ class StormerVerletMethod final : public CalcMethod {
   void calculateX(double dt) override;
   void calculateV(double dt) override;
   void calculateGravityF() override;
-  void calculateLennardJonesF(double epsilon, double sigma) const;
+  void calculateLennardJonesF(double epsilon, double sigma) override;
 };

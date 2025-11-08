@@ -1,33 +1,26 @@
-# make doc_doxygen optional if someone does not have / like doxygen
+option(BUILD_DOC "Build documentation using Doxygen" ON)
 
-if(NOT DEFINED BUILD_DOC)
-    option(BUILD_DOC "Build documentation using Doxygen" ON)
-endif()
+find_package(Doxygen QUIET COMPONENTS dot) # doxygen not required
 
-if(BUILD_DOC)
-    find_package(Doxygen REQUIRED) # Only find Doxygen docs are actually needed
+if(BUILD_DOC AND Doxygen_FOUND)
+    set(DOXYGEN_USE_MDFILE_AS_MAINPAGE "${PROJECT_SOURCE_DIR}/README.md")
+    set(DOXYGEN_FILE_PATTERNS "*.h;*.hpp;*.c;*.cc;*.cpp;*.md")
+    set(DOXYGEN_RECURSIVE YES)
+    set(DOXYGEN_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/doxys_documentation")
 
-    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile)
-    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/docs)
-
-    add_custom_command(
-            OUTPUT ${DOXYGEN_OUT}/html/index.html
-            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_IN}
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-            COMMENT "Generating API documentation with Doxygen"
-            VERBATIM
+    doxygen_add_docs(doc_doxygen
+            "${PROJECT_SOURCE_DIR}/src"
+            "${PROJECT_SOURCE_DIR}/README.md"
+            WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+            COMMENT "Generate API documentation with Doxygen"
     )
 
-    add_custom_target(doc
-            DEPENDS ${DOXYGEN_OUT}/html/index.html
-            COMMENT "Documentation generated in ${DOXYGEN_OUT}"
+    set_target_properties(doc_doxygen PROPERTIES
+            EXCLUDE_FROM_ALL TRUE
+            EXCLUDE_FROM_DEFAULT_BUILD TRUE
     )
 
-    set_target_properties(doc PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD YES)
-
-    add_custom_target(doxygen DEPENDS doc)
-
-    message(STATUS "Doxygen target 'doc' (or 'doxygen') added. Run 'make doc' to generate docs in ${DOXYGEN_OUT}.")
+    message(STATUS "Doxygen target 'doc_doxygen' added. Run 'make doc_doxygen' to generate docs in ${DOXYGEN_OUTPUT_DIRECTORY}.")
 else()
     message(STATUS "Doxygen target disabled (BUILD_DOC=OFF).")
 endif()
