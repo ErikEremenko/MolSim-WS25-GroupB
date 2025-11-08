@@ -15,14 +15,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Install APT packages
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            ccache libfmt9 doxygen \
-            libvtk9-dev libvtk9.1t64 vtk9 \
-            libtbb-dev liblzma-dev \
+
+      - name: Cache + install APT packages
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: >
+            ccache libfmt9 doxygen
+            libvtk9-dev libvtk9.1t64 vtk9
+            libtbb-dev liblzma-dev
             libgl1 mesa-common-dev
+          version: ${{ runner.os }}-${{ runner.arch }}   # bump cache
+          execute_install_scripts: true
 
       - name: Cache FetchContent
         uses: actions/cache@v4
@@ -52,6 +55,7 @@ jobs:
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
       - name: Test
         working-directory: ${{github.workspace}}/build
         run: ctest -C ${{env.BUILD_TYPE}} -V
