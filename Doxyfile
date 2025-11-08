@@ -51,7 +51,6 @@ CREATE_SUBDIRS         = NO
 
 
 MARKDOWN_SUPPORT = YES
-USE_MDFILE_AS_MAINPAGE = README.md
 GENERATE_TREEVIEW      = YES
 PROJECT_BRIEF = "The Molecular Dynamics Simulation of Group B"
 

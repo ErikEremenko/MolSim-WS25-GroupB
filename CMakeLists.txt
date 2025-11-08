@@ -24,7 +24,9 @@ file(GLOB_RECURSE MY_SRC
 )
 
 # create make target
-add_executable(MolSim ${MY_SRC})
+add_executable(MolSim ${MY_SRC}
+        src/main.cpp
+)
 
 target_include_directories(MolSim
         PRIVATE
@@ -47,6 +49,5 @@ include(vtk)
 include(clang-format)
 
 option(BUILD_DOC "Build documentation using Doxygen" ON)
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 
 include(doxygen)

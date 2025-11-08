@@ -3,10 +3,8 @@
 #include "CalcMethod.h"
 #include "FileReader.h"
 #include "outputWriter/VTKWriter.h"
-#include "outputWriter/XYZWriter.h"
 
 class Simulation {
- private:
   char* filename;
   const double end_time;
   const double dt;
@@ -17,10 +15,7 @@ class Simulation {
 
   void plotParticles(const int iteration) const {
     const std::string out_name("MD_vtk");
-    /*outputWriter::XYZWriter writer;
-            outputWriter::XYZWriter::plotParticles(particles, out_name, iteration);*/
-    outputWriter::VTKWriter writer;
-    writer.plotParticles(particles, out_name, iteration);
+    outputWriter::VTKWriter::plotParticles(particles, out_name, iteration);
   }
 
  public:
@@ -33,10 +28,7 @@ class Simulation {
         calcMethod(calcMethod) {}
   ~Simulation() = default;
 
-  void loadParticles() const {
-    FileReader fileReader;
-    fileReader.readFile(particles, filename);
-  }
+  void loadParticles() const { FileReader::readFile(particles, filename); }
 
   void run() const {
     constexpr double start_time = 0;
@@ -54,7 +46,7 @@ class Simulation {
         p.setOldF(p.getF());  // store f(t_n) for v update
       }
       // calculate new f
-      calcMethod.calculateF(dt);
+      calcMethod.calculateF();
       // calculate new v
       calcMethod.calculateV(dt);
 
@@ -62,8 +54,6 @@ class Simulation {
       if (iteration % 10 == 0) {
         plotParticles(iteration);
       }
-      // std::cout << "Iteration " << iteration << " finished." << std::endl;
-
       current_time += dt;
     }
   }

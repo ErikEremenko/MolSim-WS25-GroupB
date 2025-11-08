@@ -26,7 +26,7 @@ void StormerVerletMethod::calculateV(const double dt) {
   }
 }
 
-void StormerVerletMethod::calculateF(const double dt) {
+void StormerVerletMethod::calculateF() {
   for (auto& p : particles) {
     p.setF({});
   }
@@ -35,7 +35,6 @@ void StormerVerletMethod::calculateF(const double dt) {
   for (size_t i = 0; i < n_particles; ++i) {
     // index offset for Newton's third law
     for (size_t j = i + 1; j < n_particles; ++j) {
-      constexpr double norm_squared_soft_const = 1e-9;
       auto& p_i = particles[i];
       auto& p_j = particles[j];
 
@@ -43,23 +42,20 @@ void StormerVerletMethod::calculateF(const double dt) {
       const double norm = ArrayUtils::L2Norm(dist);
       if (norm == 0) {
         // avoid division by zero
-        continue;
+        throw std::overflow_error(
+            "Calculated a zero norm between particles. This is likely caused "
+            "by an incorrect initialization of the Simulation.");
       }
-      const double norm_squared_softened =
-          norm * norm + norm_squared_soft_const;
-      const double norm_cubed_softened = norm_squared_softened * norm;
+      const double norm3 = norm * norm * norm;
 
-      const auto F_vector =
-          ((p_i.getM() * p_j.getM()) / norm_cubed_softened) * dist;
+      const auto F_vector = ((p_i.getM() * p_j.getM()) / norm3) * dist;
 
       // apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
       auto F_i = p_i.getF();
       auto F_j = p_j.getF();
       // actio est reactio
-      F_i = F_i + F_vector;
-      F_j = F_j - F_vector;
-      p_i.setF(F_i);
-      p_j.setF(F_j);
+      p_i.setF(F_i + F_vector);
+      p_j.setF(F_j - F_vector);
     }
   }
 }

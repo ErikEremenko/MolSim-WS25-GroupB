@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include <vector>
-
 #include "ParticleContainer.h"
 
 class FileReader {

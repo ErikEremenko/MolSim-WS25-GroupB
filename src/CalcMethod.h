@@ -5,8 +5,6 @@
 
 #pragma once
 
-#define EPSILON 1e-12  // TODO: We could move this to a 'defines.h' header
-
 #include "ParticleContainer.h"
 /**
  * @class CalcMethod
@@ -16,7 +14,7 @@
 class CalcMethod {
  protected:
   ParticleContainer& particles;
-  // TODO: Maybe move constructor and destructor to protected?
+
  public:
   /**
  * @brief Constructor
@@ -25,20 +23,30 @@ class CalcMethod {
   explicit CalcMethod(ParticleContainer& particles) : particles(particles) {}
   virtual ~CalcMethod();
 
+  /**
+ * @brief Calculates the new x-coordinate of the particle
+ * @param dt double representing the Velocity-Störmer-Verlet time step (delta t)
+ */
   virtual void calculateX(double dt) = 0;
+  /**
+* @brief Calculates the new velocity of the particle
+* @param dt double representing the Velocity-Störmer-Verlet time step (delta t)
+*/
   virtual void calculateV(double dt) = 0;
-  virtual void calculateF(
-      double dt) = 0;  // TODO: for now we don't need dt, maybe remove?
+  /**
+* @brief Calculates the new force that acts on the particle
+*/
+  virtual void calculateF() = 0;
 };
 
 /**
  * @brief Stormer-Verlet calculation method
  */
-class StormerVerletMethod : public CalcMethod {
+class StormerVerletMethod final : public CalcMethod {
  public:
   using CalcMethod::CalcMethod;
 
   void calculateX(double dt) override;
   void calculateV(double dt) override;
-  void calculateF(double dt) override;
+  void calculateF() override;
 };
