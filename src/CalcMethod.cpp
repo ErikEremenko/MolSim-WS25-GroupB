@@ -69,6 +69,8 @@ void StormerVerletMethod::calculateLennardJonesF(const double epsilon,
   const double sigma2 = sigma * sigma;
   const double sigma6 = sigma2 * sigma2 * sigma2;
 
+  // shared accumulation buffer
+  std::vector<std::array<double, 3>> F_buf(n_particles, {0.0, 0.0, 0.0});
 #pragma omp parallel
   {
 
@@ -76,8 +78,8 @@ void StormerVerletMethod::calculateLennardJonesF(const double epsilon,
     for (auto& p : particles) {
       p.setF({});
     }
-    // accumulation buffer
-    std::vector<std::array<double, 3>> F_buf(n_particles, {0.0, 0.0, 0.0});
+    // local buffer
+    std::vector<std::array<double,3>> local(n_particles, {0.0,0.0,0.0});
 #pragma omp for schedule(guided)
     for (size_t i = 0; i < n_particles; ++i) {
       for (size_t j = i + 1; j < n_particles; ++j) {
@@ -102,13 +104,20 @@ void StormerVerletMethod::calculateLennardJonesF(const double epsilon,
         const auto F_vector =
             (24.0 * epsilon) * inv_norm2 *
             (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12) * dist;
-        F_buf[i] = F_buf[i] + F_vector;
-        F_buf[j] = F_buf[j] - F_vector;
+        local[i] = local[i] + F_vector;
+        local[j] = local[j] - F_vector;
+      }
+    }
+    // aggregate partial calculations of individual threads
+#pragma omp critical
+    {
+      for (size_t k = 0; k < n_particles; ++k) {
+        F_buf[k] = F_buf[k] + local[k];
       }
     }
 
     // load buffered forces into particles
-#pragma omp for
+#pragma omp parallel for
     for (size_t i = 0; i < n_particles; ++i) {
       particles[i].setF(particles[i].getF() + F_buf[i]);
     }
