@@ -46,7 +46,7 @@ class Simulation {
         p.setOldF(p.getF());  // store f(t_n) for v update
       }
       // calculate new f
-      calcMethod.calculateF();
+      calcMethod.calculateGravityF();
       // calculate new v
       calcMethod.calculateV(dt);
 

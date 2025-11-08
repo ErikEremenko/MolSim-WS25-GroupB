@@ -36,7 +36,7 @@ class CalcMethod {
   /**
 * @brief Calculates the new force that acts on the particle
 */
-  virtual void calculateF() = 0;
+  virtual void calculateGravityF() = 0;
 };
 
 /**
@@ -48,5 +48,5 @@ class StormerVerletMethod final : public CalcMethod {
 
   void calculateX(double dt) override;
   void calculateV(double dt) override;
-  void calculateF() override;
+  void calculateGravityF() override;
 };
