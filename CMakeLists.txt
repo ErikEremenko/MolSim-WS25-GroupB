@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # define project name, version
-project(PSEMolDyn VERSION 0.0.1 LANGUAGES CXX)
+project(MolSim_GroupB VERSION 0.0.1 LANGUAGES CXX)
 
 # let ccmake and cmake-gui offer the default build type options
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel")
@@ -24,7 +24,9 @@ file(GLOB_RECURSE MY_SRC
 )
 
 # create make target
-add_executable(MolSim ${MY_SRC})
+add_executable(MolSim ${MY_SRC}
+        src/main.cpp
+)
 
 target_include_directories(MolSim
         PRIVATE
@@ -45,4 +47,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 
 include(vtk)
 include(clang-format)
+
+option(BUILD_DOC "Build documentation using Doxygen" ON)
+
 include(doxygen)
