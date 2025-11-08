@@ -9,6 +9,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel")
 
+find_package(OpenMP REQUIRED)
 # Project Modules
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 include(vtk)
@@ -23,6 +24,7 @@ list(REMOVE_ITEM SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp") # Exclude
 
 add_library(molsim_core ${SRC_FILES})
 target_include_directories(molsim_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(molsim_core PUBLIC OpenMP::OpenMP_CXX)
 
 target_compile_options(molsim_core PRIVATE
         $<$<CXX_COMPILER_ID:GNU>:-Wall>
