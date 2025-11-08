@@ -26,8 +26,7 @@ void StormerVerletMethod::calculateV(const double dt) {
   }
 }
 
-void StormerVerletMethod::calculateF() {
-void StormerVerletMethod::calculateGravityF(const double dt) {
+void StormerVerletMethod::calculateGravityF() {
   for (auto& p : particles) {
     p.setF({});
   }

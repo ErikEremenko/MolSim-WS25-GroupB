@@ -19,7 +19,7 @@ include(doxygen)
 # Core Library
 # Contains all shared application logic
 file(GLOB_RECURSE SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
-list(REMOVE_ITEM SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/Simulation.cpp") # Exclude main()
+list(REMOVE_ITEM SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp") # Exclude main()
 
 add_library(molsim_core ${SRC_FILES})
 target_include_directories(molsim_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -33,7 +33,7 @@ target_compile_options(molsim_core PRIVATE
 molsim_enable_vtk(molsim_core)
 
 # Main Application Executable
-add_executable(MolSim src/Simulation.cpp) # The file containing main()
+add_executable(MolSim src/main.cpp) # The file containing main()
 target_link_libraries(MolSim PRIVATE molsim_core)
 
 # Testing

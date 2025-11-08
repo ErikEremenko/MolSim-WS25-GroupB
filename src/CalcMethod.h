@@ -49,4 +49,5 @@ class StormerVerletMethod final : public CalcMethod {
   void calculateX(double dt) override;
   void calculateV(double dt) override;
   void calculateGravityF() override;
+  void calculateLennardJonesF(double epsilon, double sigma) const;
 };
