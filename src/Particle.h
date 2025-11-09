@@ -101,7 +101,7 @@ class Particle {
   /** @brief get velocity of particle */
   [[nodiscard]] const std::array<double, 3>& getV() const;
   /** @brief get force effective on particle */
-  [[nodiscard]] const std::array<double, 3>& getF() const;
+  [[nodiscard]] std::array<double, 3>& getF();
   /** @brief get old force effective on particle */
   [[nodiscard]] const std::array<double, 3>& getOldF() const;
   /** @brief get mass of particle */

@@ -6,7 +6,8 @@ CalcMethod::~CalcMethod() = default;
 
 void StormerVerletMethod::calculateX(const double dt) {
 #pragma omp parallel for
-  for (auto& p : particles) {
+  for (size_t i = 0; i < particles.size(); ++i) {
+    auto& p = particles[i];
     const auto x_curr = p.getX();
     const double m = p.getM();
     const auto F = p.getF();
@@ -19,7 +20,8 @@ void StormerVerletMethod::calculateX(const double dt) {
 
 void StormerVerletMethod::calculateV(const double dt) {
 #pragma omp parallel for
-  for (auto& p : particles) {
+  for (size_t i = 0; i < particles.size(); ++i) {
+    auto& p = particles[i];
     const auto v_curr = p.getV();
     const double m_i = p.getM();
     const auto F = p.getF();
@@ -69,57 +71,49 @@ void StormerVerletMethod::calculateLennardJonesF(const double epsilon,
   const double sigma2 = sigma * sigma;
   const double sigma6 = sigma2 * sigma2 * sigma2;
 
-  // shared accumulation buffer
-  std::vector<std::array<double, 3>> F_buf(n_particles, {0.0, 0.0, 0.0});
-#pragma omp parallel
-  {
-
-#pragma omp for
-    for (auto& p : particles) {
-      p.setF({});
-    }
-    // local buffer
-    std::vector<std::array<double,3>> local(n_particles, {0.0,0.0,0.0});
-#pragma omp for schedule(guided)
-    for (size_t i = 0; i < n_particles; ++i) {
-      for (size_t j = i + 1; j < n_particles; ++j) {
-        auto& p_i = particles[i];
-        auto& p_j = particles[j];
-
-        const auto dist = p_j.getX() - p_i.getX();
-        const double norm = ArrayUtils::L2Norm(dist);
-        if (norm == 0) {
-          // avoid division by zero
-          throw std::overflow_error(
-              "Calculated a zero norm between particles. This is likely caused "
-              "by an incorrect initialization of the Simulation.");
-        }
-        const double inv_norm2 = 1.0 / (norm * norm);
-        const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
-
-        const double crossing_norm_quot_6 = sigma6 * inv_norm6;
-        const double crossing_norm_quot_12 =
-            crossing_norm_quot_6 * crossing_norm_quot_6;
-
-        const auto F_vector =
-            (24.0 * epsilon) * inv_norm2 *
-            (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12) * dist;
-        local[i] = local[i] + F_vector;
-        local[j] = local[j] - F_vector;
-      }
-    }
-    // aggregate partial calculations of individual threads
-#pragma omp critical
-    {
-      for (size_t k = 0; k < n_particles; ++k) {
-        F_buf[k] = F_buf[k] + local[k];
-      }
-    }
-
-    // load buffered forces into particles
 #pragma omp parallel for
-    for (size_t i = 0; i < n_particles; ++i) {
-      particles[i].setF(particles[i].getF() + F_buf[i]);
+  for (auto& p : particles) {
+    p.setF({});
+  }
+#pragma omp parallel for schedule(guided)
+  for (size_t i = 0; i < n_particles; ++i) {
+    for (size_t j = i + 1; j < n_particles; ++j) {
+      auto& p_i = particles[i];
+      auto& p_j = particles[j];
+
+      const auto dist = p_j.getX() - p_i.getX();
+      const double norm = ArrayUtils::L2Norm(dist);
+      if (norm == 0) {
+        // avoid division by zero
+        throw std::overflow_error(
+            "Calculated a zero norm between particles. This is likely caused "
+            "by an incorrect initialization of the Simulation.");
+      }
+      const double inv_norm2 = 1.0 / (norm * norm);
+      const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
+
+      const double crossing_norm_quot_6 = sigma6 * inv_norm6;
+      const double crossing_norm_quot_12 =
+          crossing_norm_quot_6 * crossing_norm_quot_6;
+
+      const auto F_vector =
+          (24.0 * epsilon) * inv_norm2 *
+          (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12) * dist;
+
+      // update forces using atomic operations
+#pragma omp atomic
+      p_i.getF()[0] += F_vector[0];
+#pragma omp atomic
+      p_i.getF()[1] += F_vector[1];
+#pragma omp atomic
+      p_i.getF()[2] += F_vector[2];
+
+#pragma omp atomic
+      p_j.getF()[0] -= F_vector[0];
+#pragma omp atomic
+      p_j.getF()[1] -= F_vector[1];
+#pragma omp atomic
+      p_j.getF()[2] -= F_vector[2];
     }
   }
 }

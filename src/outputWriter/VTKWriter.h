@@ -38,7 +38,7 @@ class VTKWriter {
    * @param filename Output filename
    * @param iteration Current iteration number
    */
-  static void plotParticles(const ParticleContainer& particles,
+  static void plotParticles(ParticleContainer& particles,
                             const std::string& filename, int iteration);
 };
 

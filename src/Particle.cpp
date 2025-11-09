@@ -37,7 +37,7 @@ const std::array<double, 3>& Particle::getV() const {
   return v;
 }
 
-const std::array<double, 3>& Particle::getF() const {
+std::array<double, 3>& Particle::getF() {
   return f;
 }
 
