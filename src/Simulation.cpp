@@ -1,13 +1,27 @@
 #include "Simulation.h"
 
-Simulation::Simulation(char* filename, const double end_time, const double dt,
-             ParticleContainer& particles, ForceCalc& calcMethod)
-      : filename(filename),
-        end_time(end_time),
-        dt(dt),
-        particles(particles),
-        calcMethod(calcMethod) {}
+#include "outputWriter/VTKWriter.h"
+#include "FileCuboidReader.h"
+#include "FileReader.h"
+
+#include <chrono>
+#include <iostream>
+
+Simulation::Simulation(
+  char* filename,
+  const double end_time,
+  const double dt,
+  ParticleContainer& particles,
+  ForceCalc& calcMethod,
+  SimulationMode simulationMode
+  ) : filename(filename),
+      end_time(end_time),
+      dt(dt),
+      particles(particles),
+      calcMethod(calcMethod),
+      simulationMode(simulationMode) {}
 Simulation::~Simulation() = default;
+
 
 void Simulation::plotParticles(const int iteration) const {
   const std::string out_name("MD_vtk");
@@ -18,10 +32,9 @@ void Simulation::loadParticles() const {
   FileCuboidReader::readFile(particles, filename);
 }
 
-void Simulation::run() const {
+// Simulation run methods
+void Simulation::runFileOutput() const {
   constexpr double start_time = 0;
-
-  // Load particles from file
 
   double current_time = start_time;
   int iteration = 0;
@@ -43,5 +56,39 @@ void Simulation::run() const {
       plotParticles(iteration);
     }
     current_time += dt;
+  }
+}
+
+void Simulation::runBenchmark() const {
+  using namespace std::chrono;
+  auto chronoStart = high_resolution_clock::now();
+
+  constexpr double start_time = 0;
+  double current_time = start_time;
+
+  // For this loop, we assume current x, current F and current v are known
+  while (current_time < end_time) {
+    // Calculate the new positions of the particles
+    calcMethod.calculateX(dt);
+    for (auto& p : particles) {
+      p.setOldF(p.getF());  // store F(t_n) for v update
+    }
+    // Calculate new forces and velocities
+    calcMethod.calculateF();
+    calcMethod.calculateV(dt);
+
+    current_time += dt;
+  }
+
+  auto chronoEnd = high_resolution_clock::now();
+  auto elapsed = chronoEnd - chronoStart;
+  std::cout << "Time elapsed: " << elapsed.count() << " s\n";
+}
+
+void Simulation::run() const {
+  if (simulationMode == SimulationMode::FILE_OUTPUT) {
+    runFileOutput();
+  } else if (simulationMode == SimulationMode::BENCHMARK) {
+    runBenchmark();
   }
 }

@@ -1,9 +1,11 @@
 #pragma once
 
-#include "FileCuboidReader.h"
-#include "FileReader.h"
 #include "ForceCalc.h"
-#include "outputWriter/VTKWriter.h"
+
+enum class SimulationMode {
+  BENCHMARK,
+  FILE_OUTPUT
+};
 
 class Simulation {
 private:
@@ -13,12 +15,22 @@ private:
 
   ParticleContainer& particles;
   ForceCalc& calcMethod;
+  SimulationMode simulationMode;
 
-  void plotParticles(const int iteration) const;
+  void plotParticles(int iteration) const;
 
+  // Simulation run methods
+  void runFileOutput() const;
+  void runBenchmark() const;
 public:
-  Simulation(char* filename, const double end_time, const double dt,
-             ParticleContainer& particles, ForceCalc& calcMethod);
+  Simulation(
+    char* filename,
+    double end_time,
+    double dt,
+    ParticleContainer& particles,
+    ForceCalc& calcMethod,
+    SimulationMode simulationMode
+    );
   ~Simulation();
 
   void loadParticles() const;
