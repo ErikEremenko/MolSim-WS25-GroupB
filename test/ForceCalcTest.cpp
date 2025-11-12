@@ -2,23 +2,25 @@
 
 #include <cmath>
 
-#include "CalcMethod.h"
+#include "ForceCalc.h"
 #include "ParticleContainer.h"
 #include "utils/ArrayUtils.h"
 
 // Tests if overflow errors is thrown when the calculations are run on particles with the same coords.
-TEST(CalcMethodTest, ExpectNormError) {
+TEST(ForceCalcTest, ExpectNormError) {
   auto pc = ParticleContainer();
   pc.addParticle(std::array<double, 3>{0.}, std::array<double, 3>{0.}, 0.);
   pc.addParticle(std::array<double, 3>{0.}, std::array<double, 3>{1.}, 0.);
-  EXPECT_THROW(StormerVerletMethod(pc).calculateGravityF(),
-               std::overflow_error);
-  EXPECT_THROW(StormerVerletMethod(pc).calculateLennardJonesF(1., 1.),
-               std::overflow_error);
+
+  GravityForce gf(pc);
+  EXPECT_THROW(gf.calculateF(), std::overflow_error);
+
+  LennardJonesForce ljf(pc, 1.0, 1.0);
+  EXPECT_THROW(ljf.calculateF(), std::overflow_error);
 }
 
 // Tests the gravitational force between two particles if one particle has zero mass
-TEST(CalcMethodTest, GravityF_ZeroMass) {
+TEST(ForceCalcTest, GravityF_ZeroMass) {
   auto p1 = Particle(0);
   auto p2 = Particle(std::array<double, 3>{1., 1., 1.},
                      std::array<double, 3>{0.}, 1.);
@@ -26,12 +28,13 @@ TEST(CalcMethodTest, GravityF_ZeroMass) {
   pc.addParticle(&p1);
   pc.addParticle(&p2);
 
-  StormerVerletMethod(pc).calculateGravityF();
+  GravityForce gf(pc);
+  gf.calculateF();
   EXPECT_EQ(pc[0].getF(), (std::array<double, 3>{0.}));
 }
 
 // Tests the gravitational force between two particles with a valid mass
-TEST(CalcMethodTest, GravityF_TwoBody) {
+TEST(ForceCalcTest, GravityF_TwoBody) {
   auto p1 = Particle(std::array<double, 3>{0., 0., 0.},
                      std::array<double, 3>{0.}, 1.);
   auto p2 = Particle(std::array<double, 3>{1., 1., 1.},
@@ -44,7 +47,8 @@ TEST(CalcMethodTest, GravityF_TwoBody) {
   double fr = 1. / pow(sqrt(3.), 3);
   std::array<double, 3> result = {fr, fr, fr};
 
-  StormerVerletMethod(pc).calculateGravityF();
+  GravityForce gf(pc);
+  gf.calculateF();
   for (int i = 0; i < pc.size(); i++) {
     EXPECT_DOUBLE_EQ(pc[0].getF()[i], result[i]);
     EXPECT_DOUBLE_EQ(pc[1].getF()[i], -1. * result[i]);
@@ -52,7 +56,7 @@ TEST(CalcMethodTest, GravityF_TwoBody) {
 }
 
 // Tests the gravitational force between two particles with a valid mass
-TEST(CalcMethodTest, GravityF_TwoBody2) {
+TEST(ForceCalcTest, GravityF_TwoBody2) {
   auto p1 = Particle(std::array<double, 3>{10., 20., 30.},
                      std::array<double, 3>{1., 2., 3.}, 1000.);
   auto p2 = Particle(
@@ -70,14 +74,15 @@ TEST(CalcMethodTest, GravityF_TwoBody2) {
   double norm_inv = 1. / ArrayUtils::L2Norm(p2.getX() - p1.getX());
   std::array<double, 3> F =
       1000 * 10000 * norm_inv * norm_inv * norm_inv * (p2.getX() - p1.getX());
-  StormerVerletMethod(pc).calculateGravityF();
+  GravityForce gf(pc);
+  gf.calculateF();
   for (int i = 0; i < pc.size(); i++) {
     EXPECT_DOUBLE_EQ(pc[0].getF()[i], F[i]);
     EXPECT_DOUBLE_EQ(pc[1].getF()[i], -1. * F[i]);
   }
 }
 
-TEST(CalcMethodTest, LJ_F_TwoBody) {
+TEST(ForceCalcTest, LJ_F_TwoBody) {
   // precomputed factor
   double f = -41145./13176688.;
 
@@ -96,7 +101,9 @@ TEST(CalcMethodTest, LJ_F_TwoBody) {
   pc.addParticle(&p2);
 
   std::array<double, 3> F = f * (p1.getX() - p2.getX());
-  StormerVerletMethod(pc).calculateLennardJonesF(5,1);
+
+  LennardJonesForce ljf(pc, 5.0, 1.0);
+  ljf.calculateF();
   for (int i = 0; i < pc.size(); i++) {
     EXPECT_NEAR(pc[0].getF()[i], F[i], 10e-6);
     EXPECT_NEAR(pc[1].getF()[i], -1. * F[i], 10e-6);
