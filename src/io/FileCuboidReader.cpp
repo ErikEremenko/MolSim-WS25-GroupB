@@ -1,4 +1,4 @@
-#include "FileCuboidReader.h"
+#include "io/FileCuboidReader.h"
 
 #include <cstdlib>
 #include <fstream>

@@ -5,7 +5,7 @@
  *      Author: eckhardw
  */
 
-#include "FileReader.h"
+#include "io/FileReader.h"
 
 #include <cstdlib>
 #include <fstream>

@@ -1,8 +1,8 @@
 #include "Simulation.h"
 
-#include "outputWriter/VTKWriter.h"
-#include "FileCuboidReader.h"
-#include "FileReader.h"
+#include "io/FileCuboidReader.h"
+#include "io/FileReader.h"
+#include "io/VTKWriter.h"
 
 #include <chrono>
 #include <iostream>

@@ -6,7 +6,7 @@
  */
 #ifdef ENABLE_VTK_OUTPUT
 
-#include "VTKWriter.h"
+#include "io/VTKWriter.h"
 
 #include <vtkCellArray.h>
 #include <vtkDoubleArray.h>

@@ -8,13 +8,13 @@
 #pragma once
 #ifdef ENABLE_VTK_OUTPUT
 
-#include <ParticleContainer.h>
 #include <vtkSmartPointer.h>
 #include <vtkUnstructuredGrid.h>
 
 #include <list>
 #include <string>
 
+#include "ParticleContainer.h"
 #include "Particle.h"
 
 namespace outputWriter {
