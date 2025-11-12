@@ -1,8 +1,8 @@
 #pragma once
 
-#include "CalcMethod.h"
 #include "FileCuboidReader.h"
 #include "FileReader.h"
+#include "ForceCalc.h"
 #include "outputWriter/VTKWriter.h"
 
 class Simulation {
@@ -11,8 +11,7 @@ class Simulation {
   const double dt;
 
   ParticleContainer& particles;
-
-  CalcMethod& calcMethod;
+  ForceCalc& calcMethod;
 
   void plotParticles(const int iteration) const {
     const std::string out_name("MD_vtk");
@@ -21,7 +20,7 @@ class Simulation {
 
  public:
   Simulation(char* filename, const double end_time, const double dt,
-             ParticleContainer& particles, CalcMethod& calcMethod)
+             ParticleContainer& particles, ForceCalc& calcMethod)
       : filename(filename),
         end_time(end_time),
         dt(dt),
@@ -49,7 +48,7 @@ class Simulation {
         p.setOldF(p.getF());  // store f(t_n) for v update
       }
       // calculate new f
-      calcMethod.calculateLennardJonesF(5.0, 1.0);
+      calcMethod.calculateF();
       // calculate new v
       calcMethod.calculateV(dt);
 

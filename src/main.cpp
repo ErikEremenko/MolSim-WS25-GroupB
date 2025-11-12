@@ -10,10 +10,10 @@ int main(const int argc, char* argsv[]) {
   }
 
   ParticleContainer particles;
-  StormerVerletMethod svm(particles);
+  LennardJonesForce ljf(particles, 5.0, 1.0);
 
   const Simulation simulation(argsv[1], std::stod(argsv[2]),
-                              std::stod(argsv[3]), particles, svm);
+                              std::stod(argsv[3]), particles, ljf);
   simulation.loadParticles();
   simulation.run();
 

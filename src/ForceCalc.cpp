@@ -1,9 +1,9 @@
-#include "CalcMethod.h"
+#include "ForceCalc.h"
 #include "utils/ArrayUtils.h"
 
-CalcMethod::~CalcMethod() = default;
+ForceCalc::~ForceCalc() = default;
 
-void StormerVerletMethod::calculateX(const double dt) {
+void ForceCalc::calculateX(const double dt) {
   for (auto& p : particles) {
     const auto x_curr = p.getX();
     const double m = p.getM();
@@ -15,7 +15,7 @@ void StormerVerletMethod::calculateX(const double dt) {
   }
 }
 
-void StormerVerletMethod::calculateV(const double dt) {
+void ForceCalc::calculateV(const double dt) {
   for (auto& p : particles) {
     const auto v_curr = p.getV();
     const double m_i = p.getM();
@@ -26,7 +26,7 @@ void StormerVerletMethod::calculateV(const double dt) {
   }
 }
 
-void StormerVerletMethod::calculateGravityF() {
+void GravityForce::calculateF() {
   for (auto& p : particles) {
     p.setF({});
   }
@@ -60,8 +60,7 @@ void StormerVerletMethod::calculateGravityF() {
   }
 }
 
-void StormerVerletMethod::calculateLennardJonesF(const double epsilon,
-                                                 const double sigma) {
+void LennardJonesForce::calculateF() {
   for (auto& p : particles) {
     p.setF({});
   }
