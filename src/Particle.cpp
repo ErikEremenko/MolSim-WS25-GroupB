@@ -5,7 +5,7 @@
  *      Author: eckhardw
  */
 
-#include <iostream>
+#include <ostream>
 
 #include "Particle.h"
 

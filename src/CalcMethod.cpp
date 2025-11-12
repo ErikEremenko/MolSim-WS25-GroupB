@@ -40,7 +40,7 @@ void StormerVerletMethod::calculateGravityF() {
 
       const auto dist = p_j.getX() - p_i.getX();
       const double norm = ArrayUtils::L2Norm(dist);
-      if (norm == 0) {
+      if (norm == 0.) {
         // avoid division by zero
         throw std::overflow_error(
             "Calculated a zero norm between particles. This is likely caused "

@@ -10,3 +10,6 @@ style="file:${repo_root}/.clang-format"
 find "${repo_root}/src" -type f \
   \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \) -print0 |
   xargs -0 clang-format -i -style="${style}"
+find "${repo_root}/test" -type f \
+    \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \) -print0 |
+    xargs -0 clang-format -i -style="${style}"
