@@ -22,7 +22,13 @@ file(GLOB_RECURSE SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(REMOVE_ITEM SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp") # Exclude main()
 
 add_library(molsim_core ${SRC_FILES})
-target_include_directories(molsim_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(molsim_core
+        PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
 
 target_compile_options(molsim_core PRIVATE
         $<$<CXX_COMPILER_ID:GNU>:-Wall>
