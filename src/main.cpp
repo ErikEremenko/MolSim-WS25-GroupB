@@ -25,7 +25,9 @@ int main(const int argc, char* argsv[]) {
   CollisionSimulation simulation(argsv[1], std::stod(argsv[2]), std::stod(argsv[3]), simulation_mode);
   simulation.run();
 
-  std::cout << "output written. Terminating..." << std::endl;
+  // /*
+  // std::cout << "output written. Terminating..." << std::endl;
+  // */
 
   return 0;
 }

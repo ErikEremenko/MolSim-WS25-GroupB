@@ -44,8 +44,10 @@ void BaseSimulation::runFileOutput() const {
 
 void BaseSimulation::runBenchmark() const {
   using namespace std::chrono;
-  auto chronoStart = high_resolution_clock::now();
+  // used for benchmark
+  auto chronoStart = steady_clock::now();
 
+  // Benchmark begin
   constexpr double start_time = 0;
   double current_time = start_time;
 
@@ -63,8 +65,8 @@ void BaseSimulation::runBenchmark() const {
     current_time += dt;
   }
 
-  auto chronoEnd = high_resolution_clock::now();
-  auto elapsed = chronoEnd - chronoStart;
+  auto chronoEnd = steady_clock::now();
+  auto elapsed = duration_cast<duration<double>>(chronoEnd - chronoStart);;
   std::cout << "Time elapsed: " << elapsed.count() << " s\n";
 }
 
@@ -80,7 +82,7 @@ void BaseSimulation::run() {
 
 // CollisionSimulation definitions
 CollisionSimulation::CollisionSimulation(std::string inputFilename, double end_time, double dt,
-                                         SimulationMode simulationMode)
+                                         const SimulationMode simulationMode)
     : BaseSimulation(end_time, dt, simulationMode), inputFilename(std::move(inputFilename)) {
   particles = std::make_unique<ParticleContainer>();
   forceCalc = std::make_unique<LennardJonesForce>(*particles, 5.0, 1.0);
