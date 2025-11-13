@@ -11,13 +11,9 @@ int main(const int argc, char* argsv[]) {
     return 1;
   }
 
-  ParticleContainer particles;
-  LennardJonesForce ljf(particles, 5.0, 1.0);
-
-  const Simulation simulation(
+  CollisionSimulation simulation(
     argsv[1], std::stod(argsv[2]),
-    std::stod(argsv[3]), particles, ljf, SimulationMode::FILE_OUTPUT);
-  simulation.loadParticles();
+    std::stod(argsv[3]), SimulationMode::FILE_OUTPUT);
   simulation.run();
 
   std::cout << "output written. Terminating..." << std::endl;

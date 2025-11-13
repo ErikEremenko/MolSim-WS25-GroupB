@@ -1,39 +1,27 @@
 #include "Simulation.h"
 
-#include "io/FileCuboidReader.h"
 #include "io/FileReader.h"
 #include "io/VTKWriter.h"
 
 #include <chrono>
 #include <iostream>
 
-Simulation::Simulation(
-  char* filename,
-  const double end_time,
-  const double dt,
-  ParticleContainer& particles,
-  ForceCalc& calcMethod,
-  SimulationMode simulationMode
-  ) : filename(filename),
-      end_time(end_time),
-      dt(dt),
-      particles(particles),
-      calcMethod(calcMethod),
-      simulationMode(simulationMode) {}
-Simulation::~Simulation() = default;
+BaseSimulation::BaseSimulation(double end_time, double dt, SimulationMode simulationMode)
+  : end_time(end_time),
+    dt(dt),
+    simulationMode(simulationMode) {
 
-
-void Simulation::plotParticles(const int iteration) const {
-  const std::string out_name("MD_vtk");
-  outputWriter::VTKWriter::plotParticles(particles, out_name, iteration);
 }
+BaseSimulation::~BaseSimulation() = default;
 
-void Simulation::loadParticles() const {
-  FileCuboidReader::readFile(particles, filename);
+
+void BaseSimulation::plotParticles(const int iteration) const {
+  const std::string out_name("MD_vtk");
+  outputWriter::VTKWriter::plotParticles(*particles, out_name, iteration);
 }
 
 // Simulation run methods
-void Simulation::runFileOutput() const {
+void BaseSimulation::runFileOutput() const {
   constexpr double start_time = 0;
 
   double current_time = start_time;
@@ -42,14 +30,14 @@ void Simulation::runFileOutput() const {
   // for this loop, we assume: current x, current f and current v are known
   while (current_time < end_time) {
     // calculate new x
-    calcMethod.calculateX(dt);
-    for (auto& p : particles) {
+    forceCalc->calculateX(dt);
+    for (auto& p : *particles) {
       p.setOldF(p.getF());  // store f(t_n) for v update
     }
     // calculate new f
-    calcMethod.calculateF();
+    forceCalc->calculateF();
     // calculate new v
-    calcMethod.calculateV(dt);
+    forceCalc->calculateV(dt);
 
     iteration++;
     if (iteration % 10 == 0) {
@@ -59,7 +47,7 @@ void Simulation::runFileOutput() const {
   }
 }
 
-void Simulation::runBenchmark() const {
+void BaseSimulation::runBenchmark() const {
   using namespace std::chrono;
   auto chronoStart = high_resolution_clock::now();
 
@@ -69,13 +57,13 @@ void Simulation::runBenchmark() const {
   // For this loop, we assume current x, current F and current v are known
   while (current_time < end_time) {
     // Calculate the new positions of the particles
-    calcMethod.calculateX(dt);
-    for (auto& p : particles) {
+    forceCalc->calculateX(dt);
+    for (auto& p : *particles) {
       p.setOldF(p.getF());  // store F(t_n) for v update
     }
     // Calculate new forces and velocities
-    calcMethod.calculateF();
-    calcMethod.calculateV(dt);
+    forceCalc->calculateF();
+    forceCalc->calculateV(dt);
 
     current_time += dt;
   }
@@ -85,10 +73,28 @@ void Simulation::runBenchmark() const {
   std::cout << "Time elapsed: " << elapsed.count() << " s\n";
 }
 
-void Simulation::run() const {
+void BaseSimulation::run() {
+  setupSimulation();
+
   if (simulationMode == SimulationMode::FILE_OUTPUT) {
     runFileOutput();
   } else if (simulationMode == SimulationMode::BENCHMARK) {
     runBenchmark();
   }
+}
+
+// CollisionSimulation definitions
+CollisionSimulation::CollisionSimulation(
+  std::string inputFilename, double end_time,
+  double dt, SimulationMode simulationMode
+  )
+    : BaseSimulation(end_time, dt, simulationMode), inputFilename(std::move(inputFilename))
+{
+  particles = std::make_unique<ParticleContainer>();
+  forceCalc = std::make_unique<LennardJonesForce>(*particles, 5.0, 1.0);
+}
+
+void CollisionSimulation::setupSimulation() {
+  FileCuboidReader reader(inputFilename);
+  reader.readFile(*particles);
 }
