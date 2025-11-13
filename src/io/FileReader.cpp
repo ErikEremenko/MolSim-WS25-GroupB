@@ -6,6 +6,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <spdlog/spdlog.h>
+
 BaseFileReader::BaseFileReader(std::string filename) : filename(std::move(filename)) {}
 
 BaseFileReader::~BaseFileReader() = default;
@@ -21,16 +23,17 @@ void BaseFileReader::readFile(ParticleContainer& particles) {
 
   if (input_file.is_open()) {
     getline(input_file, tmp_string);
-    std::cout << "Read line: " << tmp_string << std::endl;
+    SPDLOG_DEBUG("Read line: {}", tmp_string);
 
     while (tmp_string.empty() or tmp_string[0] == '#') {
       getline(input_file, tmp_string);
-      std::cout << "Read line: " << tmp_string << std::endl;
+      SPDLOG_DEBUG("Read line: {}", tmp_string);
     }
 
     std::istringstream numstream(tmp_string);
     numstream >> num_particles;
     std::cout << "Reading " << num_particles << "." << std::endl;
+    SPDLOG_DEBUG("Reading ", tmp_string);
     getline(input_file, tmp_string);
     std::cout << "Read line: " << tmp_string << std::endl;
 

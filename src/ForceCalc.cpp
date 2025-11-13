@@ -1,6 +1,8 @@
 #include "ForceCalc.h"
 #include "utils/ArrayUtils.h"
 
+#include <spdlog/spdlog.h>
+
 ForceCalc::~ForceCalc() = default;
 
 void ForceCalc::calculateX(const double dt) {
@@ -42,6 +44,8 @@ void GravityForce::calculateF() {
       const double norm = ArrayUtils::L2Norm(dist);
       if (norm == 0.) {
         // avoid division by zero
+        SPDLOG_ERROR("Calculated a zero norm between particles. This is likely caused "
+            "by an incorrect initialization of the Simulation.");
         throw std::overflow_error(
             "Calculated a zero norm between particles. This is likely caused "
             "by an incorrect initialization of the Simulation.");
@@ -82,6 +86,8 @@ void LennardJonesForce::calculateF() {
       const double norm = ArrayUtils::L2Norm(dist);
       if (norm == 0) {
         // avoid division by zero
+        SPDLOG_ERROR("Calculated a zero norm between particles. This is likely caused "
+            "by an incorrect initialization of the Simulation.");
         throw std::overflow_error(
             "Calculated a zero norm between particles. This is likely caused "
             "by an incorrect initialization of the Simulation.");

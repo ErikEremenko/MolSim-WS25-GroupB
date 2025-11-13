@@ -12,6 +12,8 @@
 #include <iostream>
 #include <sstream>
 
+#include <spdlog/spdlog.h>
+
 namespace outputWriter {
 
 XYZWriter::XYZWriter() = default;
@@ -24,7 +26,7 @@ void XYZWriter::plotParticles(const std::vector<Particle>& particles, const std:
   try {
     std::filesystem::create_directories(output_directory);
   } catch (const std::filesystem::filesystem_error& err) {
-    std::cerr << "Error wile creating directory " << output_directory << ": " << err.what() << std::endl;
+    SPDLOG_ERROR("Error while creating directory {}:{}", output_directory, err.what());
     return;
   }
 

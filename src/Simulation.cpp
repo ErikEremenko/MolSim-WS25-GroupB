@@ -6,6 +6,8 @@
 #include <chrono>
 #include <iostream>
 
+#include "spdlog/spdlog.h"
+
 BaseSimulation::BaseSimulation(double end_time, double dt, SimulationMode simulationMode)
     : end_time(end_time), dt(dt), simulationMode(simulationMode) {}
 BaseSimulation::~BaseSimulation() = default;
@@ -67,8 +69,7 @@ void BaseSimulation::runBenchmark() const {
 
   auto chronoEnd = steady_clock::now();
   auto elapsed = duration_cast<duration<double>>(chronoEnd - chronoStart);
-  ;
-  std::cout << "Time elapsed: " << elapsed.count() << " s\n";
+  SPDLOG_INFO("Time elapsed: {} s", elapsed.count());
 }
 
 void BaseSimulation::run() {

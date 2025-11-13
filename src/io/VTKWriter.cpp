@@ -19,6 +19,8 @@
 #include <iomanip>
 #include <sstream>
 
+#include <spdlog/spdlog.h>
+
 namespace outputWriter {
 
 void VTKWriter::plotParticles(const ParticleContainer& particles, const std::string& filename, const int iteration) {
@@ -27,7 +29,7 @@ void VTKWriter::plotParticles(const ParticleContainer& particles, const std::str
   try {
     std::filesystem::create_directories(output_directory);
   } catch (const std::filesystem::filesystem_error& err) {
-    std::cerr << "Error wile creating directory " << output_directory << ": " << err.what() << std::endl;
+    SPDLOG_ERROR("Error while creating directory {}:{}", output_directory, err.what());
     return;
   }
   // Initialize points
