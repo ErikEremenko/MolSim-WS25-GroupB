@@ -60,6 +60,10 @@ void GravityForce::calculateF() {
   }
 }
 
+LennardJonesForce::LennardJonesForce(  // co
+  ParticleContainer& particles, const double epsilon, const double sigma, const double cutoffRadius)
+: ForceCalc(particles), epsilon(epsilon), sigma(sigma), cutoffRadius(cutoffRadius) {}
+
 void LennardJonesForce::calculateF() {
   for (auto& p : particles) {
     p.setF({});
@@ -81,6 +85,8 @@ void LennardJonesForce::calculateF() {
         throw std::overflow_error(
             "Calculated a zero norm between particles. This is likely caused "
             "by an incorrect initialization of the Simulation.");
+      } else if (norm >= cutoffRadius) {
+        continue;
       }
       const double inv_norm2 = 1.0 / (norm * norm);
       const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;

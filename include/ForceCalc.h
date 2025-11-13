@@ -51,12 +51,10 @@ class GravityForce final : public ForceCalc {
 
 class LennardJonesForce final : public ForceCalc {
 private:
-  const double epsilon, sigma;
+  const double epsilon, sigma, cutoffRadius;
 
 public:
-  LennardJonesForce(ParticleContainer& particles, const double epsilon,
-                   const double sigma)
-    : ForceCalc(particles), epsilon(epsilon), sigma(sigma) {}
+  LennardJonesForce(ParticleContainer& particles, double epsilon, double sigma, double cutoffRadius);
 
   void calculateF() override;
 };
