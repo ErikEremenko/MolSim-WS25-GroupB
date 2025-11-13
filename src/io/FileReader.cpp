@@ -13,15 +13,15 @@ BaseFileReader::BaseFileReader(std::string filename) : filename(std::move(filena
 BaseFileReader::~BaseFileReader() = default;
 
 void BaseFileReader::readFile(ParticleContainer& particles) {
-  std::array<double, 3> x{};
-  std::array<double, 3> v{};
-  double m;
-  int num_particles = 0;
 
   std::ifstream input_file(filename);
-  std::string tmp_string;
 
   if (input_file.is_open()) {
+    std::array<double, 3> x{};
+    std::array<double, 3> v{};
+    double m;
+    int num_particles = 0;
+    std::string tmp_string;
     getline(input_file, tmp_string);
     SPDLOG_DEBUG("Read line: {}", tmp_string);
 
@@ -64,19 +64,16 @@ void BaseFileReader::readFile(ParticleContainer& particles) {
 
 // FileCuboidReader class definition
 void FileCuboidReader::readFile(ParticleContainer& particles) {
-  std::array<double, 3> cx{};
-  std::array<double, 3> cv{};
-  std::array<int, 3> n{};
-  double h;
-  double m;
-  double t;
 
-  int num_cuboids = 0;
-
-  std::ifstream input_file(filename);
-  std::string tmp_string;
-
-  if (input_file.is_open()) {
+  if (std::ifstream input_file(filename); input_file.is_open()) {
+    std::string tmp_string;
+    int num_cuboids = 0;
+    double t;
+    double m;
+    double h;
+    std::array<int, 3> n{};
+    std::array<double, 3> cv{};
+    std::array<double, 3> cx{};
     getline(input_file, tmp_string);
     std::cout << "Read line: " << tmp_string << std::endl;
 
@@ -110,9 +107,6 @@ void FileCuboidReader::readFile(ParticleContainer& particles) {
       datastream >> h;
       datastream >> m;
       datastream >> t;
-
-      //particles.addParticle(x, v, m);
-      //generateParticleCuboid(cx, cv, n, h, m);
 
       //code for generating particles:
       for (int nx = 0; nx < n[0]; nx++) {

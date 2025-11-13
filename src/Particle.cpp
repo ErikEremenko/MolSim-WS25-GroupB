@@ -29,6 +29,9 @@ const std::array<double, 3>& Particle::getV() const {
 const std::array<double, 3>& Particle::getF() const {
   return f;
 }
+std::array<double, 3>& Particle::getF() {
+  return f;
+}
 
 const std::array<double, 3>& Particle::getOldF() const {
   return old_f;

@@ -16,6 +16,7 @@ include(clang-format)
 include(doxygen)
 include(spdlog)
 include(gtest)
+include(openmp)
 
 # Core Library
 # Contains all shared application logic
@@ -38,6 +39,7 @@ target_compile_options(molsim_core PRIVATE
 # Apply dependencies to the core library
 molsim_enable_vtk(molsim_core)
 molsim_enable_spdlog(molsim_core)
+molsim_enable_OpenMP(molsim_core)
 
 # Main Application Executable
 add_executable(MolSim src/main.cpp)

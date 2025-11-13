@@ -47,7 +47,7 @@ void BaseSimulation::runFileOutput() const {
 void BaseSimulation::runBenchmark() const {
   using namespace std::chrono;
   // used for benchmark
-  auto chronoStart = steady_clock::now();
+  const auto chronoStart = steady_clock::now();
 
   // Benchmark begin
   constexpr double start_time = 0;
@@ -67,8 +67,8 @@ void BaseSimulation::runBenchmark() const {
     current_time += dt;
   }
 
-  auto chronoEnd = steady_clock::now();
-  auto elapsed = duration_cast<duration<double>>(chronoEnd - chronoStart);
+  const auto chronoEnd = steady_clock::now();
+  const auto elapsed = duration_cast<duration<double>>(chronoEnd - chronoStart);
   SPDLOG_INFO("Time elapsed: {} s", elapsed.count());
 }
 
@@ -88,11 +88,26 @@ CollisionSimulation::CollisionSimulation(std::string inputFilename, double end_t
     : BaseSimulation(end_time, dt, simulationMode), inputFilename(std::move(inputFilename)) {
   particles = std::make_unique<ParticleContainer>();
   constexpr double sigma = 1.0;
-  constexpr double cutoffRadius = 2.5*sigma;
+  constexpr double cutoffRadius = 2.5 * sigma;
   forceCalc = std::make_unique<LennardJonesForce>(*particles, 5.0, sigma, cutoffRadius);
 }
 
 void CollisionSimulation::setupSimulation() {
+  FileCuboidReader reader(inputFilename);
+  reader.readFile(*particles);
+}
+
+
+CollisionSimulationParallel::CollisionSimulationParallel(std::string inputFilename, double end_time, double dt,
+                                         const SimulationMode simulationMode)
+    : BaseSimulation(end_time, dt, simulationMode), inputFilename(std::move(inputFilename)) {
+  particles = std::make_unique<ParticleContainer>();
+  constexpr double sigma = 1.0;
+  constexpr double cutoffRadius = 2.5 * sigma;
+  forceCalc = std::make_unique<LennardJonesForceParallel>(*particles, 5.0, sigma, cutoffRadius);
+}
+
+void CollisionSimulationParallel::setupSimulation() {
   FileCuboidReader reader(inputFilename);
   reader.readFile(*particles);
 }

@@ -41,3 +41,12 @@ public:
 protected:
   void setupSimulation() override;
 };
+
+class CollisionSimulationParallel : public BaseSimulation {
+private:
+  std::string inputFilename;
+public:
+  CollisionSimulationParallel(std::string inputFilename, double end_time, double dt, SimulationMode simulationMode);
+protected:
+  void setupSimulation() override;
+};
