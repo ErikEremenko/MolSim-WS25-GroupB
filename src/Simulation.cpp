@@ -66,7 +66,8 @@ void BaseSimulation::runBenchmark() const {
   }
 
   auto chronoEnd = steady_clock::now();
-  auto elapsed = duration_cast<duration<double>>(chronoEnd - chronoStart);;
+  auto elapsed = duration_cast<duration<double>>(chronoEnd - chronoStart);
+  ;
   std::cout << "Time elapsed: " << elapsed.count() << " s\n";
 }
 
