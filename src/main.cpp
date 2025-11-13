@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_INFO  // TODO: Make this a global define using CMake
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE  // TODO: Make this a global define using CMake
 #include "spdlog/spdlog.h"
 
 int main(const int argc, char* argsv[]) {
@@ -39,6 +39,7 @@ int main(const int argc, char* argsv[]) {
   } else if (log_level == "debug") {
     spdlog::set_level(spdlog::level::debug);
   } else {
+    SPDLOG_ERROR("Invalid log level. Valid options are off, error, debug, trace or info.");
     return 1;
   }
 
