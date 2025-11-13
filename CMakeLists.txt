@@ -57,7 +57,7 @@ FetchContent_MakeAvailable(googletest)
 # Test executable
 add_executable(MolSimTests
         test/ParticleContainerTest.cpp
-        test/CalcMethodTest.cpp
+        test/ForceCalcTest.cpp
 )
 
 target_link_libraries(MolSimTests PUBLIC

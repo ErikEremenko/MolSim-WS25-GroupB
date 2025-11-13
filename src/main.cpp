@@ -14,9 +14,9 @@ int main(const int argc, char* argsv[]) {
   ParticleContainer particles;
   LennardJonesForce ljf(particles, 5.0, 1.0);
 
-  const Simulation simulation(
-    argsv[1], std::stod(argsv[2]),
-    std::stod(argsv[3]), particles, ljf, SimulationMode::FILE_OUTPUT);
+  const Simulation simulation(argsv[1], std::stod(argsv[2]),
+                              std::stod(argsv[3]), particles, ljf,
+                              SimulationMode::FILE_OUTPUT);
   simulation.loadParticles();
   simulation.run();
 

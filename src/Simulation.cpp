@@ -7,21 +7,16 @@
 #include <chrono>
 #include <iostream>
 
-Simulation::Simulation(
-  char* filename,
-  const double end_time,
-  const double dt,
-  ParticleContainer& particles,
-  ForceCalc& calcMethod,
-  SimulationMode simulationMode
-  ) : filename(filename),
+Simulation::Simulation(char* filename, const double end_time, const double dt,
+                       ParticleContainer& particles, ForceCalc& calcMethod,
+                       SimulationMode simulationMode)
+    : filename(filename),
       end_time(end_time),
       dt(dt),
       particles(particles),
       calcMethod(calcMethod),
       simulationMode(simulationMode) {}
 Simulation::~Simulation() = default;
-
 
 void Simulation::plotParticles(const int iteration) const {
   const std::string out_name("MD_vtk");
