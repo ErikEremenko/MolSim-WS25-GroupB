@@ -28,17 +28,17 @@ int main(const int argc, char* argsv[]) {
 
   std::string log_level = argsv[5];
 
-  if (log_level == "info"){
+  if (log_level == "info") {
     spdlog::set_level(spdlog::level::info);
-  }else if(log_level == "off"){
+  } else if (log_level == "off") {
     spdlog::set_level(spdlog::level::off);
-  }else if(log_level == "trace"){
+  } else if (log_level == "trace") {
     spdlog::set_level(spdlog::level::trace);
-  }else if(log_level == "error"){
+  } else if (log_level == "error") {
     spdlog::set_level(spdlog::level::err);
-  }else if(log_level == "debug"){
+  } else if (log_level == "debug") {
     spdlog::set_level(spdlog::level::debug);
-  }else{
+  } else {
     return 1;
   }
 
