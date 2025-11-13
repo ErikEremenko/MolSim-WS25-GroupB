@@ -81,7 +81,7 @@ void FileCuboidReader::readFile(ParticleContainer& particles) {
 
     while (tmp_string.empty() or tmp_string[0] == '#') {
       getline(input_file, tmp_string);
-        SPDLOG_DEBUG("Read line: {}", tmp_string);
+      SPDLOG_DEBUG("Read line: {}", tmp_string);
     }
 
     std::istringstream numstream(tmp_string);
@@ -89,7 +89,7 @@ void FileCuboidReader::readFile(ParticleContainer& particles) {
     std::cout << "Reading " << num_cuboids << " cuboids." << std::endl;
     SPDLOG_DEBUG("Reading {} cuboids.", num_cuboids);
     getline(input_file, tmp_string);
-      SPDLOG_DEBUG("Read line: {}", tmp_string);
+    SPDLOG_DEBUG("Read line: {}", tmp_string);
 
     for (int i = 0; i < num_cuboids; i++) {
       std::istringstream datastream(tmp_string);
@@ -131,7 +131,7 @@ void FileCuboidReader::readFile(ParticleContainer& particles) {
       }
 
       getline(input_file, tmp_string);
-        SPDLOG_DEBUG("Read line: {}", tmp_string);
+      SPDLOG_DEBUG("Read line: {}", tmp_string);
     }
   } else {
     SPDLOG_ERROR("Error: could not open file {}", filename);
