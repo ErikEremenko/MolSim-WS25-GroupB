@@ -11,9 +11,9 @@ int main(const int argc, char* argsv[]) {
     return 1;
   }
 
-  CollisionSimulation simulation(
-    argsv[1], std::stod(argsv[2]),
-    std::stod(argsv[3]), SimulationMode::FILE_OUTPUT);
+  CollisionSimulation simulation(argsv[1], std::stod(argsv[2]),
+                                 std::stod(argsv[3]),
+                                 SimulationMode::FILE_OUTPUT);
   simulation.run();
 
   std::cout << "output written. Terminating..." << std::endl;

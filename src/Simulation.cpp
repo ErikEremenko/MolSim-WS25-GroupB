@@ -6,14 +6,10 @@
 #include <chrono>
 #include <iostream>
 
-BaseSimulation::BaseSimulation(double end_time, double dt, SimulationMode simulationMode)
-  : end_time(end_time),
-    dt(dt),
-    simulationMode(simulationMode) {
-
-}
+BaseSimulation::BaseSimulation(double end_time, double dt,
+                               SimulationMode simulationMode)
+    : end_time(end_time), dt(dt), simulationMode(simulationMode) {}
 BaseSimulation::~BaseSimulation() = default;
-
 
 void BaseSimulation::plotParticles(const int iteration) const {
   const std::string out_name("MD_vtk");
@@ -84,12 +80,11 @@ void BaseSimulation::run() {
 }
 
 // CollisionSimulation definitions
-CollisionSimulation::CollisionSimulation(
-  std::string inputFilename, double end_time,
-  double dt, SimulationMode simulationMode
-  )
-    : BaseSimulation(end_time, dt, simulationMode), inputFilename(std::move(inputFilename))
-{
+CollisionSimulation::CollisionSimulation(std::string inputFilename,
+                                         double end_time, double dt,
+                                         SimulationMode simulationMode)
+    : BaseSimulation(end_time, dt, simulationMode),
+      inputFilename(std::move(inputFilename)) {
   particles = std::make_unique<ParticleContainer>();
   forceCalc = std::make_unique<LennardJonesForce>(*particles, 5.0, 1.0);
 }

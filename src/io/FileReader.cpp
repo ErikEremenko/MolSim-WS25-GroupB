@@ -6,7 +6,8 @@
 #include <iostream>
 #include <sstream>
 
-BaseFileReader::BaseFileReader(std::string filename) : filename(std::move(filename)) {}
+BaseFileReader::BaseFileReader(std::string filename)
+    : filename(std::move(filename)) {}
 
 BaseFileReader::~BaseFileReader() = default;
 
@@ -60,7 +61,6 @@ void BaseFileReader::readFile(ParticleContainer& particles) {
     exit(-1);
   }
 }
-
 
 // FileCuboidReader class definition
 void FileCuboidReader::readFile(ParticleContainer& particles) {
@@ -142,4 +142,3 @@ void FileCuboidReader::readFile(ParticleContainer& particles) {
     exit(-1);
   }
 }
-
