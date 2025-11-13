@@ -97,9 +97,8 @@ void CollisionSimulation::setupSimulation() {
   reader.readFile(*particles);
 }
 
-
 CollisionSimulationParallel::CollisionSimulationParallel(std::string inputFilename, double end_time, double dt,
-                                         const SimulationMode simulationMode)
+                                                         const SimulationMode simulationMode)
     : BaseSimulation(end_time, dt, simulationMode), inputFilename(std::move(inputFilename)) {
   particles = std::make_unique<ParticleContainer>();
   constexpr double sigma = 1.0;

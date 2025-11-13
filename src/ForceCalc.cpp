@@ -113,8 +113,8 @@ void LennardJonesForce::calculateF() {
     }
   }
 }
-LennardJonesForceParallel::LennardJonesForceParallel(ParticleContainer& particles, const double epsilon, const double sigma,
-                                     const double cutoffRadius)
+LennardJonesForceParallel::LennardJonesForceParallel(ParticleContainer& particles, const double epsilon,
+                                                     const double sigma, const double cutoffRadius)
     : ForceCalc(particles), epsilon(epsilon), sigma(sigma), cutoffRadius(cutoffRadius) {}
 
 void LennardJonesForceParallel::calculateF() {
