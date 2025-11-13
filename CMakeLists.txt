@@ -13,8 +13,9 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebIn
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 include(vtk)
 include(clang-format)
-option(BUILD_DOC "Build documentation using Doxygen" ON)
 include(doxygen)
+include(spdlog)
+include(gtest)
 
 # Core Library
 # Contains all shared application logic
@@ -29,40 +30,17 @@ target_include_directories(molsim_core
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-
 target_compile_options(molsim_core PRIVATE
         $<$<CXX_COMPILER_ID:GNU>:-Wall>
         $<$<CXX_COMPILER_ID:Intel>:-w3 -wd383,981,1418,1572,2259>
 )
 
-# Apply VTK to the core library if enabled
+# Apply dependencies to the core library
 molsim_enable_vtk(molsim_core)
+molsim_enable_spdlog(molsim_core)
 
 # Main Application Executable
-add_executable(MolSim src/main.cpp) # The file containing main()
+add_executable(MolSim src/main.cpp)
 target_link_libraries(MolSim PRIVATE molsim_core)
 
-# Testing
-enable_testing()
-include(GoogleTest)
-include(FetchContent)
-
-FetchContent_Declare(
-        googletest
-        GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG 52eb8108c5bdec04579160ae17225d66034bd723
-)
-FetchContent_MakeAvailable(googletest)
-
-# Test executable
-add_executable(MolSimTests
-        test/ParticleContainerTest.cpp
-        test/ForceCalcTest.cpp
-)
-
-target_link_libraries(MolSimTests PUBLIC
-        molsim_core
-        GTest::gtest_main
-)
-
-gtest_discover_tests(MolSimTests)
+molsim_enable_testing()
