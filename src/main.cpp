@@ -10,7 +10,9 @@ int main(const int argc, char* argsv[]) {
   // Read arguments from the command line
   if (argc != 7) {
     SPDLOG_ERROR("Erroneous programme call!");
-    SPDLOG_ERROR("./MolSim filename t_end delta_t [file | benchmark] [off | error | debug | trace | info] [s | p] [P:OFF | P:ON]");
+    SPDLOG_ERROR(
+        "./MolSim filename t_end delta_t [file | benchmark] [off | error | debug | trace | info] [s | p] [P:OFF | "
+        "P:ON]");
     return 1;
   }
 
