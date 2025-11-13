@@ -8,15 +8,14 @@
 int main(const int argc, char* argsv[]) {
   SPDLOG_INFO("Hello from MolSim for PSE!");
   // Read arguments from the command line
-  if (argc != 6) {
+  if (argc != 7) {
     SPDLOG_ERROR("Erroneous programme call!");
-    SPDLOG_ERROR("./MolSim filename t_end delta_t [file | benchmark]");
+    SPDLOG_ERROR("./MolSim filename t_end delta_t [file | benchmark] [off | error | debug | trace | info] [s | p] [P:OFF | P:ON]");
     return 1;
   }
 
   SimulationMode simulation_mode;
-  std::string mode_arg = argsv[4];
-  if (mode_arg == "file") {
+  if (std::string mode_arg = argsv[4]; mode_arg == "file") {
     simulation_mode = SimulationMode::FILE_OUTPUT;
   } else if (mode_arg == "benchmark") {
     simulation_mode = SimulationMode::BENCHMARK;
@@ -26,9 +25,7 @@ int main(const int argc, char* argsv[]) {
     return 1;
   }
 
-  std::string log_level = argsv[5];
-
-  if (log_level == "info") {
+  if (std::string log_level = argsv[5]; log_level == "info") {
     spdlog::set_level(spdlog::level::info);
   } else if (log_level == "off") {
     spdlog::set_level(spdlog::level::off);
@@ -43,8 +40,15 @@ int main(const int argc, char* argsv[]) {
     return 1;
   }
 
-  CollisionSimulation simulation(argsv[1], std::stod(argsv[2]), std::stod(argsv[3]), simulation_mode);
-  simulation.run();
+  if (std::string parallelization = argsv[6]; parallelization == "P:OFF") {
+    CollisionSimulation simulation(argsv[1], std::stod(argsv[2]), std::stod(argsv[3]), simulation_mode);
+    simulation.run();
+  } else if (parallelization == "P:ON") {
+    CollisionSimulationParallel simulation(argsv[1], std::stod(argsv[2]), std::stod(argsv[3]), simulation_mode);
+    simulation.run();
+  } else {
+    SPDLOG_ERROR("Invalid parallelization option. Valid options are P:OFF and P:ON.");
+  }
 
   return 0;
 }

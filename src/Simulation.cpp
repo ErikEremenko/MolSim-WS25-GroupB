@@ -69,7 +69,9 @@ void BaseSimulation::runBenchmark() const {
 
   const auto chronoEnd = steady_clock::now();
   const auto elapsed = duration_cast<duration<double>>(chronoEnd - chronoStart);
+  spdlog::set_level(spdlog::level::info);
   SPDLOG_INFO("Time elapsed: {} s", elapsed.count());
+  spdlog::set_level(spdlog::level::off);
 }
 
 void BaseSimulation::run() {

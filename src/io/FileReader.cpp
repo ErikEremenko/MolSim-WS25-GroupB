@@ -77,7 +77,7 @@ void FileCuboidReader::readFile(ParticleContainer& particles) {
 
   if (input_file.is_open()) {
     getline(input_file, tmp_string);
-    std::cout << "Read line: " << tmp_string << std::endl;
+    SPDLOG_DEBUG("Read line: {}", tmp_string);
 
     while (tmp_string.empty() or tmp_string[0] == '#') {
       getline(input_file, tmp_string);
