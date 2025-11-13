@@ -1,18 +1,20 @@
-/*
- * FileReader.h
- *
- *  Created on: 23.02.2010
- *      Author: eckhardw
- */
-
 #pragma once
 
 #include "ParticleContainer.h"
 
-class FileReader {
- public:
-  FileReader();
-  virtual ~FileReader();
+class BaseFileReader {  // TODO: Implement YAML reader next week
+protected:
+  std::string filename;
+public:
+  explicit BaseFileReader(std::string filename);
+  virtual ~BaseFileReader();
 
-  static void readFile(ParticleContainer& particles, char* filename);
+  virtual void readFile(ParticleContainer& particles);
+};
+
+class FileCuboidReader : BaseFileReader {
+public:
+  using BaseFileReader::BaseFileReader;
+
+  void readFile(ParticleContainer& particles) override;
 };

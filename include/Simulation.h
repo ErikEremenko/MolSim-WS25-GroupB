@@ -2,37 +2,42 @@
 
 #include "ForceCalc.h"
 
+#include <memory>
+#include <string>
+
 enum class SimulationMode {
   BENCHMARK,
   FILE_OUTPUT
 };
 
-class Simulation {
-private:
-  char* filename;
+class BaseSimulation {
+protected:
   const double end_time;
   const double dt;
 
-  ParticleContainer& particles;
-  ForceCalc& calcMethod;
+  std::unique_ptr<ParticleContainer> particles;
+  std::unique_ptr<ForceCalc> forceCalc;
   SimulationMode simulationMode;
 
   void plotParticles(int iteration) const;
+
+  virtual void setupSimulation() = 0;  // Implement this function to create new simulations
 
   // Simulation run methods
   void runFileOutput() const;
   void runBenchmark() const;
 public:
-  Simulation(
-    char* filename,
-    double end_time,
-    double dt,
-    ParticleContainer& particles,
-    ForceCalc& calcMethod,
-    SimulationMode simulationMode
-    );
-  ~Simulation();
+  BaseSimulation(double end_time, double dt, SimulationMode simulationMode);
+  virtual ~BaseSimulation();
 
-  void loadParticles() const;
-  void run() const;
+  void run();
+};
+
+class CollisionSimulation : public BaseSimulation {
+private:
+  std::string inputFilename;
+public:
+  CollisionSimulation(std::string inputFilename, double end_time, double dt, SimulationMode simulationMode);
+protected:
+  void setupSimulation() override;
 };
