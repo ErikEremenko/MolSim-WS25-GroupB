@@ -22,8 +22,7 @@ TEST_F(ForceCalcTest, ExpectNormError) {
 // Tests the gravitational force between two particles if one particle has zero mass
 TEST_F(ForceCalcTest, GravityF_ZeroMass) {
   auto p1 = Particle(0);
-  auto p2 = Particle(std::array<double, 3>{1., 1., 1.},
-                     std::array<double, 3>{0.}, 1.);
+  auto p2 = Particle(std::array<double, 3>{1., 1., 1.}, std::array<double, 3>{0.}, 1.);
   pc.addParticle(&p1);
   pc.addParticle(&p2);
 
@@ -33,10 +32,8 @@ TEST_F(ForceCalcTest, GravityF_ZeroMass) {
 
 // Tests the gravitational force between two particles with valid mass
 TEST_F(ForceCalcTest, GravityF_TwoBody) {
-  auto p1 = Particle(std::array<double, 3>{0., 0., 0.},
-                     std::array<double, 3>{0.}, 1.);
-  auto p2 = Particle(std::array<double, 3>{1., 1., 1.},
-                     std::array<double, 3>{0.}, 1.);
+  auto p1 = Particle(std::array<double, 3>{0., 0., 0.}, std::array<double, 3>{0.}, 1.);
+  auto p2 = Particle(std::array<double, 3>{1., 1., 1.}, std::array<double, 3>{0.}, 1.);
   pc.addParticle(&p1);
   pc.addParticle(&p2);
 
@@ -52,8 +49,7 @@ TEST_F(ForceCalcTest, GravityF_TwoBody) {
 
 // Tests the gravitational force between two particles with a valid mass
 TEST_F(ForceCalcTest, GravityF_TwoBody2) {
-  auto p1 = Particle(std::array<double, 3>{10., 20., 30.},
-                     std::array<double, 3>{1., 2., 3.}, 1000.);
+  auto p1 = Particle(std::array<double, 3>{10., 20., 30.}, std::array<double, 3>{1., 2., 3.}, 1000.);
   auto p2 = Particle(
       std::array<double, 3>{
           103.,
@@ -66,8 +62,7 @@ TEST_F(ForceCalcTest, GravityF_TwoBody2) {
   pc.addParticle(&p2);
 
   double norm_inv = 1. / ArrayUtils::L2Norm(p2.getX() - p1.getX());
-  std::array<double, 3> F =
-      1000 * 10000 * norm_inv * norm_inv * norm_inv * (p2.getX() - p1.getX());
+  std::array<double, 3> F = 1000 * 10000 * norm_inv * norm_inv * norm_inv * (p2.getX() - p1.getX());
   GravityForce(pc).calculateF();
   for (int i = 0; i < pc.size(); i++) {
     EXPECT_DOUBLE_EQ(pc[0].getF()[i], F[i]);
@@ -80,8 +75,7 @@ TEST_F(ForceCalcTest, LJ_F_TwoBody) {
   // LJ-Potential factor precomputed using WolframAlpha
   constexpr double factor = -41145. / 13176688.;
 
-  auto p1 = Particle(std::array<double, 3>{0., 0., 0},
-                     std::array<double, 3>{0., 0., 0.}, 1.);
+  auto p1 = Particle(std::array<double, 3>{0., 0., 0}, std::array<double, 3>{0., 0., 0.}, 1.);
   auto p2 = Particle(
       std::array<double, 3>{
           1.,

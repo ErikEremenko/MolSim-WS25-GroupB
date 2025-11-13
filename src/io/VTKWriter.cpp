@@ -21,16 +21,13 @@
 
 namespace outputWriter {
 
-void VTKWriter::plotParticles(const ParticleContainer& particles,
-                              const std::string& filename,
-                              const int iteration) {
+void VTKWriter::plotParticles(const ParticleContainer& particles, const std::string& filename, const int iteration) {
   // create separate output directory
   const std::string output_directory = "output";
   try {
     std::filesystem::create_directories(output_directory);
   } catch (const std::filesystem::filesystem_error& err) {
-    std::cerr << "Error wile creating directory " << output_directory << ": "
-              << err.what() << std::endl;
+    std::cerr << "Error wile creating directory " << output_directory << ": " << err.what() << std::endl;
     return;
   }
   // Initialize points
@@ -73,8 +70,7 @@ void VTKWriter::plotParticles(const ParticleContainer& particles,
 
   // Create filename with iteration number
   std::stringstream strstr;
-  strstr << output_directory << "/" << filename << "_" << std::setfill('0')
-         << std::setw(4) << iteration << ".vtu";
+  strstr << output_directory << "/" << filename << "_" << std::setfill('0') << std::setw(4) << iteration << ".vtu";
 
   // Create writer and set data
   vtkNew<vtkXMLUnstructuredGridWriter> writer;

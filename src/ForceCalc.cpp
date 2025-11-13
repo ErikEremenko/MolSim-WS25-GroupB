@@ -86,12 +86,9 @@ void LennardJonesForce::calculateF() {
       const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
 
       const double crossing_norm_quot_6 = sigma6 * inv_norm6;
-      const double crossing_norm_quot_12 =
-          crossing_norm_quot_6 * crossing_norm_quot_6;
+      const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
 
-      const auto F_vector =
-          (24.0 * epsilon) * inv_norm2 *
-          (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12) * dist;
+      const auto F_vector = (24.0 * epsilon) * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12) * dist;
 
       // apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
       auto F_i = p_i.getF();

@@ -6,8 +6,7 @@
 #include <iostream>
 #include <sstream>
 
-BaseFileReader::BaseFileReader(std::string filename)
-    : filename(std::move(filename)) {}
+BaseFileReader::BaseFileReader(std::string filename) : filename(std::move(filename)) {}
 
 BaseFileReader::~BaseFileReader() = default;
 
@@ -45,9 +44,7 @@ void BaseFileReader::readFile(ParticleContainer& particles) {
         datastream >> vj;
       }
       if (datastream.eof()) {
-        std::cout
-            << "Error reading file: eof reached unexpectedly reading from line "
-            << i << std::endl;
+        std::cout << "Error reading file: eof reached unexpectedly reading from line " << i << std::endl;
         exit(-1);
       }
       datastream >> m;
@@ -104,9 +101,7 @@ void FileCuboidReader::readFile(ParticleContainer& particles) {
         datastream >> nj;
       }
       if (datastream.eof()) {
-        std::cout
-            << "Error reading file: eof reached unexpectedly reading from line "
-            << i << std::endl;
+        std::cout << "Error reading file: eof reached unexpectedly reading from line " << i << std::endl;
         exit(-1);
       }
       datastream >> h;
@@ -121,11 +116,9 @@ void FileCuboidReader::readFile(ParticleContainer& particles) {
         for (int ny = 0; ny < n[1]; ny++) {
           for (int nz = 0; nz < n[2]; nz++) {
 
-            std::array<double, 3> tempx = {cx[0] + h * nx, cx[1] + h * ny,
-                                           cx[2] + h * nz};
+            std::array<double, 3> tempx = {cx[0] + h * nx, cx[1] + h * ny, cx[2] + h * nz};
             std::array<double, 3> tempv = {cv[0], cv[1], cv[2]};
-            std::array<double, 3> temperatureVel =
-                maxwellBoltzmannDistributedVelocity(t, 2);
+            std::array<double, 3> temperatureVel = maxwellBoltzmannDistributedVelocity(t, 2);
             tempv[0] += temperatureVel[0];
             tempv[1] += temperatureVel[1];
             tempv[2] += temperatureVel[2];
