@@ -88,7 +88,7 @@ CollisionSimulation::CollisionSimulation(std::string inputFilename, double end_t
     : BaseSimulation(end_time, dt, simulationMode), inputFilename(std::move(inputFilename)) {
   particles = std::make_unique<ParticleContainer>();
   constexpr double sigma = 1.0;
-  constexpr double cutoffRadius = 2.5*sigma;
+  constexpr double cutoffRadius = 2.5 * sigma;
   forceCalc = std::make_unique<LennardJonesForce>(*particles, 5.0, sigma, cutoffRadius);
 }
 

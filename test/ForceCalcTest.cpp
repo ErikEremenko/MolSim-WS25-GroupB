@@ -16,7 +16,7 @@ TEST_F(ForceCalcTest, ExpectNormError) {
   pc.addParticle(std::array<double, 3>{0.}, std::array<double, 3>{0.}, 0.);
   pc.addParticle(std::array<double, 3>{0.}, std::array<double, 3>{1.}, 0.);
   EXPECT_THROW(GravityForce(pc).calculateF(), std::overflow_error);
-  EXPECT_THROW(LennardJonesForce(pc, 1., 1.).calculateF(), std::overflow_error);
+  EXPECT_THROW(LennardJonesForce(pc, 1., 1., INFINITY).calculateF(), std::overflow_error);
 }
 
 // Tests the gravitational force between two particles if one particle has zero mass
@@ -88,7 +88,7 @@ TEST_F(ForceCalcTest, LJ_F_TwoBody) {
   pc.addParticle(&p2);
 
   const std::array<double, 3> F = factor * (p1.getX() - p2.getX());
-  LennardJonesForce(pc, 5, 1).calculateF();
+  LennardJonesForce(pc, 5, 1, INFINITY).calculateF();
   for (int i = 0; i < pc.size(); i++) {
     EXPECT_NEAR(pc[0].getF()[i], F[i], 10e-6);
     EXPECT_NEAR(pc[1].getF()[i], -1. * F[i], 10e-6);
