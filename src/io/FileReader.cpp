@@ -86,7 +86,7 @@ void FileCuboidReader::readFile(ParticleContainer& particles) {
 
     std::istringstream numstream(tmp_string);
     numstream >> num_cuboids;
-    std::cout << "Reading " << num_cuboids << " cuboids." << std::endl;
+    SPDLOG_DEBUG("Reading {} cuboids.", num_cuboids);
     SPDLOG_DEBUG("Reading {} cuboids.", num_cuboids);
     getline(input_file, tmp_string);
     SPDLOG_DEBUG("Read line: {}", tmp_string);
