@@ -44,7 +44,8 @@ void GravityForce::calculateF() {
       const double norm = ArrayUtils::L2Norm(dist);
       if (norm == 0.) {
         // avoid division by zero
-        SPDLOG_ERROR("Calculated a zero norm between particles. This is likely caused "
+        SPDLOG_ERROR(
+            "Calculated a zero norm between particles. This is likely caused "
             "by an incorrect initialization of the Simulation.");
         throw std::overflow_error(
             "Calculated a zero norm between particles. This is likely caused "
@@ -65,8 +66,8 @@ void GravityForce::calculateF() {
 }
 
 LennardJonesForce::LennardJonesForce(  // co
-  ParticleContainer& particles, const double epsilon, const double sigma, const double cutoffRadius)
-: ForceCalc(particles), epsilon(epsilon), sigma(sigma), cutoffRadius(cutoffRadius) {}
+    ParticleContainer& particles, const double epsilon, const double sigma, const double cutoffRadius)
+    : ForceCalc(particles), epsilon(epsilon), sigma(sigma), cutoffRadius(cutoffRadius) {}
 
 void LennardJonesForce::calculateF() {
   for (auto& p : particles) {
@@ -86,7 +87,8 @@ void LennardJonesForce::calculateF() {
       const double norm = ArrayUtils::L2Norm(dist);
       if (norm == 0) {
         // avoid division by zero
-        SPDLOG_ERROR("Calculated a zero norm between particles. This is likely caused "
+        SPDLOG_ERROR(
+            "Calculated a zero norm between particles. This is likely caused "
             "by an incorrect initialization of the Simulation.");
         throw std::overflow_error(
             "Calculated a zero norm between particles. This is likely caused "
