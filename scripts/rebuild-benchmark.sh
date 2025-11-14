@@ -1,6 +1,5 @@
 #!/bin/bash
 set -x
-sudo -v
 
 rm -rf build/
 # shellcheck disable=SC2164

@@ -1,12 +1,11 @@
 #!/bin/bash
 set -x
-sudo -v
 
 rm -rf build/
 # shellcheck disable=SC2164
 mkdir build && cd build
 
-cmake -DBUILD_DOC=OFF -DENABLE_VTK_OUTPUT=ON -DVTK_DIR=/usr/local/vtk/lib/cmake/vtk-9.5 ..
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_DOC=OFF -DENABLE_VTK_OUTPUT=ON -DVTK_DIR=/usr/local/vtk/lib/cmake/vtk-9.5 ..
 make -j 6
 # sets CPUs to maximum available frequency
 sudo cpupower frequency-set -g performance
