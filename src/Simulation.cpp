@@ -7,7 +7,7 @@
 #include <iostream>
 
 #ifndef SPDLOG_ACTIVE_LEVEL
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #endif // SPDLOG_ACTIVE_LEVEL
 #include "spdlog/spdlog.h"
 

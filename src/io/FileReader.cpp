@@ -53,8 +53,8 @@ void BaseFileReader::readFile(ParticleContainer& particles) {
       }
       datastream >> m;
       particles.addParticle(x, v, m);
-      SPDLOG_DEBUG("Generated particle with x={{{0:.2f}, {0:.2f}, {0:.2f}}}, v={{{0:.2f}, {0:.2f}, {0:.2f}}}, m={0:.2f}",
-                   x[0], x[1], x[2], v[0], v[1], v[2], m);
+//      SPDLOG_DEBUG("Generated particle with x={{{0:.2f}, {0:.2f}, {0:.2f}}}, v={{{0:.2f}, {0:.2f}, {0:.2f}}}, m={0:.2f}",
+//                   x[0], x[1], x[2], v[0], v[1], v[2], m);
 
       getline(input_file, tmp_string);
       SPDLOG_DEBUG("Read line: {}", tmp_string);
@@ -113,9 +113,6 @@ void FileCuboidReader::readFile(ParticleContainer& particles) {
       datastream >> m;
       datastream >> t;
 
-      //particles.addParticle(x, v, m);
-      //generateParticleCuboid(cx, cv, n, h, m);
-
       //code for generating particles:
       for (int nx = 0; nx < n[0]; nx++) {
         for (int ny = 0; ny < n[1]; ny++) {
@@ -128,15 +125,18 @@ void FileCuboidReader::readFile(ParticleContainer& particles) {
             tempv[1] += temperatureVel[1];
             tempv[2] += temperatureVel[2];
             particles.addParticle(tempx, tempv, m);
-            SPDLOG_DEBUG("Generated particle with x={{{0:.2f}, {0:.2f}, {0:.2f}}}, v={{{0:.2f}, {0:.2f}, {0:.2f}}}, m={0:.2f}",
-                   tempx[0], tempx[1], tempx[2],
-                   tempv[0], tempv[1], tempv[2], m);
+//            SPDLOG_DEBUG("Generated particle with x={{{0:.2f}, {0:.2f}, {0:.2f}}}, v={{{0:.2f}, {0:.2f}, {0:.2f}}}, m={0:.2f}",
+//                   tempx[0], tempx[1], tempx[2],
+//                   tempv[0], tempv[1], tempv[2], m);
           }
         }
       }
 
       getline(input_file, tmp_string);
       SPDLOG_DEBUG("Read line: {}", tmp_string);
+      SPDLOG_DEBUG("Generated cuboid of {} particles with position {{{}, {}, {}}}, velocity {{{}, {}, {}}}, particle separation {} and average brownian motion velocity {}",
+                   n[0]*n[1]*n[2] ,cx[0], cx[1], cx[2], cv[0], cv[1], cv[2], h, t);
+
     }
   } else {
     SPDLOG_ERROR("Error: could not open file {}", filename);
