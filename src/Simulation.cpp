@@ -8,7 +8,7 @@
 
 #ifndef SPDLOG_ACTIVE_LEVEL
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
-#endif // SPDLOG_ACTIVE_LEVEL
+#endif  // SPDLOG_ACTIVE_LEVEL
 #include "spdlog/spdlog.h"
 
 BaseSimulation::BaseSimulation(double end_time, double dt, SimulationMode simulationMode)
