@@ -10,6 +10,7 @@ if(BUILD_DOC AND Doxygen_FOUND)
 
     doxygen_add_docs(doc_doxygen
             "${PROJECT_SOURCE_DIR}/src"
+            "${PROJECT_SOURCE_DIR}/include"
             "${PROJECT_SOURCE_DIR}/README.md"
             WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
             COMMENT "Generate API documentation with Doxygen"

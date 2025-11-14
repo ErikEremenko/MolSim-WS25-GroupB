@@ -83,8 +83,7 @@ void VTKWriter::plotParticles(const ParticleContainer& particles, const std::str
 
   // Write the file
   writer->Write();
-  // TODO output to log
-  /*std::cout << "Iteration " << iteration << " written." << std::endl;*/
+  SPDLOG_DEBUG("Iteration {} written", iteration);
 }
 }  // namespace outputWriter
 #endif

@@ -9,7 +9,7 @@
  * Provides a common interface for file readers that load particles into
  * a ParticleContainer. Subclasses implement specific file formats or structures.
  */
-class BaseFileReader {  // TODO: Implement YAML reader next week
+class BaseFileReader {
 protected:
   /**
    * @brief Path to the input file.

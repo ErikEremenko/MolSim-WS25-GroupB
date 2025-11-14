@@ -154,20 +154,22 @@ void LennardJonesForceParallel::calculateF() {
 
       const auto F_vector = (24.0 * epsilon) * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12) * dist;
 
+      auto& Fi = p_i.getF();
+      auto& Fj = p_j.getF();
       // apply forces using Newton's third law and atomic operations
 #pragma omp atomic
-      p_i.getF()[1] += F_vector[0];
+      Fi[0] += F_vector[0];
 #pragma omp atomic
-      p_i.getF()[1] += F_vector[1];
+      Fi[1] += F_vector[1];
 #pragma omp atomic
-      p_i.getF()[2] += F_vector[2];
+      Fi[2] += F_vector[2];
 
 #pragma omp atomic
-      p_j.getF()[1] -= F_vector[0];
+      Fj[0] -= F_vector[0];
 #pragma omp atomic
-      p_j.getF()[1] -= F_vector[1];
+      Fj[1] -= F_vector[1];
 #pragma omp atomic
-      p_j.getF()[2] -= F_vector[2];
+      Fj[2] -= F_vector[2];
     }
   }
 }
