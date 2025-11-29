@@ -61,8 +61,8 @@ void BaseFileReader::readFile(ParticleContainer& particles) {
   }
 }
 
-// FileCuboidReader class definition
-void FileCuboidReader::readFile(ParticleContainer& particles) {
+// CuboidFileReader class definition
+void CuboidFileReader::readFile(ParticleContainer& particles) {
   std::array<double, 3> cx{};
   std::array<double, 3> cv{};
   std::array<int, 3> n{};
@@ -110,9 +110,6 @@ void FileCuboidReader::readFile(ParticleContainer& particles) {
       datastream >> h;
       datastream >> m;
       datastream >> t;
-
-      //particles.addParticle(x, v, m);
-      //generateParticleCuboid(cx, cv, n, h, m);
 
       //code for generating particles:
       for (int nx = 0; nx < n[0]; nx++) {

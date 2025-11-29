@@ -17,6 +17,9 @@ function(molsim_enable_testing)
             ${TEST_FILES}
     )
 
+    # Define custom macro for project source directory
+    target_compile_definitions(MolSimTests PRIVATE PROJ_SRC_DIR="${CMAKE_SOURCE_DIR}")
+
     target_link_libraries(MolSimTests PUBLIC
             molsim_core
             GTest::gtest_main

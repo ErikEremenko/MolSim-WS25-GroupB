@@ -22,7 +22,7 @@ From project root execute the following commands in that order:
 mkdir build
 cd build
 cmake -DBUILD_DOC=ON ..
-make -j 6 # compilation with (6) parallel jobs
+cmake --build .
 ./MolSim ../input/eingabe-sonne.txt # any appropriate input file 
 ```
 When using VTK output, run this instead:
@@ -30,7 +30,7 @@ When using VTK output, run this instead:
 mkdir build
 cd build
 cmake -DBUILD_DOC=ON -DENABLE_VTK_OUTPUT=ON -DVTK_DIR=/usr/local/vtk/lib/cmake/vtk-9.5 .. # insert your VTK directory
-make -j 6 # compilation with (6) parallel jobs
+cmake --build .
 ./MolSim ../input/eingabe-collision.txt 5 0.0002 file info P:OFF
 ```
 

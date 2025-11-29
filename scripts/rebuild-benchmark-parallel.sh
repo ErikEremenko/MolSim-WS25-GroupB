@@ -6,7 +6,7 @@ rm -rf build/
 mkdir build && cd build
 
 cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_DOC=OFF -DENABLE_VTK_OUTPUT=ON -DVTK_DIR=/usr/local/vtk/lib/cmake/vtk-9.5 ..
-make -j 6
+cmake --build .
 # sets CPUs to maximum available frequency
 sudo cpupower frequency-set -g performance
 # taskset -c binds the process to the specified set of CPU cores

@@ -37,10 +37,10 @@ public:
 };
 
 /**
- * @class FileCuboidReader
+ * @class CuboidFileReader
  * @brief File reader that loads cuboids of particles.
  */
-class FileCuboidReader : BaseFileReader {
+class CuboidFileReader : BaseFileReader {
 public:
   using BaseFileReader::BaseFileReader;
 

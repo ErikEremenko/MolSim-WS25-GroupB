@@ -45,4 +45,7 @@ molsim_enable_OpenMP(molsim_core)
 add_executable(MolSim src/main.cpp)
 target_link_libraries(MolSim PRIVATE molsim_core)
 
+# Define custom macro for project source directory
+target_compile_definitions(MolSim PRIVATE PROJ_SRC_DIR="${CMAKE_SOURCE_DIR}")
+
 molsim_enable_testing()

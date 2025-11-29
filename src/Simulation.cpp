@@ -95,7 +95,7 @@ CollisionSimulation::CollisionSimulation(std::string inputFilename, double end_t
 }
 
 void CollisionSimulation::setupSimulation() {
-  FileCuboidReader reader(inputFilename);
+  CuboidFileReader reader(inputFilename);
   reader.readFile(*particles);
 }
 
@@ -109,6 +109,6 @@ CollisionSimulationParallel::CollisionSimulationParallel(std::string inputFilena
 }
 
 void CollisionSimulationParallel::setupSimulation() {
-  FileCuboidReader reader(inputFilename);
+  CuboidFileReader reader(inputFilename);
   reader.readFile(*particles);
 }
