@@ -6,6 +6,9 @@
 #include <iostream>
 #include <sstream>
 
+#ifndef SPDLOG_ACTIVE_LEVEL
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#endif  // SPDLOG_ACTIVE_LEVEL
 #include <spdlog/spdlog.h>
 
 BaseFileReader::BaseFileReader(std::string filename) : filename(std::move(filename)) {}
@@ -23,12 +26,11 @@ void BaseFileReader::readFile(ParticleContainer& particles) {
 
   if (input_file.is_open()) {
     getline(input_file, tmp_string);
-    SPDLOG_DEBUG("Read line: {}", tmp_string);
 
     while (tmp_string.empty() or tmp_string[0] == '#') {
       getline(input_file, tmp_string);
-      SPDLOG_DEBUG("Read line: {}", tmp_string);
     }
+    SPDLOG_DEBUG("Read line: {}", tmp_string);
 
     std::istringstream numstream(tmp_string);
     numstream >> num_particles;
@@ -51,6 +53,8 @@ void BaseFileReader::readFile(ParticleContainer& particles) {
       }
       datastream >> m;
       particles.addParticle(x, v, m);
+      //      SPDLOG_DEBUG("Generated particle with x={{{0:.2f}, {0:.2f}, {0:.2f}}}, v={{{0:.2f}, {0:.2f}, {0:.2f}}}, m={0:.2f}",
+      //                   x[0], x[1], x[2], v[0], v[1], v[2], m);
 
       getline(input_file, tmp_string);
       SPDLOG_DEBUG("Read line: {}", tmp_string);
@@ -77,16 +81,15 @@ void CuboidFileReader::readFile(ParticleContainer& particles) {
 
   if (input_file.is_open()) {
     getline(input_file, tmp_string);
-    SPDLOG_DEBUG("Read line: {}", tmp_string);
 
     while (tmp_string.empty() or tmp_string[0] == '#') {
       getline(input_file, tmp_string);
-      SPDLOG_DEBUG("Read line: {}", tmp_string);
     }
+    SPDLOG_DEBUG("Read line: {}", tmp_string);
 
     std::istringstream numstream(tmp_string);
     numstream >> num_cuboids;
-    SPDLOG_DEBUG("Reading {} cuboids.", num_cuboids);
+
     SPDLOG_DEBUG("Reading {} cuboids.", num_cuboids);
     getline(input_file, tmp_string);
     SPDLOG_DEBUG("Read line: {}", tmp_string);
@@ -123,12 +126,19 @@ void CuboidFileReader::readFile(ParticleContainer& particles) {
             tempv[1] += temperatureVel[1];
             tempv[2] += temperatureVel[2];
             particles.addParticle(tempx, tempv, m);
+            //            SPDLOG_DEBUG("Generated particle with x={{{0:.2f}, {0:.2f}, {0:.2f}}}, v={{{0:.2f}, {0:.2f}, {0:.2f}}}, m={0:.2f}",
+            //                   tempx[0], tempx[1], tempx[2],
+            //                   tempv[0], tempv[1], tempv[2], m);
           }
         }
       }
 
       getline(input_file, tmp_string);
       SPDLOG_DEBUG("Read line: {}", tmp_string);
+      SPDLOG_DEBUG(
+          "Generated cuboid of {} particles with position {{{}, {}, {}}}, velocity {{{}, {}, {}}}, particle separation "
+          "{} and average brownian motion velocity {}",
+          n[0] * n[1] * n[2], cx[0], cx[1], cx[2], cv[0], cv[1], cv[2], h, t);
     }
   } else {
     SPDLOG_ERROR("Error: could not open file {}", filename);
