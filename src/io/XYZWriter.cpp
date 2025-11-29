@@ -5,12 +5,14 @@
  *      Author: eckhardw
  */
 
-#include "outputWriter/XYZWriter.h"
+#include "io/XYZWriter.h"
 
 #include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+
+#include <spdlog/spdlog.h>
 
 namespace outputWriter {
 
@@ -18,22 +20,19 @@ XYZWriter::XYZWriter() = default;
 
 XYZWriter::~XYZWriter() = default;
 
-void XYZWriter::plotParticles(const std::vector<Particle>& particles,
-                              const std::string& filename, int iteration) {
+void XYZWriter::plotParticles(const std::vector<Particle>& particles, const std::string& filename, int iteration) {
   // create separate output directory
   const std::string output_directory = "output";
   try {
     std::filesystem::create_directories(output_directory);
   } catch (const std::filesystem::filesystem_error& err) {
-    std::cerr << "Error wile creating directory " << output_directory << ": "
-              << err.what() << std::endl;
+    SPDLOG_ERROR("Error while creating directory {}:{}", output_directory, err.what());
     return;
   }
 
   std::ofstream file;
   std::stringstream strstr;
-  strstr << output_directory << "/" << filename << "_" << std::setfill('0')
-         << std::setw(4) << iteration << ".xyz";
+  strstr << output_directory << "/" << filename << "_" << std::setfill('0') << std::setw(4) << iteration << ".xyz";
 
   file.open(strstr.str().c_str());
   file << particles.size() << std::endl;

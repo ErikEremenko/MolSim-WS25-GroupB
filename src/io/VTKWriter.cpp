@@ -6,7 +6,7 @@
  */
 #ifdef ENABLE_VTK_OUTPUT
 
-#include "VTKWriter.h"
+#include "io/VTKWriter.h"
 
 #include <vtkCellArray.h>
 #include <vtkDoubleArray.h>
@@ -19,18 +19,17 @@
 #include <iomanip>
 #include <sstream>
 
+#include <spdlog/spdlog.h>
+
 namespace outputWriter {
 
-void VTKWriter::plotParticles(const ParticleContainer& particles,
-                              const std::string& filename,
-                              const int iteration) {
+void VTKWriter::plotParticles(const ParticleContainer& particles, const std::string& filename, const int iteration) {
   // create separate output directory
   const std::string output_directory = "output";
   try {
     std::filesystem::create_directories(output_directory);
   } catch (const std::filesystem::filesystem_error& err) {
-    std::cerr << "Error wile creating directory " << output_directory << ": "
-              << err.what() << std::endl;
+    SPDLOG_ERROR("Error while creating directory {}:{}", output_directory, err.what());
     return;
   }
   // Initialize points
@@ -73,8 +72,7 @@ void VTKWriter::plotParticles(const ParticleContainer& particles,
 
   // Create filename with iteration number
   std::stringstream strstr;
-  strstr << output_directory << "/" << filename << "_" << std::setfill('0')
-         << std::setw(4) << iteration << ".vtu";
+  strstr << output_directory << "/" << filename << "_" << std::setfill('0') << std::setw(4) << iteration << ".vtu";
 
   // Create writer and set data
   vtkNew<vtkXMLUnstructuredGridWriter> writer;
@@ -85,6 +83,7 @@ void VTKWriter::plotParticles(const ParticleContainer& particles,
 
   // Write the file
   writer->Write();
+  SPDLOG_DEBUG("Iteration {} written", iteration);
 }
 }  // namespace outputWriter
 #endif

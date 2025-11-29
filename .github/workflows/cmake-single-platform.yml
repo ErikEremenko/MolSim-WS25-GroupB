@@ -1,0 +1,95 @@
+name: CMake on a single platform
+
+on:
+  push:
+    branches: [ "master", "Assignment2"]
+  pull_request:
+    branches: [ "master", "Assignment2"]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache + install APT packages
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: >
+            ccache libfmt9 doxygen
+            libvtk9-dev libvtk9.1t64 vtk9
+            libtbb-dev liblzma-dev
+            libgl1 mesa-common-dev
+          version: ${{ runner.os }}-${{ runner.arch }} # bump cache
+          execute_install_scripts: true
+
+      - name: Run clang-format on entire project
+        run: bash ${{ github.workspace }}/scripts/clang-format-project.sh
+
+      - name: Cache FetchContent
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.fc
+          key: ${{ runner.os }}-fc-${{ hashFiles('**/CMakeLists.txt','cmake/**','**/FetchContent_*.cmake') }}
+          restore-keys: ${{ runner.os }}-fc-
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-${{ hashFiles('**/*.cpp','**/*.h','**/CMakeLists.txt','cmake/**') }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-${{ env.BUILD_TYPE }}-
+            ${{ runner.os }}-ccache-
+
+      - name: Configure CMake
+        run: >
+          cmake -S . -B ${{github.workspace}}/build
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          -DBUILD_DOC=ON
+          -DENABLE_VTK_OUTPUT=ON
+          -DFETCHCONTENT_BASE_DIR=${{ github.workspace }}/.fc
+          -U "VTK_*"
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+
+      - name: Test
+        working-directory: ${{github.workspace}}/build
+        run: ctest -C ${{env.BUILD_TYPE}} -V
+
+      - name: Upload formatted source
+        uses: actions/upload-artifact@v4
+        with:
+          name: formatted-source
+          path: .
+
+  autocommit_and_push:
+    name: Autocommit and Push
+    runs-on: ubuntu-latest
+    needs: build
+    # Do not run on pull events
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download formatted source
+        uses: actions/download-artifact@v4
+        with:
+          name: formatted-source
+          path: .
+
+      - name: Commit formatted files
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: Apply clang-format"
+          branch: ${{ github.head_ref }}
+

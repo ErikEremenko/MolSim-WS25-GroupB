@@ -18,7 +18,7 @@ namespace outputWriter {
  * @brief A singleton class that can be used to describe the state of the simulation in a given moment.
  *
  */
-class XYZWriter {
+class XYZWriter final {
  public:
   XYZWriter();
 
