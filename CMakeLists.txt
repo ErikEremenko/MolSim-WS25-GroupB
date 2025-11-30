@@ -17,13 +17,16 @@ include(doxygen)
 include(spdlog)
 include(gtest)
 include(openmp)
+include(yamlcpp)
 
 # Core Library
 # Contains all shared application logic
 file(GLOB_RECURSE SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(REMOVE_ITEM SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp") # Exclude main()
 
-add_library(molsim_core ${SRC_FILES})
+add_library(molsim_core ${SRC_FILES}
+        src/io/YAMLFileReader.cpp
+        include/io/YAMLFileReader.h)
 target_include_directories(molsim_core
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -39,6 +42,7 @@ target_compile_options(molsim_core PRIVATE
 # Apply dependencies to the core library
 molsim_enable_vtk(molsim_core)
 molsim_enable_spdlog(molsim_core)
+molsim_enable_yamlcpp(molsim_core)
 molsim_enable_OpenMP(molsim_core)
 
 # Main Application Executable

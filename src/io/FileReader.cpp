@@ -121,14 +121,14 @@ void CuboidFileReader::readFile(ParticleContainer& particles) {
 
             std::array<double, 3> tempx = {cx[0] + h * nx, cx[1] + h * ny, cx[2] + h * nz};
             std::array<double, 3> tempv = {cv[0], cv[1], cv[2]};
-            std::array<double, 3> temperatureVel = maxwellBoltzmannDistributedVelocity(t, 2);
+            std::array<double, 3> temperatureVel = maxwellBoltzmannDistributedVelocity(t, 3);
             tempv[0] += temperatureVel[0];
             tempv[1] += temperatureVel[1];
             tempv[2] += temperatureVel[2];
             particles.addParticle(tempx, tempv, m);
-            //            SPDLOG_DEBUG("Generated particle with x={{{0:.2f}, {0:.2f}, {0:.2f}}}, v={{{0:.2f}, {0:.2f}, {0:.2f}}}, m={0:.2f}",
-            //                   tempx[0], tempx[1], tempx[2],
-            //                   tempv[0], tempv[1], tempv[2], m);
+            SPDLOG_DEBUG(
+                "Generated particle with x={{{0:.2f}, {0:.2f}, {0:.2f}}}, v={{{0:.2f}, {0:.2f}, {0:.2f}}}, m={0:.2f}",
+                tempx[0], tempx[1], tempx[2], tempv[0], tempv[1], tempv[2], m);
           }
         }
       }
