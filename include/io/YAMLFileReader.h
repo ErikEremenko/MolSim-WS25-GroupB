@@ -3,6 +3,7 @@
 #include <string>
 #include "ParticleContainer.h"
 #include "io/FileReader.h"
+#include "utils/MaxwellBoltzmannDistribution.h"
 
 class YAMLFileReader final : public BaseFileReader {
  public:
@@ -23,6 +24,9 @@ class YAMLFileReader final : public BaseFileReader {
   int getWriteFrequency() const;
   double getTend() const;
   double getDeltaT() const;
+  double getEpsilon() const;
+  double getSigma() const;
+  double getCutoff() const;
 
  private:
   YAML::Node config;  // stores loaded YAML structure

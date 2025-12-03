@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ForceCalc.h"
+#include "io/YAMLFileReader.h"
 
 #include <memory>
 #include <string>
@@ -29,12 +30,22 @@ protected:
   /**
    * @brief Total simulated time.
    */
-  const double end_time;
+  double end_time;
 
   /**
    * @brief Time step size used for integration.
    */
-  const double dt;
+  double dt;
+
+  /**
+   * @brief Frequency defines after how many simulation steps the output is written to file.
+   */
+  int write_frequency;
+
+  /**
+   * @brief Defines the base name of the simulation output files.
+   */
+  std::string base_name;
 
   /**
    * @brief Strategy defining how particles are stored and accessed.
@@ -54,8 +65,9 @@ protected:
   /**
    * @brief Outputs the state of the particles for visualization in ParaView.
    * @param iteration Current simulation step in ticks.
+   * @param base_name
    */
-  void plotParticles(int iteration) const;
+  void plotParticles(int iteration, const std::string& base_name) const;
 
   /**
    * @brief Creates/loads the particles in the simulation.
@@ -69,7 +81,7 @@ protected:
    * @{
    * @brief Runs the simulation in benchmark mode (no file output).
    */
-  void runFileOutput() const;
+  void runFileOutput(int write_frequency, const std::string& base_name) const;
 
   /**
    * @brief Runs the simulation in benchmark mode (no file output).
@@ -81,10 +93,18 @@ public:
    * @brief Constructor for \ref Simulation.
    * @param end_time Total simulation time.
    * @param dt Time step size.
+   * @param write_frequency
+   * @param base_name
    * @param simulationMode Selected simulation mode.
    */
-  BaseSimulation(double end_time, double dt, SimulationMode simulationMode);
-  virtual ~BaseSimulation();
+  BaseSimulation(double end_time, double dt, int write_frequency, const std::string& base_name,  SimulationMode simulationMode);
+
+  /**
+ * @brief Constructor for \ref Simulation used in \ref YAMLSimulation. End_time, Write_frequency, dt, base_name, are given defaults, but initialized in \ref YAMLSimulation::YAMLSimulation
+ * @param simulationMode Selected simulation mode.
+ */
+  explicit BaseSimulation(SimulationMode simulationMode);
+ virtual ~BaseSimulation();
 
   /**
    * @brief The entry-point of the simulation.
@@ -120,11 +140,21 @@ protected:
   void setupSimulation() override;
 };
 
-class CollisionSimulationParallel : public BaseSimulation {
+class CollisionSimulationParallel final : public BaseSimulation {
 private:
   std::string inputFilename;
 public:
   CollisionSimulationParallel(std::string inputFilename, double end_time, double dt, SimulationMode simulationMode);
+protected:
+  void setupSimulation() override;
+};
+
+class YAMLSimulation final : public BaseSimulation {
+private:
+  std::string inputFilename;
+  YAMLFileReader reader;
+public:
+  YAMLSimulation(std::string inputFilename, SimulationMode simulationMode);
 protected:
   void setupSimulation() override;
 };

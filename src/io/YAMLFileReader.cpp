@@ -1,7 +1,6 @@
 #include "../../include/io/YAMLFileReader.h"
 
 #include <spdlog/spdlog.h>
-#include "utils/MaxwellBoltzmannDistribution.h"
 
 YAMLFileReader::YAMLFileReader(std::string filename) : BaseFileReader(filename) {
   try {
@@ -37,6 +36,18 @@ double YAMLFileReader::getDeltaT() const {
   return config["simulation"]["delta_t"].as<double>();
 }
 
+double YAMLFileReader::getEpsilon() const {
+  return config["simulation"]["epsilon"].as<double>();
+}
+
+double YAMLFileReader::getSigma() const {
+  return config["simulation"]["sigma"].as<double>();
+}
+
+double YAMLFileReader::getCutoff() const {
+  return config["simulation"]["cutoff_radius"].as<double>();
+}
+
 void YAMLFileReader::readFile(ParticleContainer& particles) {
   const auto& cuboids = config["cuboids"];
 
@@ -66,6 +77,9 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
           p_vel[2] += brownian_vel[2];
 
           particles.addParticle(p_pos, p_vel, m);
+          SPDLOG_DEBUG(
+              "Generated particle with x={{{:.2f}, {:.2f}, {:.2f}}}, v={{{:.2f}, {:.2f}, {:.2f}}}, m={:.2f}",
+              p_pos[0], p_pos[1], p_pos[2], p_vel[0], p_vel[1], p_vel[2], m);
         }
       }
     }
