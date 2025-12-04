@@ -71,7 +71,6 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
     SPDLOG_DEBUG("Loaded cuboid {} with {} particles.", i, dim[0] * dim[1] * dim[2]);
   }
 
-
   const auto& spheres = config["spheres"];
 
   for (std::size_t i = 0; i < spheres.size(); ++i) {
@@ -89,5 +88,4 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
 
     SPDLOG_DEBUG("Loaded sphere.");
   }
-
 }

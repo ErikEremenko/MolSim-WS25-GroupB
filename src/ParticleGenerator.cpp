@@ -7,12 +7,11 @@
 #endif  // SPDLOG_ACTIVE_LEVEL
 #include <spdlog/spdlog.h>
 
-
 ParticleGenerator::ParticleGenerator(ParticleContainer& particles) : particles(particles) {}
 ParticleGenerator::~ParticleGenerator() = default;
 
-void ParticleGenerator::generateCuboid(std::array<double, 3> cx, std::array<double, 3> cv,
-                        std::array<int, 3> n, double h, double m, double t) {
+void ParticleGenerator::generateCuboid(std::array<double, 3> cx, std::array<double, 3> cv, std::array<int, 3> n,
+                                       double h, double m, double t) {
 
   for (int nx = 0; nx < n[0]; nx++) {
     for (int ny = 0; ny < n[1]; ny++) {
@@ -28,48 +27,21 @@ void ParticleGenerator::generateCuboid(std::array<double, 3> cx, std::array<doub
       }
     }
   }
-
-
-
 }
 
-void ParticleGenerator::generateDisc(std::array<double, 3> cx, std::array<double, 3> cv,
-                        int rn, double h, double m) {
+void ParticleGenerator::generateDisc(std::array<double, 3> cx, std::array<double, 3> cv, int rn, double h, double m) {
 
   double radius_sq = rn * rn * h * h;
 
   for (double px = -rn * h; px <= rn * h; px += h) {
     for (double py = -rn * h; py <= rn * h; py += h) {
 
-
       //std::array<double, 3> tempv = {cv[0], cv[1], cv[2]};
       double dist_sq = px * px + py * py;
-      if (dist_sq <= radius_sq){
+      if (dist_sq <= radius_sq) {
         std::array<double, 3> tempx = {cx[0] + px, cx[1] + py, cx[2]};
         particles.addParticle(tempx, cv, m);
       }
-
     }
   }
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

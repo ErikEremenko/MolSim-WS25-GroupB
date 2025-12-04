@@ -1,6 +1,6 @@
 #include "io/FileReader.h"
-#include "utils/MaxwellBoltzmannDistribution.h"  // include for testing (? TODO)
 #include "../include/ParticleGenerator.h"
+#include "utils/MaxwellBoltzmannDistribution.h"  // include for testing (? TODO)
 
 #include <cstdlib>
 #include <fstream>
