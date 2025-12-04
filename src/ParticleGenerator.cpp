@@ -29,18 +29,22 @@ void ParticleGenerator::generateCuboid(std::array<double, 3> cx, std::array<doub
   }
 }
 
-void ParticleGenerator::generateDisc(std::array<double, 3> cx, std::array<double, 3> cv, int rn, double h, double m) {
+void ParticleGenerator::generateDisc(std::array<double, 3> cx, std::array<double, 3> cv, int rn, double h, double m, double t) {
 
   double radius_sq = rn * rn * h * h;
 
   for (double px = -rn * h; px <= rn * h; px += h) {
     for (double py = -rn * h; py <= rn * h; py += h) {
 
-      //std::array<double, 3> tempv = {cv[0], cv[1], cv[2]};
       double dist_sq = px * px + py * py;
       if (dist_sq <= radius_sq) {
+        std::array<double, 3> temperatureVel = maxwellBoltzmannDistributedVelocity(t, 2);
+        std::array<double, 3> tempv = {
+          cv[0] + temperatureVel[0],
+          cv[1] + temperatureVel[1],
+          cv[2] + temperatureVel[2]};
         std::array<double, 3> tempx = {cx[0] + px, cx[1] + py, cx[2]};
-        particles.addParticle(tempx, cv, m);
+        particles.addParticle(tempx, tempv, m);
       }
     }
   }
