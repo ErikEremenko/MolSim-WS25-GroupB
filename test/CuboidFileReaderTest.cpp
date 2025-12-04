@@ -16,8 +16,22 @@ class CuboidFileReaderTest : public ::testing::Test {
 TEST_F(CuboidFileReaderTest, BasicRead) {
   CuboidFileReader reader(inputFilename);
   reader.readFile(pc);
-  EXPECT_EQ(pc[0].toString(),
-            "Particle: X:[0, 0, 0] v: [-0.171411, 0.0178057, 0] f: [0, 0, 0] old_f: [0, 0, 0] type: 0");
-  EXPECT_EQ(pc[1].toString(),
-            "Particle: X:[0, 1.1225, 0] v: [0.00571789, -0.14098, 0] f: [0, 0, 0] old_f: [0, 0, 0] type: 0");
+
+  ASSERT_EQ(pc.size(), 384);
+
+  EXPECT_EQ(pc[0].getX()[0], 0.0);
+  EXPECT_EQ(pc[0].getX()[1], 0.0);
+  EXPECT_EQ(pc[0].getX()[2], 0.0);
+  EXPECT_EQ(pc[0].getType(), 0);
+
+  EXPECT_EQ(pc[1].getX()[0], 0.0);
+  EXPECT_EQ(pc[1].getX()[1], 1.1225);
+  EXPECT_EQ(pc[1].getX()[2], 0.0);
+  EXPECT_EQ(pc[1].getType(), 0);
+
+  // velocities are randomized, checking for sane values
+  for (int i = 0; i < 3; ++i) {
+    EXPECT_TRUE(std::isfinite(pc[0].getV()[i]));
+    EXPECT_TRUE(std::isfinite(pc[1].getV()[i]));
+  }
 }
