@@ -126,9 +126,8 @@ void CuboidFileReader::readFile(ParticleContainer& particles) {
             tempv[1] += temperatureVel[1];
             tempv[2] += temperatureVel[2];
             particles.addParticle(tempx, tempv, m);
-            SPDLOG_DEBUG(
-                "Generated particle with x={{{:.2f}, {:.2f}, {:.2f}}}, v={{{:.2f}, {:.2f}, {:.2f}}}, m={:.2f}",
-                tempx[0], tempx[1], tempx[2], tempv[0], tempv[1], tempv[2], m);
+            SPDLOG_DEBUG("Generated particle with x={{{:.2f}, {:.2f}, {:.2f}}}, v={{{:.2f}, {:.2f}, {:.2f}}}, m={:.2f}",
+                         tempx[0], tempx[1], tempx[2], tempv[0], tempv[1], tempv[2], m);
           }
         }
       }
