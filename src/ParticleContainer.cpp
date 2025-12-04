@@ -13,7 +13,8 @@ void ParticleContainer::addParticle(const Particle* p) {
 }
 
 void ParticleContainer::removeParticle(const int idx) {
-  if (idx < particles.size()) particles.erase(particles.begin() + idx);
+  if (idx < particles.size())
+    particles.erase(particles.begin() + idx);
 }
 
 ParticleContainer::iterator ParticleContainer::begin() {

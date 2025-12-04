@@ -183,12 +183,14 @@ void LinkedCellParticleContainer::handleOutflow() {
 
     for (int d = 0; d < 3; ++d) {
       // lower boundary
-      if (boundaryTypes[2*d] == BoundaryType::OUTFLOW && x[d] < domainOrigin[d]) {
-        outside = true; break;
+      if (boundaryTypes[2 * d] == BoundaryType::OUTFLOW && x[d] < domainOrigin[d]) {
+        outside = true;
+        break;
       }
       // upper boundary
-      if (boundaryTypes[2*d+1] == BoundaryType::OUTFLOW && x[d] > domainOrigin[d] + domainDims[d]) {
-        outside = true; break;
+      if (boundaryTypes[2 * d + 1] == BoundaryType::OUTFLOW && x[d] > domainOrigin[d] + domainDims[d]) {
+        outside = true;
+        break;
       }
     }
     if (outside) {
