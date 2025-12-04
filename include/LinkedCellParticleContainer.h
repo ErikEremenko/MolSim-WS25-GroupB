@@ -40,19 +40,19 @@ class LinkedCellParticleContainer : public ParticleContainer {
     HALO,
   };
 
-
   /**
-   * @brief Constructor for LinkedCellParticleContainer
-   * @param domainDims Size of the simulation domain (x, y, z)
-   * @param cutoffRadius The cutoff radius for interactions
-   * @param boundaryTypes Boundary types for each face (left, right, bottom, top, back, front)
-   */
-  LinkedCellParticleContainer(const std::array<double, 3>& domain_dims, double cutoff_radius,
-                              const std::array<BoundaryType, 6>& boundary_types)
-      : domainDims(domain_dims), cutoffRadius(cutoff_radius), boundaryTypes(boundary_types) {}
+ * @brief Constructor for LinkedCellParticleContainer
+ * @param domainDims Size of the simulation domain (x, y, z)
+ * @param cutoffRadius The cutoff radius for interactions
+ * @param boundaryTypes Boundary types for each face (left, right, bottom, top, back, front)
+ */
+  LinkedCellParticleContainer( const std::array<double, 3>& domain_dims,
+    double cutoff_radius,
+    const std::array<BoundaryType, 6>& boundary_types);
 
   ~LinkedCellParticleContainer() = default;
 
+  using ParticleContainer::addParticle;
   // override addParticle to place particle in correct cell
   void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m);
   void addParticle(const Particle* p);
@@ -71,15 +71,15 @@ class LinkedCellParticleContainer : public ParticleContainer {
    * @brief Iterate over all distinct particle pairs within cutoff distance
    * @param pairFunc Function to apply to each pair (p1, p2)
    */
-  void iteratePairs(const std::function<void(Particle&, Particle&)>& pairFunc);
+  void iteratePairs(const std::function<void(Particle&, Particle&)>& pairFunc) const;
 
   /**
    * @brief Iterate over all particles in a cell and its neighbors
-   * @param cellIndex Index of the central cell
+   * @param cdx Index of the central cell
    * @param func Function to apply
    */
-  void iterateCellNeighbors(size_t cellIndex,
-                            const std::function<void(Particle&, Particle&)>& func);
+  void iterateCellNeighbors(size_t cdx,
+                            const std::function<void(Particle&, Particle&)>& func) const;
 
   // getters
 [[nodiscard]] std::array<double, 3> domain_dims() const { return domainDims; }
@@ -90,15 +90,15 @@ class LinkedCellParticleContainer : public ParticleContainer {
   [[nodiscard]] std::array<BoundaryType, 6> boundary_types() const { return boundaryTypes; }
 
  private:
-    std::array<double, 3> domainDims;
+    std::array<double, 3> domainDims; // domain dimensions or size
     std::array<double, 3> domainOrigin{0.,0.,0.};
     double cutoffRadius;
     std::array<double, 3> cellSize; // size of ech cell
+    CellType cellType;
     std::array<int, 3> numCells; // number of cells in each dimension (including halo)
     std::array<BoundaryType, 6> boundaryTypes = {BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
       BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW}; // boundary types for 6 faces (left, right, bottom, top, back, front)
-    std::vector<std::vector<Particle*>> cells; // 1D array of cells;
-    std::vector<Particle> particles; // stores all particles
+    std::vector<std::vector<Particle*>> cells; // 1D array of cells, pointers into base storage
 
   /**
 * @brief Initialize cell grid
@@ -106,9 +106,14 @@ class LinkedCellParticleContainer : public ParticleContainer {
     void initCells();
 
   /**
- * @brief Get all neighbor cell indices for a cell
+ * @brief Get all 3*3*3=27 neighbor cell indices, including the centered cell itself
  */
-  [[nodiscard]] std::vector<size_t> getNeighborCellIndices(int cellIndex) const;
+  [[nodiscard]] std::vector<size_t> getNeighborCellIndices(int cdx) const;
+
+  /**
+* @brief Returns the CellType of the given cell index
+*/
+  [[nodiscard]] CellType getCellType(size_t cdx) const;
 
   /**
  * @brief Handle outflow boundary: delete particles outside domain
@@ -124,5 +129,10 @@ class LinkedCellParticleContainer : public ParticleContainer {
  * @brief Check if position is inside domain
  */
   [[nodiscard]] bool isInsideDomain(const std::array<double, 3>& pos) const;
+
+  /**
+* @brief Map the position of a particle's position to the index of the respective cell
+*/
+  [[nodiscard]] int getCellIndex(const std::array<double, 3>& x) const;
 
 };
