@@ -1,0 +1,26 @@
+output:
+  base_name: "sim_output"
+  write_frequency: 10
+
+simulation:
+  t_end: 0.5
+  delta_t: 0.0005
+  domain_size: [180.0, 90.0, 1.0] # z=1 for 2D
+  epsilon: 5
+  sigma: 1
+  cutoff_radius: 3.0
+
+cuboids:
+  - position: [20.0, 20.0, 0.0]
+    velocity: [0.0, 0.0, 0.0]
+    dimensions: [100, 20, 1]
+    mesh_width: 1.1225
+    mass: 1.0
+    mean_velocity: 0.1	
+
+spheres:
+  - position: [70.0, 60.0, 0.0]
+    velocity: [0.0, -10.0, 0.0]
+    radius_particles: 15
+    mesh_width: 1.1225
+    mass: 1.0
