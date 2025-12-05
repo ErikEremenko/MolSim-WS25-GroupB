@@ -1,4 +1,5 @@
 #include "../../include/io/YAMLFileReader.h"
+#include "../include/ParticleGenerator.h"
 
 #include <spdlog/spdlog.h>
 
@@ -49,39 +50,42 @@ double YAMLFileReader::getCutoff() const {
 }
 
 void YAMLFileReader::readFile(ParticleContainer& particles) {
+
+  ParticleGenerator particleGenerator(particles);
+
   const auto& cuboids = config["cuboids"];
 
   for (std::size_t i = 0; i < cuboids.size(); ++i) {
     const auto& cuboid = cuboids[i];
 
     // read Cuboid Parameters
-    auto pos = cuboid["position"].as<std::vector<double>>();
-    auto vel = cuboid["velocity"].as<std::vector<double>>();
-    auto dim = cuboid["dimensions"].as<std::vector<int>>();
+    auto pos = cuboid["position"].as<std::array<double, 3>>();
+    auto vel = cuboid["velocity"].as<std::array<double, 3>>();
+    auto dim = cuboid["dimensions"].as<std::array<int, 3>>();
     const auto h = cuboid["mesh_width"].as<double>();
     const auto m = cuboid["mass"].as<double>();
     const auto meanV = cuboid["mean_velocity"].as<double>();
 
-    // generate particles for cuboid
-    for (int nx = 0; nx < dim[0]; nx++) {
-      for (int ny = 0; ny < dim[1]; ny++) {
-        for (int nz = 0; nz < dim[2]; nz++) {
-          const std::array<double, 3> p_pos = {pos[0] + nx * h, pos[1] + ny * h, pos[2] + nz * h};
+    particleGenerator.generateCuboid(pos, vel, dim, h, m, meanV);
 
-          std::array<double, 3> p_vel = {vel[0], vel[1], vel[2]};
-
-          // Brownian Motion
-          std::array<double, 3> brownian_vel = maxwellBoltzmannDistributedVelocity(meanV, 3);
-          p_vel[0] += brownian_vel[0];
-          p_vel[1] += brownian_vel[1];
-          p_vel[2] += brownian_vel[2];
-
-          particles.addParticle(p_pos, p_vel, m);
-          SPDLOG_DEBUG("Generated particle with x={{{:.2f}, {:.2f}, {:.2f}}}, v={{{:.2f}, {:.2f}, {:.2f}}}, m={:.2f}",
-                       p_pos[0], p_pos[1], p_pos[2], p_vel[0], p_vel[1], p_vel[2], m);
-        }
-      }
-    }
     SPDLOG_DEBUG("Loaded cuboid {} with {} particles.", i, dim[0] * dim[1] * dim[2]);
+  }
+
+  const auto& spheres = config["spheres"];
+
+  for (std::size_t i = 0; i < spheres.size(); ++i) {
+    const auto& sphere = spheres[i];
+
+    // read Sphere Parameters
+    auto pos = sphere["position"].as<std::array<double, 3>>();
+    auto vel = sphere["velocity"].as<std::array<double, 3>>();
+    auto rn = sphere["radius_particles"].as<int>();
+    const auto h = sphere["mesh_width"].as<double>();
+    const auto m = sphere["mass"].as<double>();
+    //const auto meanV = cuboid["mean_velocity"].as<double>();
+
+    particleGenerator.generateDisc(pos, vel, rn, h, m);
+
+    SPDLOG_DEBUG("Loaded sphere.");
   }
 }

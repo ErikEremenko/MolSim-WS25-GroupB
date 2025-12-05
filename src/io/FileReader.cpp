@@ -1,4 +1,5 @@
 #include "io/FileReader.h"
+#include "../include/ParticleGenerator.h"
 #include "utils/MaxwellBoltzmannDistribution.h"  // include for testing (? TODO)
 
 #include <cstdlib>
@@ -7,7 +8,7 @@
 #include <sstream>
 
 #ifndef SPDLOG_ACTIVE_LEVEL
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_INFO
 #endif  // SPDLOG_ACTIVE_LEVEL
 #include <spdlog/spdlog.h>
 
@@ -94,6 +95,8 @@ void CuboidFileReader::readFile(ParticleContainer& particles) {
     getline(input_file, tmp_string);
     SPDLOG_DEBUG("Read line: {}", tmp_string);
 
+    ParticleGenerator particleGenerator(particles);
+
     for (int i = 0; i < num_cuboids; i++) {
       std::istringstream datastream(tmp_string);
 
@@ -114,23 +117,7 @@ void CuboidFileReader::readFile(ParticleContainer& particles) {
       datastream >> m;
       datastream >> t;
 
-      //code for generating particles:
-      for (int nx = 0; nx < n[0]; nx++) {
-        for (int ny = 0; ny < n[1]; ny++) {
-          for (int nz = 0; nz < n[2]; nz++) {
-
-            std::array<double, 3> tempx = {cx[0] + h * nx, cx[1] + h * ny, cx[2] + h * nz};
-            std::array<double, 3> tempv = {cv[0], cv[1], cv[2]};
-            std::array<double, 3> temperatureVel = maxwellBoltzmannDistributedVelocity(t, 3);
-            tempv[0] += temperatureVel[0];
-            tempv[1] += temperatureVel[1];
-            tempv[2] += temperatureVel[2];
-            particles.addParticle(tempx, tempv, m);
-            SPDLOG_DEBUG("Generated particle with x={{{:.2f}, {:.2f}, {:.2f}}}, v={{{:.2f}, {:.2f}, {:.2f}}}, m={:.2f}",
-                         tempx[0], tempx[1], tempx[2], tempv[0], tempv[1], tempv[2], m);
-          }
-        }
-      }
+      particleGenerator.generateCuboid(cx, cv, n, h, m, t);
 
       getline(input_file, tmp_string);
       SPDLOG_DEBUG("Read line: {}", tmp_string);
