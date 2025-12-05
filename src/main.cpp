@@ -12,7 +12,8 @@ int main(const int argc, char* argsv[]) {
   // Read arguments from the command line
   if (argc < 2) {
     SPDLOG_ERROR("Erroneous programme call!");
-    SPDLOG_ERROR("YAML mode: ./MolSim filename [file | benchmark] [off | error | debug | trace | info] [linked | direct]");
+    SPDLOG_ERROR(
+        "YAML mode: ./MolSim filename [file | benchmark] [off | error | debug | trace | info] [linked | direct]");
     SPDLOG_ERROR(
         "Legacy mode: ./MolSim filename t_end delta_t [file | benchmark] [off | error | debug | trace | info] [P:OFF | "
         "P:ON]");
@@ -72,15 +73,31 @@ int main(const int argc, char* argsv[]) {
     if (is_yaml) {
       YAMLSimulation::ContainerKind kind = YAMLSimulation::ContainerKind::LINKED;
       if (argc > 4) {
-         std::string k = argsv[4];
-         if (k == "direct") kind = YAMLSimulation::ContainerKind::DIRECT;
-         else if (k == "linked") kind = YAMLSimulation::ContainerKind::LINKED;
-         else {
-            SPDLOG_ERROR("Invalid container kind: {}. Use 'direct' or 'linked'.", k);
-            return 1;
-         }
+        std::string k = argsv[4];
+        if (k == "direct")
+          kind = YAMLSimulation::ContainerKind::DIRECT;
+        else if (k == "linked")
+          kind = YAMLSimulation::ContainerKind::LINKED;
+        else {
+          SPDLOG_ERROR("Invalid container kind: {}. Use 'direct' or 'linked'.", k);
+          return 1;
+        }
       }
-      YAMLSimulation simulation(argsv[1], simulation_mode, kind);
+
+      YAMLSimulation::Parallelization parallel = YAMLSimulation::Parallelization::OFF;
+      if (argc > 5) {
+        std::string p = argsv[5];
+        if (p == "P:ON")
+          parallel = YAMLSimulation::Parallelization::ON;
+        else if (p == "P:OFF")
+          parallel = YAMLSimulation::Parallelization::OFF;
+        else {
+          SPDLOG_ERROR("Invalid parallelization option: {}. Use 'P:ON' or 'P:OFF'.", p);
+          return 1;
+        }
+      }
+
+      YAMLSimulation simulation(argsv[1], simulation_mode, kind, parallel);
       simulation.run();
     } else {
       // legacy simulation
@@ -96,6 +113,7 @@ int main(const int argc, char* argsv[]) {
             "empty");
       }
     }
+
   } catch (const std::invalid_argument& e) {
     SPDLOG_ERROR("Simulation failed: {}", e.what());
     return 1;

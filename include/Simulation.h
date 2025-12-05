@@ -154,10 +154,13 @@ private:
   std::string inputFilename;
   YAMLFileReader reader;
 public:
-  enum class ContainerKind { DIRECT, LINKED };
+  enum class ContainerKind {DIRECT, LINKED};
+  enum class Parallelization {OFF, ON};
   YAMLSimulation(std::string inputFilename,
                SimulationMode simulationMode,
-               ContainerKind kind = ContainerKind::LINKED);
+               ContainerKind kind = ContainerKind::LINKED,
+               Parallelization parallelization = Parallelization::OFF
+               );
 protected:
   void setupSimulation() override;
 };

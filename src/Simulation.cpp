@@ -144,7 +144,8 @@ void CollisionSimulationParallel::setupSimulation() {
   reader.readFile(*particles);
 }
 
-YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode simulationMode, const ContainerKind kind)
+YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode simulationMode, const ContainerKind kind,
+                               const Parallelization parallelization)
     : BaseSimulation(simulationMode), inputFilename(std::move(inputFilename)), reader(this->inputFilename) {
   this->dt = reader.getDeltaT();
   this->end_time = reader.getTend();
@@ -161,15 +162,23 @@ YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode s
   if (kind == ContainerKind::DIRECT) {
     // legacy O(n^2) implementation
     particles = std::make_unique<ParticleContainer>();
-    forceCalc = std::make_unique<LennardJonesForce>(
-      *particles, epsilon, sigma, cutoffRadius, repulsionDistance);
+    forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius, repulsionDistance);
+    if (parallelization == Parallelization::ON) {
+      // parallel direct sum LennardJones
+      forceCalc = std::make_unique<LennardJonesForceParallel>(*particles, epsilon, sigma, cutoffRadius);
+    } else {
+      // serial direct sum LennardJones
+      forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius, repulsionDistance);
+    }
   } else {
-    // linked cell implementation -> 0(n)
+    // linked cell implementation -> O(n)
     std::array<LinkedCellParticleContainer::BoundaryType, 6> boundaryTypes{};
     for (int i = 0; i < 6; ++i) {
       boundaryTypes[i] = parseBoundary(boundariesRaw[i]);
     }
     particles = std::make_unique<LinkedCellParticleContainer>(domainSize, cutoffRadius, boundaryTypes);
+
+    //  serial LJ with linked cells + reflective boundaries
     forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius, repulsionDistance);
   }
 }
