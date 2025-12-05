@@ -82,9 +82,9 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
     auto rn = sphere["radius_particles"].as<int>();
     const auto h = sphere["mesh_width"].as<double>();
     const auto m = sphere["mass"].as<double>();
-    //const auto meanV = cuboid["mean_velocity"].as<double>();
+    const auto meanV = sphere["mean_velocity"].as<double>();
 
-    particleGenerator.generateDisc(pos, vel, rn, h, m);
+    particleGenerator.generateDisc(pos, vel, rn, h, m, meanV);
 
     SPDLOG_DEBUG("Loaded sphere.");
   }

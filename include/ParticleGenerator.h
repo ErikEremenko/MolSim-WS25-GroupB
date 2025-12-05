@@ -31,12 +31,12 @@ public:
      * @param t the mean value of the velocity of the Brownian Motion.
      */
     void generateDisc(std::array<double, 3> cx, std::array<double, 3> cv,
-                        int rn, double h, double m, double t);
+                        int rn, double h, double m, double t) const;
 
     /**
      * @brief Generates a cuboid of particles at the specified position.
      *
-     * @param cx position vector of the the lower left front-side corner of the cuboid.
+     * @param cx position vector of the lower left front-side corner of the cuboid.
      * @param cv velocity vector of the particles in the cuboid.
      * @param n number of particles in each dimension of the cuboid.
      * @param h distance between the particles in the cuboid.
@@ -45,6 +45,6 @@ public:
      */
     void generateCuboid(std::array<double, 3> cx, std::array<double, 3> cv,
                         std::array<int, 3> n, double h, double m,
-                        double t);
+                        double t) const;
 
 };

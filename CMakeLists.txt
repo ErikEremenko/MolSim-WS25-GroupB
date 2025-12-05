@@ -48,7 +48,10 @@ molsim_enable_OpenMP(molsim_core)
 # Main Application Executable
 add_executable(MolSim src/main.cpp
         src/LinkedCellParticleContainer.cpp
-        include/LinkedCellParticleContainer.h)
+        include/LinkedCellParticleContainer.h
+        src/ParticleGenerator.cpp
+        include/ParticleGenerator.h
+)
 target_link_libraries(MolSim PRIVATE molsim_core)
 
 # Define custom macro for project source directory
