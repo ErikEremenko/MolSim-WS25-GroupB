@@ -34,11 +34,11 @@ void ParticleGenerator::generateDisc(std::array<double, 3> cx, std::array<double
 
   double radius_sq = rn * rn * h * h;
 
-  for (double px = -rn * h; px <= rn * h; px += h) {
-    for (double py = -rn * h; py <= rn * h; py += h) {
-
-      double dist_sq = px * px + py * py;
-      if (dist_sq <= radius_sq) {
+  for (int i = -rn; i <= rn; ++i) {
+    for (int j = -rn; j <= rn; ++j) {
+      double px = i * h;
+      double py = j * h;
+      if (px * px + py * py <= radius_sq) {
         std::array<double, 3> temperatureVel = maxwellBoltzmannDistributedVelocity(t, 2);
         std::array<double, 3> tempv = {cv[0] + temperatureVel[0], cv[1] + temperatureVel[1], cv[2] + temperatureVel[2]};
         std::array<double, 3> tempx = {cx[0] + px, cx[1] + py, cx[2]};
