@@ -1,0 +1,39 @@
+output:
+  base_name: "collision_2000"
+  write_frequency: 100
+
+simulation:
+  t_end: 20.0
+  delta_t: 0.0005
+  epsilon: 5.0
+  sigma: 1.0
+  cutoff_radius: 3.0
+  lj_repulsion_distance: 1.1225
+
+domain:
+  size: [180.0, 90.0, 1.0]
+
+boundaries:
+  x_min: OUTFLOW
+  x_max: OUTFLOW
+  y_min: OUTFLOW
+  y_max: OUTFLOW
+  z_min: OUTFLOW
+  z_max: OUTFLOW
+
+
+cuboids:
+  - position: [20.0, 20.0, 0.0]
+    velocity: [0.0, 0.0, 0.0]
+    dimensions: [80, 20, 1]
+    mesh_width: 1.1225
+    mass: 1.0
+    mean_velocity: 0.0
+
+  - position: [120.0, 60.0, 0.0]
+    velocity: [0.0, -10.0, 0.0]
+    dimensions: [20, 20, 1]
+    mesh_width: 1.1225
+    mass: 1.0
+    mean_velocity: 0.1
+spheres: []

@@ -14,12 +14,12 @@ domain:
   size: [120.0, 50.0, 1.0]
 
 boundaries:
-  x_min: OUTFLOW
-  x_max: OUTFLOW
+  x_min: REFLECTIVE
+  x_max: REFLECTIVE
   y_min: REFLECTIVE
   y_max: REFLECTIVE
-  z_min: OUTFLOW
-  z_max: OUTFLOW
+  z_min: REFLECTIVE
+  z_max: REFLECTIVE
 
 cuboids: []
 spheres:
