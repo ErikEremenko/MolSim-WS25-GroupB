@@ -26,7 +26,12 @@ list(REMOVE_ITEM SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp") # Exclude
 
 add_library(molsim_core ${SRC_FILES}
         src/io/YAMLFileReader.cpp
-        include/io/YAMLFileReader.h)
+        include/io/YAMLFileReader.h
+        src/LinkedCellParticleContainer.cpp
+        include/LinkedCellParticleContainer.h
+        src/ParticleGenerator.cpp
+        include/ParticleGenerator.h
+)
 target_include_directories(molsim_core
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -47,10 +52,6 @@ molsim_enable_OpenMP(molsim_core)
 
 # Main Application Executable
 add_executable(MolSim src/main.cpp
-        src/LinkedCellParticleContainer.cpp
-        include/LinkedCellParticleContainer.h
-        src/ParticleGenerator.cpp
-        include/ParticleGenerator.h
 )
 target_link_libraries(MolSim PRIVATE molsim_core)
 
