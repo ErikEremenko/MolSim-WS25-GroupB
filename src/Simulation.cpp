@@ -177,8 +177,6 @@ YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode s
       boundaryTypes[i] = parseBoundary(boundariesRaw[i]);
     }
     particles = std::make_unique<LinkedCellParticleContainer>(domainSize, cutoffRadius, boundaryTypes);
-
-    //  serial LJ with linked cells + reflective boundaries
     forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius, repulsionDistance);
   }
 }
