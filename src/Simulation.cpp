@@ -161,8 +161,7 @@ YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode s
   if (kind == ContainerKind::DIRECT) {
     // legacy O(n^2) implementation
     particles = std::make_unique<ParticleContainer>();
-    forceCalc = std::make_unique<LennardJonesForce>(
-      *particles, epsilon, sigma, cutoffRadius, repulsionDistance);
+    forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius, repulsionDistance);
   } else {
     // linked cell implementation -> 0(n)
     std::array<LinkedCellParticleContainer::BoundaryType, 6> boundaryTypes{};

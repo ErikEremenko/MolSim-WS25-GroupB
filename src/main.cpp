@@ -12,7 +12,8 @@ int main(const int argc, char* argsv[]) {
   // Read arguments from the command line
   if (argc < 2) {
     SPDLOG_ERROR("Erroneous programme call!");
-    SPDLOG_ERROR("YAML mode: ./MolSim filename [file | benchmark] [off | error | debug | trace | info] [linked | direct]");
+    SPDLOG_ERROR(
+        "YAML mode: ./MolSim filename [file | benchmark] [off | error | debug | trace | info] [linked | direct]");
     SPDLOG_ERROR(
         "Legacy mode: ./MolSim filename t_end delta_t [file | benchmark] [off | error | debug | trace | info] [P:OFF | "
         "P:ON]");
@@ -72,13 +73,15 @@ int main(const int argc, char* argsv[]) {
     if (is_yaml) {
       YAMLSimulation::ContainerKind kind = YAMLSimulation::ContainerKind::LINKED;
       if (argc > 4) {
-         std::string k = argsv[4];
-         if (k == "direct") kind = YAMLSimulation::ContainerKind::DIRECT;
-         else if (k == "linked") kind = YAMLSimulation::ContainerKind::LINKED;
-         else {
-            SPDLOG_ERROR("Invalid container kind: {}. Use 'direct' or 'linked'.", k);
-            return 1;
-         }
+        std::string k = argsv[4];
+        if (k == "direct")
+          kind = YAMLSimulation::ContainerKind::DIRECT;
+        else if (k == "linked")
+          kind = YAMLSimulation::ContainerKind::LINKED;
+        else {
+          SPDLOG_ERROR("Invalid container kind: {}. Use 'direct' or 'linked'.", k);
+          return 1;
+        }
       }
       YAMLSimulation simulation(argsv[1], simulation_mode, kind);
       simulation.run();
