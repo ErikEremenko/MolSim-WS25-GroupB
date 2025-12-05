@@ -24,3 +24,4 @@ spheres:
     radius_particles: 15
     mesh_width: 1.1225
     mass: 1.0
+    mean_velocity: 0.1
