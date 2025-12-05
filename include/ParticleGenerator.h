@@ -27,8 +27,8 @@ public:
      * @param cv velocity vector of the particles in the disc.
      * @param rn radius of the disc in terms of particles along the radius.
      * @param h distance between the particles in the disc.
-     * @param m mass of each particle in the disc.
-     * @param t the mean value of the velocity of the Brownian Motion.
+     * @param m mass of a single particle in the disc.
+     * @param t temperature of the disc.
      */
     void generateDisc(std::array<double, 3> cx, std::array<double, 3> cv,
                         int rn, double h, double m, double t) const;
@@ -40,8 +40,8 @@ public:
      * @param cv velocity vector of the particles in the cuboid.
      * @param n number of particles in each dimension of the cuboid.
      * @param h distance between the particles in the cuboid.
-     * @param m mass of each particle in the disc.
-     * @param t the mean value of the velocity of the Brownian Motion.
+     * @param m mass of a single particle in the cuboid.
+     * @param t temperature of the cuboid.
      */
     void generateCuboid(std::array<double, 3> cx, std::array<double, 3> cv,
                         std::array<int, 3> n, double h, double m,
