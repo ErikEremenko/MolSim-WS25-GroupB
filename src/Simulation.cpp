@@ -5,7 +5,6 @@
 #include "io/VTKWriter.h"
 
 #include <chrono>
-#include <iostream>
 
 #ifndef SPDLOG_ACTIVE_LEVEL
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
@@ -37,17 +36,17 @@ BaseSimulation::BaseSimulation(SimulationMode simulationMode)
 
 BaseSimulation::~BaseSimulation() = default;
 
-void BaseSimulation::plotParticles(const int iteration, const std::string& base_name) const {
-  const std::string& out_name(base_name);
+void BaseSimulation::plotParticles(const int iteration, const std::string& outputBaseName) const {
+  const std::string& out_name(outputBaseName);
   outputWriter::VTKWriter::plotParticles(*particles, out_name, iteration);
 }
 
 // Simulation run methods
-void BaseSimulation::runFileOutput(int write_frequency, const std::string& base_name) const {
-  if (write_frequency < 1) {
-    SPDLOG_INFO("Write frequency must be a positive integer, but was given {}", write_frequency);
+void BaseSimulation::runFileOutput(int frequency, const std::string& outputBaseName) const {
+  if (frequency < 1) {
+    SPDLOG_INFO("Write frequency must be a positive integer, but was given {}", frequency);
     throw std::invalid_argument("Write frequency must be a positive integer");
-  } else if (base_name.empty()) {
+  } else if (outputBaseName.empty()) {
     SPDLOG_INFO("Write frequency must be a positive integer, but was given an empty string");
     throw std::invalid_argument("Base name must not be an empty string");
   }
@@ -69,8 +68,8 @@ void BaseSimulation::runFileOutput(int write_frequency, const std::string& base_
     forceCalc->calculateV(dt);
 
     iteration++;
-    if (iteration % write_frequency == 0) {
-      plotParticles(iteration, base_name);
+    if (iteration % frequency == 0) {
+      plotParticles(iteration, outputBaseName);
     }
     current_time += dt;
   }
@@ -145,7 +144,7 @@ void CollisionSimulationParallel::setupSimulation() {
   reader.readFile(*particles);
 }
 
-YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode simulationMode)
+YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode simulationMode, const ContainerKind kind)
     : BaseSimulation(simulationMode), inputFilename(std::move(inputFilename)), reader(this->inputFilename) {
   this->dt = reader.getDeltaT();
   this->end_time = reader.getTend();
@@ -159,15 +158,20 @@ YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode s
   const auto domainSize = reader.getDomainSize();
   const auto boundariesRaw = reader.getBoundaryTypesRaw();
 
-  particles = std::make_unique<ParticleContainer>();
-  forceCalc = std::make_unique<LennardJonesForceParallel>(*particles, epsilon, sigma, cutoffRadius);
-
-  std::array<LinkedCellParticleContainer::BoundaryType, 6> boundaryTypes{};
-  for (int i = 0; i < 6; ++i) {
-    boundaryTypes[i] = parseBoundary(boundariesRaw[i]);
+  if (kind == ContainerKind::DIRECT) {
+    // legacy O(n^2) implementation
+    particles = std::make_unique<ParticleContainer>();
+    forceCalc = std::make_unique<LennardJonesForce>(
+      *particles, epsilon, sigma, cutoffRadius, repulsionDistance);
+  } else {
+    // linked cell implementation -> 0(n)
+    std::array<LinkedCellParticleContainer::BoundaryType, 6> boundaryTypes{};
+    for (int i = 0; i < 6; ++i) {
+      boundaryTypes[i] = parseBoundary(boundariesRaw[i]);
+    }
+    particles = std::make_unique<LinkedCellParticleContainer>(domainSize, cutoffRadius, boundaryTypes);
+    forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius, repulsionDistance);
   }
-  particles = std::make_unique<LinkedCellParticleContainer>(domainSize, cutoffRadius, boundaryTypes);
-  forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius, repulsionDistance);
 }
 
 void YAMLSimulation::setupSimulation() {

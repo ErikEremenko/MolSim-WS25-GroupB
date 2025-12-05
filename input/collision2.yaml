@@ -1,5 +1,5 @@
 output:
-  base_name: "sim_output"
+  base_name: "collision2_outflow"
   write_frequency: 100
 
 simulation:

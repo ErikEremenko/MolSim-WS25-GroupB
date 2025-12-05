@@ -65,9 +65,9 @@ protected:
   /**
    * @brief Outputs the state of the particles for visualization in ParaView.
    * @param iteration Current simulation step in ticks.
-   * @param base_name
+   * @param outputBaseName Name for the file output
    */
-  void plotParticles(int iteration, const std::string& base_name) const;
+  void plotParticles(int iteration, const std::string& outputBaseName) const;
 
   /**
    * @brief Creates/loads the particles in the simulation.
@@ -81,7 +81,7 @@ protected:
    * @{
    * @brief Runs the simulation in benchmark mode (no file output).
    */
-  void runFileOutput(int write_frequency, const std::string& base_name) const;
+  void runFileOutput(int frequency, const std::string& outputBaseName) const;
 
   /**
    * @brief Runs the simulation in benchmark mode (no file output).
@@ -154,7 +154,10 @@ private:
   std::string inputFilename;
   YAMLFileReader reader;
 public:
-  YAMLSimulation(std::string inputFilename, SimulationMode simulationMode);
+  enum class ContainerKind { DIRECT, LINKED };
+  YAMLSimulation(std::string inputFilename,
+               SimulationMode simulationMode,
+               ContainerKind kind = ContainerKind::LINKED);
 protected:
   void setupSimulation() override;
 };

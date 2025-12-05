@@ -1,5 +1,5 @@
 output:
-  base_name: "sim_output"
+  base_name: "collision2_reflective"
   write_frequency: 100
 
 simulation:
@@ -34,5 +34,5 @@ cuboids:
     dimensions: [20, 20, 1]
     mesh_width: 1.1225
     mass: 1.0
-    mean_velocity: 0.0
+    mean_velocity: 0.1
 spheres: []

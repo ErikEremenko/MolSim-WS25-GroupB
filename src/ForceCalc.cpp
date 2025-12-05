@@ -199,7 +199,7 @@ void LennardJonesForce::calculateFLinkedCell() {
   if (!lc) {
     throw std::runtime_error("LennardJonesForce::calculateFLinkedCell requires LinkedCellParticleContainer");
   }
-  lc->updateCells();
+  lc->applyBoundaryConditions();
 
   const double sigma2 = sigma * sigma;
   const double sigma6 = sigma2 * sigma2 * sigma2;
