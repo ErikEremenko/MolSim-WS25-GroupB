@@ -42,7 +42,7 @@ class ParticleContainer {
                    double m);  // function called in FileReader
   virtual void addParticle(const Particle* p);
 
-  virtual void removeParticle(int idx);
+  virtual void removeParticle(size_t idx);
 
   using iterator = std::vector<Particle>::iterator;
   using const_iterator = std::vector<Particle>::const_iterator;

@@ -27,6 +27,9 @@ class YAMLFileReader final : public BaseFileReader {
   double getEpsilon() const;
   double getSigma() const;
   double getCutoff() const;
+  std::array<double,3> getDomainSize() const;
+  std::array<std::string,6> getBoundaryTypesRaw() const;
+  double getLJRepulsionDistance() const;
 
  private:
   YAML::Node config;  // stores loaded YAML structure

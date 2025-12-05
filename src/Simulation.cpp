@@ -1,5 +1,6 @@
 #include "Simulation.h"
 
+#include "LinkedCellParticleContainer.h"
 #include "io/FileReader.h"
 #include "io/VTKWriter.h"
 
@@ -10,6 +11,18 @@
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #endif  // SPDLOG_ACTIVE_LEVEL
 #include "spdlog/spdlog.h"
+
+namespace {
+LinkedCellParticleContainer::BoundaryType parseBoundary(const std::string& s) {
+  if (s == "OUTFLOW")
+    return LinkedCellParticleContainer::BoundaryType::OUTFLOW;
+  if (s == "REFLECTIVE")
+    return LinkedCellParticleContainer::BoundaryType::REFLECTIVE;
+  if (s == "PERIODIC")
+    return LinkedCellParticleContainer::BoundaryType::PERIODIC;
+  throw std::runtime_error("Unknown boundary type in YAML: " + s);
+}
+}  // namespace
 
 BaseSimulation::BaseSimulation(double end_time, double dt, int write_frequency, const std::string& base_name,
                                SimulationMode simulationMode)
@@ -142,9 +155,19 @@ YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode s
   double epsilon = reader.getEpsilon();
   double sigma = reader.getSigma();
   double cutoffRadius = reader.getCutoff();
+  const double repulsionDistance = reader.getLJRepulsionDistance();
+  const auto domainSize = reader.getDomainSize();
+  const auto boundariesRaw = reader.getBoundaryTypesRaw();
 
   particles = std::make_unique<ParticleContainer>();
   forceCalc = std::make_unique<LennardJonesForceParallel>(*particles, epsilon, sigma, cutoffRadius);
+
+  std::array<LinkedCellParticleContainer::BoundaryType, 6> boundaryTypes{};
+  for (int i = 0; i < 6; ++i) {
+    boundaryTypes[i] = parseBoundary(boundariesRaw[i]);
+  }
+  particles = std::make_unique<LinkedCellParticleContainer>(domainSize, cutoffRadius, boundaryTypes);
+  forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius, repulsionDistance);
 }
 
 void YAMLSimulation::setupSimulation() {

@@ -4,6 +4,6 @@ rm -rf build/
 # shellcheck disable=SC2164
 mkdir build && cd build
 cmake -DBUILD_DOC=ON -DENABLE_VTK_OUTPUT=ON -DVTK_DIR=/usr/local/vtk/lib/cmake/vtk-9.5 ..
-make -j 6
+make -j 8
 make doc_doxygen
-./MolSim ../input/collision2.yaml file info
+./MolSim ../input/collision2.yaml benchmark info

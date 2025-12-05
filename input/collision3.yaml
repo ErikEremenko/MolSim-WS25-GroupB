@@ -1,14 +1,25 @@
 output:
   base_name: "sim_output"
-  write_frequency: 10
+  write_frequency: 100
 
 simulation:
-  t_end: 0.5
+  t_end: 20.0
   delta_t: 0.0005
-  domain_size: [180.0, 90.0, 1.0] # z=1 for 2D
-  epsilon: 5
-  sigma: 1
+  epsilon: 5.0
+  sigma: 1.0
   cutoff_radius: 3.0
+  lj_repulsion_distance: 1.1225
+
+domain:
+  size: [180.0, 90.0, 1.0] # z=1 for 2D
+
+boundaries:
+  x_min: REFLECTIVE
+  x_max: REFLECTIVE
+  y_min: REFLECTIVE
+  y_max: REFLECTIVE
+  z_min: REFLECTIVE
+  z_max: REFLECTIVE
 
 cuboids:
   - position: [20.0, 20.0, 0.0]
@@ -16,11 +27,12 @@ cuboids:
     dimensions: [100, 20, 1]
     mesh_width: 1.1225
     mass: 1.0
-    mean_velocity: 0.1	
+    mean_velocity: 0.0
 
-spheres:
   - position: [70.0, 60.0, 0.0]
     velocity: [0.0, -10.0, 0.0]
-    radius_particles: 15
+    dimensions: [20, 20, 1]
     mesh_width: 1.1225
     mass: 1.0
+    mean_velocity: 0.0
+spheres: []

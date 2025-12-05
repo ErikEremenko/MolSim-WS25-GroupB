@@ -69,10 +69,19 @@ void GravityForce::calculateF() {
 
 LennardJonesForce::LennardJonesForce(ParticleContainer& particles, const double epsilon, const double sigma,
                                      const double cutoffRadius)
-    : ForceCalc(particles), epsilon(epsilon), sigma(sigma), cutoffRadius(cutoffRadius) {}
+    : LennardJonesForce(
+          particles, epsilon, sigma, cutoffRadius, std::pow(2.0, 1.0 / 6.0) * sigma  // default repulsion distance
+      ) {}
+LennardJonesForce::LennardJonesForce(ParticleContainer& particles, const double epsilon, const double sigma,
+                                     const double cutoffRadius, const double repulsionDistance)
+    : ForceCalc(particles),
+      epsilon(epsilon),
+      sigma(sigma),
+      cutoffRadius(cutoffRadius),
+      repulsionDistance(repulsionDistance) {}
 
 void LennardJonesForce::calculateF() {
-  if (auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles)) {
+  if (dynamic_cast<LinkedCellParticleContainer*>(&particles)) {
     calculateFLinkedCell();
   } else {  // O(n^2) implementation
     for (auto& p : particles) {
@@ -194,8 +203,6 @@ void LennardJonesForce::calculateFLinkedCell() {
 
   const double sigma2 = sigma * sigma;
   const double sigma6 = sigma2 * sigma2 * sigma2;
-  const size_t n_particles = particles.size();
-  const double r_min = std::pow(2.0, 1.0 / 6.0) * sigma;  // minimum distance for repulsive LJ-Force
 
   // Linked Cells iteration with N3L
   lc->iteratePairs([&](Particle& p_i, Particle& p_j) {
@@ -245,7 +252,8 @@ void LennardJonesForce::calculateFLinkedCell() {
 
           const auto ghostDist = ghostX - x;
 
-          if (const double norm = ArrayUtils::L2Norm(ghostDist); norm < r_min && norm > 0) {  // avoid division by zero
+          if (const double norm = ArrayUtils::L2Norm(ghostDist);
+              norm < repulsionDistance && norm > 0) {  // avoid division by zero
             const double inv_norm2 = 1.0 / (norm * norm);
             const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
             const double crossing_norm_quot_6 = sigma6 * inv_norm6;
@@ -265,7 +273,8 @@ void LennardJonesForce::calculateFLinkedCell() {
 
           const auto ghostDist = ghostX - x;
 
-          if (const double norm = ArrayUtils::L2Norm(ghostDist); norm < r_min && norm > 0.) {  // avoid division by zero
+          if (const double norm = ArrayUtils::L2Norm(ghostDist);
+              norm < repulsionDistance && norm > 0.) {  // avoid division by zero
             const double inv_norm2 = 1.0 / (norm * norm);
             const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
             const double crossing_norm_quot_6 = sigma6 * inv_norm6;

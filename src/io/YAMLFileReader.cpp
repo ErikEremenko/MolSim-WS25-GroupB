@@ -19,6 +19,14 @@ void YAMLFileReader::checkRequiredKeys() const {
     SPDLOG_ERROR("YAML file missing required top level keys (output, simulation, or cuboids)!");
     exit(-1);
   }
+  if (!config["domain"] || !config["domain"]["size"]) {
+    SPDLOG_ERROR("YAML file missing required key (domain.size)!");
+    exit(-1);
+  }
+  if (!config["boundaries"]) {
+    SPDLOG_ERROR("YAML file missing required key (boundaries)!");
+    exit(-1);
+  }
 }
 
 std::string YAMLFileReader::getOutputBaseName() const {
@@ -47,6 +55,29 @@ double YAMLFileReader::getSigma() const {
 
 double YAMLFileReader::getCutoff() const {
   return config["simulation"]["cutoff_radius"].as<double>();
+}
+
+std::array<double, 3> YAMLFileReader::getDomainSize() const {
+  return config["domain"]["size"].as<std::array<double, 3>>();
+}
+std::array<std::string, 6> YAMLFileReader::getBoundaryTypesRaw() const {
+  std::array<std::string, 6> b{};
+
+  const auto node = config["boundaries"];
+  b[0] = node["x_min"].as<std::string>();
+  b[1] = node["x_max"].as<std::string>();
+  b[2] = node["y_min"].as<std::string>();
+  b[3] = node["y_max"].as<std::string>();
+  b[4] = node["z_min"].as<std::string>();
+  b[5] = node["z_max"].as<std::string>();
+  return b;
+}
+double YAMLFileReader::getLJRepulsionDistance() const {
+  if (const auto sim = config["simulation"]; sim["lj_repulsion_distance"]) {
+    return sim["lj_repulsion_distance"].as<double>();
+  }
+  // defaults to 2^(1/6)*sigma if not specified
+  return std::pow(2.0, 1.0 / 6.0) * getSigma();
 }
 
 void YAMLFileReader::readFile(ParticleContainer& particles) {
