@@ -121,11 +121,6 @@ class LinkedCellParticleContainer : public ParticleContainer {
   void handleOutflow();
 
   /**
-   * @brief Handle reflective boundary using ghost particles
-   */
-  void handleReflective();
-
-  /**
  * @brief Check if position is inside domain
  */
   [[nodiscard]] bool isInsideDomain(const std::array<double, 3>& pos) const;

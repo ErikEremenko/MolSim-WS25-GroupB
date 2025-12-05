@@ -64,7 +64,7 @@ LinkedCellParticleContainer::CellType LinkedCellParticleContainer::getCellType(s
 }
 
 void LinkedCellParticleContainer::applyBoundaryConditions() {
-  handleReflective();
+  // reflective boundaries are handled with ghost particles in ForceCalc
   handleOutflow();
   updateCells();
 }
@@ -175,11 +175,31 @@ std::vector<size_t> LinkedCellParticleContainer::getNeighborCellIndices(int cdx)
   return neighbors;
 }
 void LinkedCellParticleContainer::handleOutflow() {
-  // TODO
-}
+  std::vector<size_t> indicesToRemove;
+  for (size_t i = 0; i < this->size(); ++i) {
+    Particle& p = (*this)[i];
+    auto x = p.getX();
+    bool outside = false;
 
-void LinkedCellParticleContainer::handleReflective() {
-  // TODO
+    for (int d = 0; d < 3; ++d) {
+      // lower boundary
+      if (boundaryTypes[2 * d] == BoundaryType::OUTFLOW && x[d] < domainOrigin[d]) {
+        outside = true;
+        break;
+      }
+      // upper boundary
+      if (boundaryTypes[2 * d + 1] == BoundaryType::OUTFLOW && x[d] > domainOrigin[d] + domainDims[d]) {
+        outside = true;
+        break;
+      }
+    }
+    if (outside) {
+      indicesToRemove.push_back(i);
+    }
+  }
+  for (auto idx = indicesToRemove.rbegin(); idx != indicesToRemove.rend(); ++idx) {
+    this->removeParticle(*idx);
+  }
 }
 
 bool LinkedCellParticleContainer::isInsideDomain(const std::array<double, 3>& pos) const {

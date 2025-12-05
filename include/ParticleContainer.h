@@ -38,9 +38,11 @@ class ParticleContainer {
    * @param v velocity vector as a 3 element array
    * @param m mass
    */
-  void addParticle(std::array<double, 3> x, std::array<double, 3> v,
+  virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v,
                    double m);  // function called in FileReader
-  void addParticle(const Particle* p);
+  virtual void addParticle(const Particle* p);
+
+  virtual void removeParticle(int idx);
 
   using iterator = std::vector<Particle>::iterator;
   using const_iterator = std::vector<Particle>::const_iterator;

@@ -73,7 +73,7 @@ LennardJonesForce::LennardJonesForce(ParticleContainer& particles, const double 
 
 void LennardJonesForce::calculateF() {
   if (auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles)) {
-    calculateFLinkedCell(particles);
+    calculateFLinkedCell();
   } else {  // O(n^2) implementation
     for (auto& p : particles) {
       p.setF({});
@@ -181,7 +181,7 @@ void LennardJonesForceParallel::calculateF() {
   }
 }
 
-void LennardJonesForce::calculateFLinkedCell(ParticleContainer& particles) const {
+void LennardJonesForce::calculateFLinkedCell() {
   for (auto& p : particles) {
     p.setF({});
   }

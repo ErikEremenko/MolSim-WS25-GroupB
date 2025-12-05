@@ -12,6 +12,11 @@ void ParticleContainer::addParticle(const Particle* p) {
   particles.emplace_back(*p);
 }
 
+void ParticleContainer::removeParticle(const int idx) {
+  if (idx < particles.size())
+    particles.erase(particles.begin() + idx);
+}
+
 ParticleContainer::iterator ParticleContainer::begin() {
   return particles.begin();
 }
