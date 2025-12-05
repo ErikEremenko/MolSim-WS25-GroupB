@@ -75,6 +75,10 @@ public:
   * @brief Calculates the Lennard-Jones forces acting on the particles
   */
   void calculateF() override;
+  /**
+* @brief Calculates the Lennard-Jones forces acting on the particles using the Linked Cell method
+*/
+  void calculateFLinkedCell(ParticleContainer& particles) const;
 };
 
 /**

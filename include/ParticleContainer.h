@@ -27,7 +27,7 @@ class ParticleContainer {
 
  public:
   ParticleContainer() = default;
-  ~ParticleContainer() = default;
+  virtual ~ParticleContainer() = default;
   /**
    * @brief Returns number of particles in the container
    */
