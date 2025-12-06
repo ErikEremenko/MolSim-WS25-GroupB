@@ -3,13 +3,25 @@
 #include "LinkedCellParticleContainer.h"
 #include "io/FileReader.h"
 #include "io/VTKWriter.h"
-
+//benchmark
 #include <chrono>
+// process signal handling
+#include <csignal>
+#include <atomic>
 
 #ifndef SPDLOG_ACTIVE_LEVEL
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #endif  // SPDLOG_ACTIVE_LEVEL
 #include "spdlog/spdlog.h"
+
+// atomic flag for loop control
+std::atomic<bool> simulation_running{true};
+
+void sigint_handler(int signal) {
+  if (signal == SIGINT) {
+    simulation_running = false;
+  }
+}
 
 namespace {
 LinkedCellParticleContainer::BoundaryType parseBoundary(const std::string& s) {
@@ -76,6 +88,8 @@ void BaseSimulation::runFileOutput(int frequency, const std::string& outputBaseN
 }
 
 void BaseSimulation::runBenchmark() const {
+  std::signal(SIGINT, sigint_handler);
+  simulation_running = true;
   using namespace std::chrono;
   // used for benchmark
   const auto chronoStart = steady_clock::now();
@@ -83,6 +97,7 @@ void BaseSimulation::runBenchmark() const {
   // Benchmark begin
   constexpr double start_time = 0;
   double current_time = start_time;
+  long iteration = 0;
 
   // For this loop, we assume current x, current F and current v are known
   while (current_time < end_time) {
@@ -96,12 +111,25 @@ void BaseSimulation::runBenchmark() const {
     forceCalc->calculateV(dt);
 
     current_time += dt;
+    iteration++;
   }
 
   const auto chronoEnd = steady_clock::now();
-  const auto elapsed = duration_cast<duration<double>>(chronoEnd - chronoStart);
+  const auto elapsed = duration_cast<duration<double>>(chronoEnd - chronoStart).count();
+
+  std::signal(SIGINT, SIG_DFL);
   spdlog::set_level(spdlog::level::info);
-  SPDLOG_INFO("Time elapsed: {} s", elapsed.count());
+  if (!simulation_running) {
+    SPDLOG_INFO("Simulation stopped early by user (SIGINT).");
+  } else {
+    SPDLOG_INFO("Benchmark finished normally.");
+  }
+  SPDLOG_INFO("Time elapsed: {} s", elapsed);
+  SPDLOG_INFO("Total iterations: {}", iteration);
+  if (iteration > 0) {
+    double time_per_iter = elapsed / static_cast<double>(iteration);
+    SPDLOG_INFO("Mean time per iteration: {:.6f} s", time_per_iter);
+  }
   spdlog::set_level(spdlog::level::off);
 }
 

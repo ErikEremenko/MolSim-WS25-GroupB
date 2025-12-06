@@ -71,7 +71,7 @@ int main(const int argc, char* argsv[]) {
   }
   try {
     if (is_yaml) {
-      YAMLSimulation::ContainerKind kind = YAMLSimulation::ContainerKind::LINKED;
+      auto kind = YAMLSimulation::ContainerKind::LINKED;
       if (argc > 4) {
         std::string k = argsv[4];
         if (k == "direct")
@@ -84,7 +84,7 @@ int main(const int argc, char* argsv[]) {
         }
       }
 
-      YAMLSimulation::Parallelization parallel = YAMLSimulation::Parallelization::OFF;
+      auto parallel = YAMLSimulation::Parallelization::OFF;
       if (argc > 5) {
         std::string p = argsv[5];
         if (p == "P:ON")

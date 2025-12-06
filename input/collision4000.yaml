@@ -3,7 +3,7 @@ output:
   write_frequency: 100
 
 simulation:
-  t_end: 20.0
+  t_end: 2.0
   delta_t: 0.0005
   epsilon: 5.0
   sigma: 1.0
