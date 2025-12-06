@@ -6,8 +6,8 @@
 //benchmark
 #include <chrono>
 // process signal handling
-#include <csignal>
 #include <atomic>
+#include <csignal>
 
 #ifndef SPDLOG_ACTIVE_LEVEL
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
