@@ -75,9 +75,19 @@ void LinkedCellParticleContainer::iteratePairs(const std::function<void(Particle
 
   const int layerSize = nx * ny;
   // offsets for 13 forward neighbors
-  static constexpr std::array<std::array<int, 3>13> neighborOffsets = {{1, 0, 0},  {1, 1, 0},  {0, 1, 0},  {-1, 1, 0}, {-1, -1, 1},
-                                             {0, -1, 1}, {1, -1, 1}, {-1, 0, 1}, {0, 0, 1},  {1, 0, 1},
-                                             {-1, 1, 1}, {0, 1, 1},  {1, 1, 1}};
+  static constexpr std::array<std::array<int, 3>, 13> neighborOffsets = {{{1, 0, 0},
+                                                                          {1, 1, 0},
+                                                                          {0, 1, 0},
+                                                                          {-1, 1, 0},
+                                                                          {-1, -1, 1},
+                                                                          {0, -1, 1},
+                                                                          {1, -1, 1},
+                                                                          {-1, 0, 1},
+                                                                          {0, 0, 1},
+                                                                          {1, 0, 1},
+                                                                          {-1, 1, 1},
+                                                                          {0, 1, 1},
+                                                                          {1, 1, 1}}};
 
   for (size_t cdx = 0; cdx < cells.size(); ++cdx) {
     if (getCellType(cdx) == CellType::HALO)
@@ -118,7 +128,7 @@ void LinkedCellParticleContainer::iteratePairs(const std::function<void(Particle
 }
 void LinkedCellParticleContainer::iterateCellNeighbors(size_t cdx,
                                                        const std::function<void(Particle&, Particle&)>& func) const {
-  auto& centerCell = cells[cdx];  // the currently slected cell at the center ouf the surrounding 26 neighbors
+  auto& centerCell = cells[cdx];  // the currently selected cell at the center ouf the surrounding 26 neighbors
   const auto neighbors = getNeighborCellIndices(static_cast<int>(cdx));
   for (auto nidx : neighbors) {
     auto& ncell = cells[nidx];

@@ -35,7 +35,7 @@ When using VTK output, follow these steps:
         "P:ON]"
         
 ```
-#### Legacy .yaml mode: 
+#### YAML mode: 
 ```
      "YAML mode: ./MolSim filename [file | benchmark] [off | error | debug | trace | info] [linked | direct]"
 ```
