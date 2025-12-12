@@ -75,7 +75,7 @@ void LinkedCellParticleContainer::iteratePairs(const std::function<void(Particle
 
   const int layerSize = nx * ny;
   // offsets for 13 forward neighbors
-  static const int neighborOffsets[13][3] = {{1, 0, 0},  {1, 1, 0},  {0, 1, 0},  {-1, 1, 0}, {-1, -1, 1},
+  static constexpr std::array<std::array<int, 3>13> neighborOffsets = {{1, 0, 0},  {1, 1, 0},  {0, 1, 0},  {-1, 1, 0}, {-1, -1, 1},
                                              {0, -1, 1}, {1, -1, 1}, {-1, 0, 1}, {0, 0, 1},  {1, 0, 1},
                                              {-1, 1, 1}, {0, 1, 1},  {1, 1, 1}};
 
