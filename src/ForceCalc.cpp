@@ -234,6 +234,25 @@ void LennardJonesForce::calculateFLinkedCell() {
     const auto x = p.getX();
     auto F_total = p.getF();
 
+    // Helper computes ghost particle repulsion force for a reflective wall
+    auto computeGhostForce = [&](int d, double wallPos) -> std::array<double, 3> {
+      auto ghostX = x;
+      ghostX[d] = 2.0 * wallPos - x[d];  // ghost particle is mirrored across the wall
+
+      const auto ghostDist = ghostX - x;
+      const double norm = ArrayUtils::L2Norm(ghostDist);
+
+      if (norm < repulsionDistance && norm > 0.) {  // avoid division by zero
+        const double inv_norm2 = 1.0 / (norm * norm);
+        const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
+        const double crossing_norm_quot_6 = sigma6 * inv_norm6;
+        const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
+
+        return (24.0 * epsilon * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * ghostDist;
+      }
+      return {0., 0., 0.};
+    };
+
     for (int d = 0; d < 3; ++d) {
       const double minD = domainOrigin[d];
       const double maxD = domainOrigin[d] + domainDims[d];
@@ -241,44 +260,12 @@ void LennardJonesForce::calculateFLinkedCell() {
       // handling two opposite boundaries per dimension d -> 6 faces
       if (boundaryTypes[2 * d] == LinkedCellParticleContainer::BoundaryType::REFLECTIVE) {
         if (const double distToWall = x[d] - minD; distToWall > 0. && distToWall < cutoffRadius) {
-          // use ghost / virtual particle for repulsion
-          auto ghostX = x;
-          ghostX[d] = 2.0 * minD - x[d];  // ghost particle is mirrored across the wall
-
-          const auto ghostDist = ghostX - x;
-
-          if (const double norm = ArrayUtils::L2Norm(ghostDist);
-              norm < repulsionDistance && norm > 0) {  // avoid division by zero
-            const double inv_norm2 = 1.0 / (norm * norm);
-            const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
-            const double crossing_norm_quot_6 = sigma6 * inv_norm6;
-            const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
-
-            const auto F_wall =
-                (24.0 * epsilon * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * ghostDist;
-            F_total = F_total + F_wall;
-          }
+          F_total = F_total + computeGhostForce(d, minD);
         }
       }
       if (boundaryTypes[2 * d + 1] == LinkedCellParticleContainer::BoundaryType::REFLECTIVE) {
         if (const double distToWall = maxD - x[d]; distToWall > 0. && distToWall < cutoffRadius) {
-          // use ghost / virtual particle for repulsion
-          auto ghostX = x;
-          ghostX[d] = 2.0 * maxD - x[d];  // ghost particle is mirrored across the wall
-
-          const auto ghostDist = ghostX - x;
-
-          if (const double norm = ArrayUtils::L2Norm(ghostDist);
-              norm < repulsionDistance && norm > 0.) {  // avoid division by zero
-            const double inv_norm2 = 1.0 / (norm * norm);
-            const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
-            const double crossing_norm_quot_6 = sigma6 * inv_norm6;
-            const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
-
-            const auto F_wall =
-                (24.0 * epsilon * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * ghostDist;
-            F_total = F_total + F_wall;
-          }
+          F_total = F_total + computeGhostForce(d, maxD);
         }
       }
     }
