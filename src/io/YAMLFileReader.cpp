@@ -72,13 +72,7 @@ std::array<std::string, 6> YAMLFileReader::getBoundaryTypesRaw() const {
   b[5] = node["z_max"].as<std::string>();
   return b;
 }
-double YAMLFileReader::getLJRepulsionDistance() const {
-  if (const auto sim = config["simulation"]; sim["lj_repulsion_distance"]) {
-    return sim["lj_repulsion_distance"].as<double>();
-  }
-  // defaults to 2^(1/6)*sigma if not specified
-  return std::pow(2.0, 1.0 / 6.0) * getSigma();
-}
+
 
 void YAMLFileReader::readFile(ParticleContainer& particles) {
 

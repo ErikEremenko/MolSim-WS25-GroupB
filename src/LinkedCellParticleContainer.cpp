@@ -99,25 +99,29 @@ void LinkedCellParticleContainer::iteratePairs(const std::function<void(Particle
         pairFunc(*cell[i], *cell[j]);
       }
     }
+    // Convert cell index to 3D coordinates
     const int idx = static_cast<int>(cdx);
     const int iz = idx / layerSize;
     const int remainder = idx % layerSize;
     const int iy = remainder / nx;
     const int ix = remainder % nx;
 
-    // pairs only for forward neighbors
+    // Compute interactions with forward neighbor cells (to avoid double counting)
     for (const auto& off : neighborOffsets) {
       const int nix = ix + off[0];
       const int niy = iy + off[1];
       const int niz = iz + off[2];
 
+      // If neighbor is out of bounds, skip it
       if (nix < 0 || nix >= nx || niy < 0 || niy >= ny || niz < 0 || niz >= nz) {
         continue;
       }
 
+      // Convert neighbor coordinates back to 1D index
       const int nIndex = (niz * layerSize) + (niy * nx) + nix;
       auto& ncell = cells[static_cast<size_t>(nIndex)];
 
+      // Compute interactions between current cell and neighbor
       for (auto* pi : cell) {
         for (auto* pj : ncell) {
           pairFunc(*pi, *pj);
@@ -140,18 +144,20 @@ void LinkedCellParticleContainer::iterateCellNeighbors(size_t cdx,
   }
 }
 void LinkedCellParticleContainer::initCells() {
+  // Calculate cell size and number of cells in each dimension
   for (int i = 0; i < 3; ++i) {
     int inner = static_cast<int>(std::floor(domain_dims()[i] / cutoff_radius()));
     if (inner < 1)
       inner = 1;
     // cell size is chosen so that all inner cell exactly cover the domain in dim i
     cellSize[i] = domainDims[i] / static_cast<double>(inner);
-    numCells[i] = inner + 2;  // +2 accounts for halo
+    numCells[i] = inner + 2;  // +2 accounts for halo layer on each side
   }
   const int nx = numCells[0];
   const int ny = numCells[1];
   const int nz = numCells[2];
 
+  // Allocate cell grid (linearized 3D array)
   cells.assign(nx * ny * nz, {});
 }
 std::vector<size_t> LinkedCellParticleContainer::getNeighborCellIndices(int cdx) const {
@@ -161,12 +167,14 @@ std::vector<size_t> LinkedCellParticleContainer::getNeighborCellIndices(int cdx)
   const int nz = numCells[2];
   const int layerSize = nx * ny;
 
+  // Convert 1D index to 3D coordinates
   const int idx = cdx;
   const int iz = idx / layerSize;
   const int remainder = idx % layerSize;
   const int iy = remainder / nx;
   const int ix = remainder % nx;
 
+  // Iterate over all 27 neighboring cells (including center cell)
   for (int dz = -1; dz <= 1; ++dz) {
     for (int dy = -1; dy <= 1; ++dy) {
       for (int dx = -1; dx <= 1; ++dx) {
@@ -174,9 +182,11 @@ std::vector<size_t> LinkedCellParticleContainer::getNeighborCellIndices(int cdx)
         const int niy = iy + dy;
         const int niz = iz + dz;
 
+        // Skip f neighbor is out of bounds
         if (nix < 0 || nix >= nx || niy < 0 || niy >= ny || niz < 0 || niz >= nz) {
           continue;
         }
+        // Convert 3D coordinates back to 1D index
         const int nIndex = (niz * layerSize) + (niy * nx) + nix;
         neighbors.push_back(nIndex);
       }
@@ -186,6 +196,7 @@ std::vector<size_t> LinkedCellParticleContainer::getNeighborCellIndices(int cdx)
 }
 void LinkedCellParticleContainer::handleOutflow() {
   std::vector<size_t> indicesToRemove;
+  // Check each particle if it's outside the domain
   for (size_t i = 0; i < this->size(); ++i) {
     Particle& p = (*this)[i];
     auto x = p.getX();
@@ -207,6 +218,7 @@ void LinkedCellParticleContainer::handleOutflow() {
       indicesToRemove.push_back(i);
     }
   }
+  // Removing the particles in reverse order to maintain valid indexation
   for (auto idx = indicesToRemove.rbegin(); idx != indicesToRemove.rend(); ++idx) {
     this->removeParticle(*idx);
   }
@@ -222,17 +234,19 @@ bool LinkedCellParticleContainer::isInsideDomain(const std::array<double, 3>& po
 }
 int LinkedCellParticleContainer::getCellIndex(const std::array<double, 3>& x) const {
   std::array<int, 3> idx;
+  // Calculate cell coordinates from particle position
   for (int i = 0; i < 3; ++i) {
     const double rel_dim = x[i] - domainOrigin[i];
     int cdx = static_cast<int>(std::floor(rel_dim / cell_size()[i])) + 1;  // +1 as to skip the halo cells
+    // Adjust to valid cell range
     if (cdx < 0)
       cdx = 0;
     if (cdx >= numCells[i])
-      cdx = numCells[i] - 1;  // limiting inner domain to indices 1...numCells[d]-2
+      cdx = numCells[i] - 1;  // Limiting inner domain to indices 1...numCells[d]-2
     idx[i] = cdx;
   }
 
-  // flattening into 1D
+  // Flatten 3D coordinates into 1D
   const int nx = numCells[0];
   const int ny = numCells[1];
   // reference: https://stackoverflow.com/questions/7367770/

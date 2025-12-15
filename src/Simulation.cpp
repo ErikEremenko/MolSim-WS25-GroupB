@@ -183,20 +183,20 @@ YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode s
   double epsilon = reader.getEpsilon();
   double sigma = reader.getSigma();
   double cutoffRadius = reader.getCutoff();
-  const double repulsionDistance = reader.getLJRepulsionDistance();
+
   const auto domainSize = reader.getDomainSize();
   const auto boundariesRaw = reader.getBoundaryTypesRaw();
 
   if (kind == ContainerKind::DIRECT) {
     // legacy O(n^2) implementation
     particles = std::make_unique<ParticleContainer>();
-    forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius, repulsionDistance);
+    forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius);
     if (parallelization == Parallelization::ON) {
       // parallel direct sum LennardJones
       forceCalc = std::make_unique<LennardJonesForceParallel>(*particles, epsilon, sigma, cutoffRadius);
     } else {
       // serial direct sum LennardJones
-      forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius, repulsionDistance);
+      forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius);
     }
   } else {
     // linked cell implementation -> O(n)
@@ -205,7 +205,7 @@ YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode s
       boundaryTypes[i] = parseBoundary(boundariesRaw[i]);
     }
     particles = std::make_unique<LinkedCellParticleContainer>(domainSize, cutoffRadius, boundaryTypes);
-    forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius, repulsionDistance);
+    forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius);
   }
 }
 

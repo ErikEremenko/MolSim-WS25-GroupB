@@ -8,7 +8,6 @@ simulation:
   epsilon: 5.0
   sigma: 1.0
   cutoff_radius: 3.0
-  lj_repulsion_distance: 1.1225
 
 domain:
   size: [180.0, 90.0, 1.0]
