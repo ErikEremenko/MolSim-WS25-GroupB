@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-
 #include <cmath>
 
 #include "ForceCalc.h"
+#include "LinkedCellParticleContainer.h"
 #include "ParticleContainer.h"
 #include "utils/ArrayUtils.h"
 
@@ -93,4 +93,100 @@ TEST_F(ForceCalcTest, LJ_F_TwoBody) {
     EXPECT_NEAR(pc[0].getF()[i], F[i], 10e-6);
     EXPECT_NEAR(pc[1].getF()[i], -1. * F[i], 10e-6);
   }
+}
+// Boundary Condition Tests using LinkedCellParticleContainer
+
+class BoundaryConditionTest : public ::testing::Test {
+ protected:
+  std::array<double, 3> domainDims = {10.0, 10.0, 10.0};
+  double cutoffRadius = 3.0;
+  double epsilon = 5.0;
+  double sigma = 1.0;
+};
+
+// Test that outflow boundary removes particles that move outside the domain
+TEST_F(BoundaryConditionTest, OutflowRemovesParticles) {
+  std::array<LinkedCellParticleContainer::BoundaryType, 6> outflowBoundaries = {
+      LinkedCellParticleContainer::BoundaryType::OUTFLOW, LinkedCellParticleContainer::BoundaryType::OUTFLOW,
+      LinkedCellParticleContainer::BoundaryType::OUTFLOW, LinkedCellParticleContainer::BoundaryType::OUTFLOW,
+      LinkedCellParticleContainer::BoundaryType::OUTFLOW, LinkedCellParticleContainer::BoundaryType::OUTFLOW};
+
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, outflowBoundaries);
+
+  // Particle inside domain
+  lpc.addParticle({5.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+  // Particle outside domain
+  lpc.addParticle({-0.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+  // Particle at upper boundary (outside)
+  lpc.addParticle({5.0, 10.5, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+
+  EXPECT_EQ(lpc.size(), 3);
+
+  lpc.applyBoundaryConditions();
+
+  // Only the particle inside domain should remain
+  EXPECT_EQ(lpc.size(), 1);
+  EXPECT_DOUBLE_EQ(lpc[0].getX()[0], 5.0);
+}
+
+// Test that reflective boundaries apply repulsive force near walls
+TEST_F(BoundaryConditionTest, ReflectiveAppliesForce) {
+  std::array<LinkedCellParticleContainer::BoundaryType, 6> reflectiveBoundaries = {
+      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
+      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
+      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE};
+
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, reflectiveBoundaries);
+
+  // Add particle close to the left wall (x = 0), repulsionDistance = 2^(1/6) * sigma ~ 1.1225
+  lpc.addParticle({0.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.calculateF();
+
+  // Particle close to wall should experience repulsive force pushing it away from wall -> positive force in x-direction (away from wall)
+  EXPECT_GT(lpc[0].getF()[0], 0.0);
+}
+
+// Test mixed boundary conditions
+TEST_F(BoundaryConditionTest, MixedBoundaries) {
+  std::array<LinkedCellParticleContainer::BoundaryType, 6> mixedBoundaries = {
+      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::OUTFLOW,
+      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::OUTFLOW,
+      LinkedCellParticleContainer::BoundaryType::OUTFLOW,    LinkedCellParticleContainer::BoundaryType::OUTFLOW};
+
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, mixedBoundaries);
+
+  // Particle outside at x_max (outflow) should be removed
+  lpc.addParticle({10.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+  // Particle inside should stay
+  lpc.addParticle({5.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+
+  EXPECT_EQ(lpc.size(), 2);
+
+  lpc.applyBoundaryConditions();
+
+  // Particle outside outflow boundary should be removed
+  EXPECT_EQ(lpc.size(), 1);
+}
+
+// Test that particles far from reflective walls don't experience extra forces
+TEST_F(BoundaryConditionTest, ReflectiveNoForceWhenFar) {
+  std::array<LinkedCellParticleContainer::BoundaryType, 6> reflectiveBoundaries = {
+      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
+      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
+      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE};
+
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, reflectiveBoundaries);
+
+  // Add particle in the center (far from walls)
+  lpc.addParticle({5.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.calculateF();
+
+  // Single particle in center should have zero force
+  EXPECT_DOUBLE_EQ(lpc[0].getF()[0], 0.0);
+  EXPECT_DOUBLE_EQ(lpc[0].getF()[1], 0.0);
+  EXPECT_DOUBLE_EQ(lpc[0].getF()[2], 0.0);
 }

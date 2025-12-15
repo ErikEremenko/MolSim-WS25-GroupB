@@ -73,7 +73,6 @@ std::array<std::string, 6> YAMLFileReader::getBoundaryTypesRaw() const {
   return b;
 }
 
-
 void YAMLFileReader::readFile(ParticleContainer& particles) {
 
   ParticleGenerator particleGenerator(particles);
@@ -102,9 +101,9 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
     const auto& sphere = spheres[i];
 
     // read Sphere Parameters
-    auto pos = sphere["position"].as<std::array<double, 3>>();
-    auto vel = sphere["velocity"].as<std::array<double, 3>>();
-    auto rn = sphere["radius_particles"].as<int>();
+    const auto pos = sphere["position"].as<std::array<double, 3>>();
+    const auto vel = sphere["velocity"].as<std::array<double, 3>>();
+    const auto rn = sphere["radius_particles"].as<int>();
     const auto h = sphere["mesh_width"].as<double>();
     const auto m = sphere["mass"].as<double>();
     const auto meanV = sphere["mean_velocity"].as<double>();

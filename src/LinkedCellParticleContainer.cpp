@@ -88,7 +88,7 @@ void LinkedCellParticleContainer::iteratePairs(const std::function<void(Particle
                                                                           {-1, 1, 1},
                                                                           {0, 1, 1},
                                                                           {1, 1, 1}}};
-
+  // Compute interactions between particles in the same cell, ignoring halo cells
   for (size_t cdx = 0; cdx < cells.size(); ++cdx) {
     if (getCellType(cdx) == CellType::HALO)
       continue;
@@ -106,7 +106,7 @@ void LinkedCellParticleContainer::iteratePairs(const std::function<void(Particle
     const int iy = remainder / nx;
     const int ix = remainder % nx;
 
-    // Compute interactions with forward neighbor cells (to avoid double counting)
+    // Compute interactions with forward neighbor cells (avoid double counting)
     for (const auto& off : neighborOffsets) {
       const int nix = ix + off[0];
       const int niy = iy + off[1];
