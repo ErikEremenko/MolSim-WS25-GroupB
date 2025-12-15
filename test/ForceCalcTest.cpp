@@ -11,7 +11,7 @@ class ForceCalcTest : public ::testing::Test {
   ParticleContainer pc;
 };
 
-// Tests if overflow errors is thrown when the calculations are run on particles with the same coords.
+// Test if overflow error is thrown when the calculations are run on particles with the same coords.
 TEST_F(ForceCalcTest, ExpectNormError) {
   pc.addParticle(std::array<double, 3>{0.}, std::array<double, 3>{0.}, 0.);
   pc.addParticle(std::array<double, 3>{0.}, std::array<double, 3>{1.}, 0.);
@@ -19,7 +19,7 @@ TEST_F(ForceCalcTest, ExpectNormError) {
   EXPECT_THROW(LennardJonesForce(pc, 1., 1., INFINITY).calculateF(), std::overflow_error);
 }
 
-// Tests the gravitational force between two particles if one particle has zero mass
+// Test the gravitational force between two particles if one particle has zero mass
 TEST_F(ForceCalcTest, GravityF_ZeroMass) {
   auto p1 = Particle(0);
   auto p2 = Particle(std::array<double, 3>{1., 1., 1.}, std::array<double, 3>{0.}, 1.);
@@ -30,7 +30,7 @@ TEST_F(ForceCalcTest, GravityF_ZeroMass) {
   EXPECT_EQ(pc[0].getF(), (std::array<double, 3>{0.}));
 }
 
-// Tests the gravitational force between two particles with valid mass
+// Test the gravitational force between two particles with valid mass
 TEST_F(ForceCalcTest, GravityF_TwoBody) {
   auto p1 = Particle(std::array<double, 3>{0., 0., 0.}, std::array<double, 3>{0.}, 1.);
   auto p2 = Particle(std::array<double, 3>{1., 1., 1.}, std::array<double, 3>{0.}, 1.);
@@ -47,7 +47,7 @@ TEST_F(ForceCalcTest, GravityF_TwoBody) {
   }
 }
 
-// Tests the gravitational force between two particles with a valid mass
+// Test the gravitational force between two particles with a valid mass
 TEST_F(ForceCalcTest, GravityF_TwoBody2) {
   auto p1 = Particle(std::array<double, 3>{10., 20., 30.}, std::array<double, 3>{1., 2., 3.}, 1000.);
   auto p2 = Particle(
@@ -70,7 +70,7 @@ TEST_F(ForceCalcTest, GravityF_TwoBody2) {
   }
 }
 
-// Tests the Lennard-Jones-Force calculation between two particles with valid arguments up to an error of 10e-6 simulation units
+// Test the Lennard-Jones-Force calculation between two particles with valid arguments up to an error of 10e-6 simulation units
 TEST_F(ForceCalcTest, LJ_F_TwoBody) {
   // LJ-Potential factor precomputed using WolframAlpha
   constexpr double factor = -41145. / 13176688.;
