@@ -95,7 +95,7 @@ TEST_F(LinkedCellParticleContainerTest, OutflowRemovesParticlesOutside) {
 
   EXPECT_EQ(lpc.size(), 2);
 
-  lpc.applyBoundaryConditions();
+  lpc.handleOutflowBoundaries();
 
   // Particle outside should be removed
   EXPECT_EQ(lpc.size(), 1);
@@ -109,7 +109,7 @@ TEST_F(LinkedCellParticleContainerTest, ParticleAtBoundary) {
   lpc.addParticle({0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, 1.0);
   EXPECT_EQ(lpc.size(), 1);
 
-  lpc.applyBoundaryConditions();
+  lpc.handleOutflowBoundaries();
   // Should still exist (not outside)
   EXPECT_EQ(lpc.size(), 1);
 }

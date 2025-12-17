@@ -63,9 +63,9 @@ class LinkedCellParticleContainer : public ParticleContainer {
   void updateCells();
 
   /**
-   * @brief Apply boundary conditions to all particles
+   * @brief Handle outflow boundaries by removing particles outside domain and updating cells
    */
-  void applyBoundaryConditions();
+  void handleOutflowBoundaries();
 
   /**
    * @brief Iterate over all distinct particle pairs within cutoff distance

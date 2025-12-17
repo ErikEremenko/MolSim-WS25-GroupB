@@ -78,52 +78,56 @@ LennardJonesForce::LennardJonesForce(ParticleContainer& particles, const double 
 void LennardJonesForce::calculateF() {
   if (dynamic_cast<LinkedCellParticleContainer*>(&particles)) {
     calculateFLinkedCell();
-  } else {  // O(n^2) implementation
-    for (auto& p : particles) {
-      p.setF({});
-    }
-    const double sigma2 = sigma * sigma;
-    const double sigma6 = sigma2 * sigma2 * sigma2;
+  } else {
+    calculateFDirectSum();
+  }
+}
 
-    const size_t n_particles = particles.size();
-    for (size_t i = 0; i < n_particles; ++i) {
-      // index offset for Newton's third law
-      for (size_t j = i + 1; j < n_particles; ++j) {
-        auto& p_i = particles[i];
-        auto& p_j = particles[j];
+void LennardJonesForce::calculateFDirectSum() {
+  for (auto& p : particles) {
+    p.setF({});
+  }
+  const double sigma2 = sigma * sigma;
+  const double sigma6 = sigma2 * sigma2 * sigma2;
 
-        const auto dist = p_j.getX() - p_i.getX();
-        const double norm = ArrayUtils::L2Norm(dist);
-        if (norm == 0) {
-          // avoid division by zero
-          SPDLOG_ERROR(
-              "Calculated a zero norm between particles. This is likely caused "
-              "by an incorrect initialization of the Simulation.");
-          throw std::overflow_error(
-              "Calculated a zero norm between particles. This is likely caused "
-              "by an incorrect initialization of the Simulation.");
-        } else if (norm >= cutoffRadius) {
-          continue;
-        }
-        const double inv_norm2 = 1.0 / (norm * norm);
-        const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
+  const size_t n_particles = particles.size();
+  for (size_t i = 0; i < n_particles; ++i) {
+    // index offset for Newton's third law
+    for (size_t j = i + 1; j < n_particles; ++j) {
+      auto& p_i = particles[i];
+      auto& p_j = particles[j];
 
-        const double crossing_norm_quot_6 = sigma6 * inv_norm6;
-        const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
-
-        const auto F_vector =
-            (24.0 * epsilon) * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12) * dist;
-
-        // apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
-        auto F_i = p_i.getF();
-        auto F_j = p_j.getF();
-        // actio est reactio
-        p_i.setF(F_i + F_vector);
-        p_j.setF(F_j - F_vector);
+      const auto dist = p_j.getX() - p_i.getX();
+      const double norm = ArrayUtils::L2Norm(dist);
+      if (norm == 0) {
+        // avoid division by zero
+        SPDLOG_ERROR(
+            "Calculated a zero norm between particles. This is likely caused by an incorrect initialization of the "
+            "Simulation.");
+        throw std::overflow_error(
+            "Calculated a zero norm between particles. This is likely caused by an incorrect initialization of the "
+            "Simulation.");
+      } else if (norm >= cutoffRadius) {
+        continue;
       }
+      const double inv_norm2 = 1.0 / (norm * norm);
+      const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
+
+      const double crossing_norm_quot_6 = sigma6 * inv_norm6;
+      const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
+
+      const auto F_vector = (24.0 * epsilon) * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12) * dist;
+
+      // apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
+      auto F_i = p_i.getF();
+      auto F_j = p_j.getF();
+      // actio est reactio
+      p_i.setF(F_i + F_vector);
+      p_j.setF(F_j - F_vector);
     }
   }
 }
+
 LennardJonesForceParallel::LennardJonesForceParallel(ParticleContainer& particles, const double epsilon,
                                                      const double sigma, const double cutoffRadius)
     : ForceCalc(particles), epsilon(epsilon), sigma(sigma), cutoffRadius(cutoffRadius) {}
@@ -194,7 +198,7 @@ void LennardJonesForce::calculateFLinkedCell() {
   if (!lc) {
     throw std::runtime_error("LennardJonesForce::calculateFLinkedCell requires LinkedCellParticleContainer");
   }
-  lc->applyBoundaryConditions();
+  lc->handleOutflowBoundaries();
 
   const double sigma2 = sigma * sigma;
   const double sigma6 = sigma2 * sigma2 * sigma2;
@@ -225,6 +229,13 @@ void LennardJonesForce::calculateFLinkedCell() {
     p_i.setF(p_i.getF() + F_vec);
     p_j.setF(p_j.getF() - F_vec);
   });
+
+  applyReflectiveBoundaries(lc);
+}
+
+void LennardJonesForce::applyReflectiveBoundaries(LinkedCellParticleContainer* lc) {
+  const double sigma2 = sigma * sigma;
+  const double sigma6 = sigma2 * sigma2 * sigma2;
 
   const auto domainOrigin = lc->domain_origin();
   const auto domainDims = lc->domain_dims();

@@ -76,10 +76,23 @@ public:
   * @brief Calculates the Lennard-Jones forces acting on the particles
   */
   void calculateF() override;
+
   /**
-* @brief Calculates the Lennard-Jones forces acting on the particles using the Linked Cell method
-*/
+   * @brief Calculates the Lennard-Jones forces using the direct sum O(n^2) algorithm
+   */
+  void calculateFDirectSum();
+
+  /**
+   * @brief Calculates the Lennard-Jones forces acting on the particles using the Linked Cell method
+   */
   void calculateFLinkedCell();
+
+ private:
+  /**
+   * @brief Applies reflective boundary forces using ghost particles
+   * @param lc Pointer to the LinkedCellParticleContainer
+   */
+  void applyReflectiveBoundaries(class LinkedCellParticleContainer* lc);
 };
 
 /**

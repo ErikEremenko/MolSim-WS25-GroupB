@@ -122,7 +122,7 @@ TEST_F(BoundaryConditionTest, OutflowRemovesParticles) {
 
   EXPECT_EQ(lpc.size(), 3);
 
-  lpc.applyBoundaryConditions();
+  lpc.handleOutflowBoundaries();
 
   // Only the particle inside domain should remain
   EXPECT_EQ(lpc.size(), 1);
@@ -164,7 +164,7 @@ TEST_F(BoundaryConditionTest, MixedBoundaries) {
 
   EXPECT_EQ(lpc.size(), 2);
 
-  lpc.applyBoundaryConditions();
+  lpc.handleOutflowBoundaries();
 
   // Particle outside outflow boundary should be removed
   EXPECT_EQ(lpc.size(), 1);

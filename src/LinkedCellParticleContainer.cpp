@@ -63,8 +63,7 @@ LinkedCellParticleContainer::CellType LinkedCellParticleContainer::getCellType(s
   return CellType::INNER;
 }
 
-void LinkedCellParticleContainer::applyBoundaryConditions() {
-  // reflective boundaries are handled with ghost particles in ForceCalc
+void LinkedCellParticleContainer::handleOutflowBoundaries() {
   handleOutflow();
   updateCells();
 }
