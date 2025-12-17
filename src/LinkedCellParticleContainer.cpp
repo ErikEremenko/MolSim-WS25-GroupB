@@ -233,7 +233,7 @@ bool LinkedCellParticleContainer::isInsideDomain(const std::array<double, 3>& po
   return true;
 }
 int LinkedCellParticleContainer::getCellIndex(const std::array<double, 3>& x) const {
-  std::array<int, 3> idx;
+  std::array<int, 3> idx{};
   // Calculate cell coordinates from particle position
   for (int i = 0; i < 3; ++i) {
     const double rel_dim = x[i] - domainOrigin[i];
