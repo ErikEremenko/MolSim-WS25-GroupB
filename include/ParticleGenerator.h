@@ -29,9 +29,11 @@ public:
      * @param h distance between the particles in the disc.
      * @param m mass of a single particle in the disc.
      * @param t temperature of the disc.
+     * @param sigma Lennard-Jones sigma for particles in the disc (default: 1.0).
+     * @param epsilon Lennard-Jones epsilon for particles in the disc (default: 5.0).
      */
     void generateDisc(std::array<double, 3> cx, std::array<double, 3> cv,
-                        int rn, double h, double m, double t) const;
+                        int rn, double h, double m, double t, double sigma = 1.0, double epsilon = 5.0) const;
 
     /**
      * @brief Generates a cuboid of particles at the specified position.
@@ -42,9 +44,11 @@ public:
      * @param h distance between the particles in the cuboid.
      * @param m mass of a single particle in the cuboid.
      * @param t temperature of the cuboid.
+     * @param sigma Lennard-Jones sigma for particles in the cuboid (default: 1.0).
+     * @param epsilon Lennard-Jones epsilon for particles in the cuboid (default: 5.0).
      */
     void generateCuboid(std::array<double, 3> cx, std::array<double, 3> cv,
                         std::array<int, 3> n, double h, double m,
-                        double t) const;
+                        double t, double sigma = 1.0, double epsilon = 5.0) const;
 
 };

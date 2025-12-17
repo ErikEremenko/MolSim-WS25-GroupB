@@ -40,6 +40,8 @@ class ParticleContainer {
    */
   virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v,
                    double m);  // function called in FileReader
+  virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v,
+                   double m, double sigma, double epsilon);
   virtual void addParticle(const Particle* p);
 
   virtual void removeParticle(size_t idx);

@@ -61,6 +61,16 @@ class Particle {
    *
    */
   int type;
+
+  /**
+   * @brief Lennard-Jones sigma parameter for the particle
+   */
+  double sigma;
+
+  /**
+   * @brief Lennard-Jones epsilon parameter for the particle
+   */
+  double epsilon;
   ///@}
  public:
   /**@name Constructors */
@@ -83,7 +93,7 @@ class Particle {
       // -> in case of 2d, we use only the first and the second
 
       const std::array<double, 3>& x_arg, const std::array<double, 3>& v_arg,
-      double m_arg, int type_arg = 0);
+      double m_arg, int type_arg = 0, double sigma_arg = 1.0, double epsilon_arg = 5.0);
   ///@}
   /**
    * @brief Rule of Five holds
@@ -111,6 +121,10 @@ class Particle {
   [[nodiscard]] double getM() const;
   /** @brief get type of particle */
   [[nodiscard]] int getType() const;
+  /** @brief get Lennard-Jones sigma parameter */
+  [[nodiscard]] double getSigma() const;
+  /** @brief get Lennard-Jones epsilon parameter */
+  [[nodiscard]] double getEpsilon() const;
   ///@}
 
   /** @name Setter methods */

@@ -20,8 +20,16 @@ void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::arra
   cells[cdx].push_back(&p);
 }
 
+void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma,
+                                              double epsilon) {
+  ParticleContainer::addParticle(x, v, m, sigma, epsilon);
+  Particle& p = (*this)[this->size() - 1];  // the newly added particle
+  const int cdx = getCellIndex(p.getX());
+  cells[cdx].push_back(&p);
+}
+
 void LinkedCellParticleContainer::addParticle(const Particle* p) {
-  addParticle(p->getX(), p->getV(), p->getM());
+  addParticle(p->getX(), p->getV(), p->getM(), p->getSigma(), p->getEpsilon());
 }
 
 void LinkedCellParticleContainer::updateCells() {

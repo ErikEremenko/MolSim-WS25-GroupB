@@ -55,6 +55,7 @@ class LinkedCellParticleContainer : public ParticleContainer {
   using ParticleContainer::addParticle;
   // override addParticle to place particle in correct cell
   void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m);
+  void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma, double epsilon);
   void addParticle(const Particle* p);
 
   /**

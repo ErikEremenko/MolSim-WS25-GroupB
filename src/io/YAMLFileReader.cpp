@@ -77,6 +77,10 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
 
   ParticleGenerator particleGenerator(particles);
 
+  // get global sigma/epsilon as defaults
+  const double globalSigma = getSigma();
+  const double globalEpsilon = getEpsilon();
+
   const auto& cuboids = config["cuboids"];
 
   for (std::size_t i = 0; i < cuboids.size(); ++i) {
@@ -90,9 +94,14 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
     const auto m = cuboid["mass"].as<double>();
     const auto meanV = cuboid["mean_velocity"].as<double>();
 
-    particleGenerator.generateCuboid(pos, vel, dim, h, m, meanV);
+    // per-object sigma/epsilon with fallback to the global values
+    const double sigma = cuboid["sigma"] ? cuboid["sigma"].as<double>() : globalSigma;
+    const double epsilon = cuboid["epsilon"] ? cuboid["epsilon"].as<double>() : globalEpsilon;
 
-    SPDLOG_DEBUG("Loaded cuboid {} with {} particles.", i, dim[0] * dim[1] * dim[2]);
+    particleGenerator.generateCuboid(pos, vel, dim, h, m, meanV, sigma, epsilon);
+
+    SPDLOG_DEBUG("Loaded cuboid {} with {} particles (sigma={}, epsilon={}).", i, dim[0] * dim[1] * dim[2], sigma,
+                 epsilon);
   }
 
   const auto& spheres = config["spheres"];
@@ -108,8 +117,12 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
     const auto m = sphere["mass"].as<double>();
     const auto meanV = sphere["mean_velocity"].as<double>();
 
-    particleGenerator.generateDisc(pos, vel, rn, h, m, meanV);
+    // per-object sigma/epsilon with fallback to the global values
+    const double sigma = sphere["sigma"] ? sphere["sigma"].as<double>() : globalSigma;
+    const double epsilon = sphere["epsilon"] ? sphere["epsilon"].as<double>() : globalEpsilon;
 
-    SPDLOG_DEBUG("Loaded sphere.");
+    particleGenerator.generateDisc(pos, vel, rn, h, m, meanV, sigma, epsilon);
+
+    SPDLOG_DEBUG("Loaded sphere (sigma={}, epsilon={}).", sigma, epsilon);
   }
 }

@@ -200,9 +200,6 @@ void LennardJonesForce::calculateFLinkedCell() {
   }
   lc->handleOutflowBoundaries();
 
-  const double sigma2 = sigma * sigma;
-  const double sigma6 = sigma2 * sigma2 * sigma2;
-
   // Linked Cells iteration with N3L
   lc->iteratePairs([&](Particle& p_i, Particle& p_j) {
     const auto dist = p_j.getX() - p_i.getX();
@@ -219,13 +216,19 @@ void LennardJonesForce::calculateFLinkedCell() {
     } else if (norm >= cutoffRadius)
       return;
 
+    // Get the particle's sigma/epsilon and apply mixing rule
+    const auto sigma_ij = (p_i.getSigma() + p_j.getSigma()) / 2;
+    const auto epsilon_ij = std::sqrt(p_i.getEpsilon() * p_j.getEpsilon());
+
+    const double sigma2 = sigma_ij * sigma_ij;
+    const double sigma6 = sigma2 * sigma2 * sigma2;
     const double inv_norm2 = 1.0 / (norm * norm);
     const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
 
     const double crossing_norm_quot_6 = sigma6 * inv_norm6;
     const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
 
-    const auto F_vec = (24.0 * epsilon * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * dist;
+    const auto F_vec = (24.0 * epsilon_ij * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * dist;
     p_i.setF(p_i.getF() + F_vec);
     p_j.setF(p_j.getF() - F_vec);
   });
@@ -234,9 +237,6 @@ void LennardJonesForce::calculateFLinkedCell() {
 }
 
 void LennardJonesForce::applyReflectiveBoundaries(LinkedCellParticleContainer* lc) {
-  const double sigma2 = sigma * sigma;
-  const double sigma6 = sigma2 * sigma2 * sigma2;
-
   const auto domainOrigin = lc->domain_origin();
   const auto domainDims = lc->domain_dims();
   const auto boundaryTypes = lc->boundary_types();
@@ -244,6 +244,13 @@ void LennardJonesForce::applyReflectiveBoundaries(LinkedCellParticleContainer* l
   for (auto& p : particles) {
     const auto x = p.getX();
     auto F_total = p.getF();
+
+    // Use particle's own sigma/epsilon
+    const double p_sigma = p.getSigma();
+    const double p_epsilon = p.getEpsilon();
+    const double p_repulsionDistance = std::pow(2.0, 1.0 / 6.0) * p_sigma;
+    const double sigma2 = p_sigma * p_sigma;
+    const double sigma6 = sigma2 * sigma2 * sigma2;
 
     // Helper computes ghost particle repulsion force for a reflective wall
     auto computeGhostForce = [&](int d, double wallPos) -> std::array<double, 3> {
@@ -253,13 +260,13 @@ void LennardJonesForce::applyReflectiveBoundaries(LinkedCellParticleContainer* l
       const auto ghostDist = ghostX - x;
       const double norm = ArrayUtils::L2Norm(ghostDist);
 
-      if (norm < repulsionDistance && norm > 0.) {  // avoid division by zero
+      if (norm < p_repulsionDistance && norm > 0.) {  // avoid division by zero
         const double inv_norm2 = 1.0 / (norm * norm);
         const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
         const double crossing_norm_quot_6 = sigma6 * inv_norm6;
         const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
 
-        return (24.0 * epsilon * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * ghostDist;
+        return (24.0 * p_epsilon * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * ghostDist;
       }
       return {0., 0., 0.};
     };
