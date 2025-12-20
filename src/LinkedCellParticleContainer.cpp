@@ -65,6 +65,7 @@ LinkedCellParticleContainer::CellType LinkedCellParticleContainer::getCellType(s
 
 void LinkedCellParticleContainer::handleOutflowBoundaries() {
   handleOutflow();
+  handlePeriodicBoundaries();
   updateCells();
 }
 void LinkedCellParticleContainer::iteratePairs(const std::function<void(Particle&, Particle&)>& pairFunc) const {
@@ -221,6 +222,23 @@ void LinkedCellParticleContainer::handleOutflow() {
   for (auto idx = indicesToRemove.rbegin(); idx != indicesToRemove.rend(); ++idx) {
     this->removeParticle(*idx);
   }
+}
+
+void LinkedCellParticleContainer::handlePeriodicBoundaries() {
+    for (size_t i = 0; i < this->size(); ++i){
+        Particle& p = (*this)[i];
+        auto x = p.getX();
+
+        for (int d = 0; d < 3; d++)
+        if (boundaryTypes[2 * d] == BoundaryType::PERIODIC
+        && boundaryTypes[2 * d + 1] == BoundaryType::PERIODIC){
+            if (x[d] < domainOrigin[d])
+                x[d] += domainDims[d];
+            else if (x[d] > domainOrigin[d] + domainDims[d])
+                x[d] -= domainDims[d];
+        }
+        p.setX(x);
+    }
 }
 
 bool LinkedCellParticleContainer::isInsideDomain(const std::array<double, 3>& pos) const {

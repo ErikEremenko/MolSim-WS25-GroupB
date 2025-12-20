@@ -82,12 +82,13 @@ class LinkedCellParticleContainer : public ParticleContainer {
                             const std::function<void(Particle&, Particle&)>& func) const;
 
   // getters
-[[nodiscard]] std::array<double, 3> domain_dims() const { return domainDims; }
+  [[nodiscard]] std::array<double, 3> domain_dims() const { return domainDims; }
   [[nodiscard]] std::array<double, 3> domain_origin() const { return domainOrigin; }
   [[nodiscard]] double cutoff_radius() const { return cutoffRadius; }
   [[nodiscard]] std::array<double, 3> cell_size() const { return cellSize; }
   [[nodiscard]] std::array<int, 3> num_cells() const { return numCells; }
   [[nodiscard]] std::array<BoundaryType, 6> boundary_types() const { return boundaryTypes; }
+  [[nodiscard]] std::vector<Particle*>& cell_at(int nx, int ny, int nz) { return cells[(nz * numCells[0] * numCells[1]) + (ny * numCells[0]) + nx]; }
 
  private:
     std::array<double, 3> domainDims;             ///< Dimensions of the simulation domain (x, y, z)
@@ -120,6 +121,8 @@ class LinkedCellParticleContainer : public ParticleContainer {
  * @brief Handle outflow boundary: delete particles outside domain
  */
   void handleOutflow();
+
+  void handlePeriodicBoundaries();
 
   /**
  * @brief Check if position is inside domain

@@ -93,6 +93,9 @@ public:
    * @param lc Pointer to the LinkedCellParticleContainer
    */
   void applyReflectiveBoundaries(class LinkedCellParticleContainer* lc);
+
+  void calcFPeriodicBoundary(Particle* p1, Particle* p2);
+  void applyPeriodicBoundaries(class LinkedCellParticleContainer* lc);
 };
 
 /**
