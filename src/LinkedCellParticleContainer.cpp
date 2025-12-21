@@ -80,7 +80,18 @@ LinkedCellParticleContainer::CellType LinkedCellParticleContainer::getCellType(s
   return CellType::INNER;
 }
 
+std::vector<Particle*>& LinkedCellParticleContainer::cell_at(int cx, int cy, int cz) {
+  if (cx < 0 || cx >= numCells[0] || cy < 0 || cy >= numCells[1] || cz < 0 || cz >= numCells[2]) {
+    throw std::out_of_range("Cell index out of bounds");
+  }
+  const int nx = numCells[0];
+  const int ny = numCells[1];
+  const int idx = (cz * nx * ny) + (cy * nx) + cx;
+  return cells[idx];
+}
+
 void LinkedCellParticleContainer::handleOutflowBoundaries() {
+  handlePeriodicBoundaries();
   handleOutflow();
   updateCells();
 }
@@ -210,6 +221,22 @@ std::vector<size_t> LinkedCellParticleContainer::getNeighborCellIndices(int cdx)
   }
   return neighbors;
 }
+void LinkedCellParticleContainer::handlePeriodicBoundaries() {
+  for (size_t i = 0; i < this->size(); ++i) {
+    Particle& p = (*this)[i];
+    auto x = p.getX();
+
+    for (int d = 0; d < 3; d++)
+      if (boundaryTypes[2 * d] == BoundaryType::PERIODIC && boundaryTypes[2 * d + 1] == BoundaryType::PERIODIC) {
+        if (x[d] < domainOrigin[d])
+          x[d] += domainDims[d];
+        else if (x[d] > domainOrigin[d] + domainDims[d])
+          x[d] -= domainDims[d];
+      }
+    p.setX(x);
+  }
+}
+
 void LinkedCellParticleContainer::handleOutflow() {
   std::vector<size_t> indicesToRemove;
   // Check each particle if it's outside the domain

@@ -92,7 +92,10 @@ public:
    * @brief Applies reflective boundary forces using ghost particles
    * @param lc Pointer to the LinkedCellParticleContainer
    */
-  void applyReflectiveBoundaries(class LinkedCellParticleContainer* lc);
+  void applyReflectiveBoundaries(const class LinkedCellParticleContainer* lc) const;
+
+  void calcFPeriodicBoundary(Particle* p1, Particle* p2) const;
+  void applyPeriodicBoundaries(LinkedCellParticleContainer* lc) const;
 };
 
 /**

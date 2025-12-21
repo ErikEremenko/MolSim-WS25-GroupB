@@ -85,6 +85,15 @@ class LinkedCellParticleContainer : public ParticleContainer {
   void iterateCellNeighbors(size_t cdx,
                             const std::function<void(Particle&, Particle&)>& func) const;
 
+  /**
+   * @brief Access cell by grid coordinates.
+   * @param cx x-index
+   * @param cy y-index
+   * @param cz z-index
+   * @return Reference to vector of particles in the cell
+   */
+  std::vector<Particle*>& cell_at(int cx, int cy, int cz);
+
   // Getters
 [[nodiscard]] std::array<double, 3> domain_dims() const { return domainDims; }
   [[nodiscard]] std::array<double, 3> domain_origin() const { return domainOrigin; }
@@ -123,7 +132,15 @@ class LinkedCellParticleContainer : public ParticleContainer {
   /**
  * @brief Handle outflow boundary: delete particles outside domain
  */
+  /**
+ * @brief Handle outflow boundary: delete particles outside domain
+ */
   void handleOutflow();
+
+  /**
+   * @brief Handle periodic boundaries: wrap particles around domain
+   */
+  void handlePeriodicBoundaries();
 
   /**
  * @brief Check if position is inside domain

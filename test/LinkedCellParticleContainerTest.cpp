@@ -128,3 +128,20 @@ TEST_F(LinkedCellParticleContainerTest, ReflectiveBoundaryTypes) {
     EXPECT_EQ(bt[i], LinkedCellParticleContainer::BoundaryType::REFLECTIVE);
   }
 }
+
+// Test cell_at access
+TEST_F(LinkedCellParticleContainerTest, CellAtAccess) {
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, outflowBoundaries);
+
+  // Add a particle that should fall into the first inner cell (1,1,1)
+  // Domain 10x10x10, cutoff 2.5 -> cellSize ~ 2.5
+  lpc.addParticle({1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, 1.0);
+
+  auto& cell = lpc.cell_at(1, 1, 1);
+  EXPECT_EQ(cell.size(), 1);
+  EXPECT_DOUBLE_EQ(cell[0]->getX()[0], 1.0);
+
+  // Test out of bounds
+  EXPECT_THROW(lpc.cell_at(-1, 0, 0), std::out_of_range);
+  EXPECT_THROW(lpc.cell_at(100, 0, 0), std::out_of_range);
+}
