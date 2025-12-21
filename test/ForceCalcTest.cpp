@@ -190,3 +190,201 @@ TEST_F(BoundaryConditionTest, ReflectiveNoForceWhenFar) {
   EXPECT_DOUBLE_EQ(lpc[0].getF()[1], 0.0);
   EXPECT_DOUBLE_EQ(lpc[0].getF()[2], 0.0);
 }
+
+class PeriodicBoundaryTest : public ::testing::Test {
+ protected:
+  std::array<double, 3> domainDims = {10.0, 10.0, 10.0};
+  double cutoffRadius = 3.0;
+  double epsilon = 5.0;
+  double sigma = 1.0;
+  std::array<LinkedCellParticleContainer::BoundaryType, 6> periodicBoundaries = {
+      LinkedCellParticleContainer::BoundaryType::PERIODIC, LinkedCellParticleContainer::BoundaryType::PERIODIC,
+      LinkedCellParticleContainer::BoundaryType::PERIODIC, LinkedCellParticleContainer::BoundaryType::PERIODIC,
+      LinkedCellParticleContainer::BoundaryType::PERIODIC, LinkedCellParticleContainer::BoundaryType::PERIODIC};
+};
+
+// Test that particles outside left boundary (x < 0) wrap to right side
+TEST_F(PeriodicBoundaryTest, ParticleWrapsFromLeftToRight) {
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, periodicBoundaries);
+
+  // Particle slightly outside left boundary
+  lpc.addParticle({-0.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+
+  EXPECT_EQ(lpc.size(), 1);
+
+  lpc.handleOutflowBoundaries();
+
+  // Particle should be wrapped to righ side (-0.5 + 10.0 = 9.5)
+  EXPECT_EQ(lpc.size(), 1);
+  EXPECT_NEAR(lpc[0].getX()[0], 9.5, 1e-10);
+  EXPECT_DOUBLE_EQ(lpc[0].getX()[1], 5.0);
+  EXPECT_DOUBLE_EQ(lpc[0].getX()[2], 5.0);
+}
+
+// Test that particles outside right boundary (x > domain) wrap to the left side
+TEST_F(PeriodicBoundaryTest, ParticleWrapsFromRightToLeft) {
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, periodicBoundaries);
+
+  // Particle slightly outside the right boundary
+  lpc.addParticle({10.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+
+  EXPECT_EQ(lpc.size(), 1);
+
+  lpc.handleOutflowBoundaries();
+
+  // Particle should be wrapped to left side (10.5 - 10.0 = 0.5)
+  EXPECT_EQ(lpc.size(), 1);
+  EXPECT_NEAR(lpc[0].getX()[0], 0.5, 1e-10);
+  EXPECT_DOUBLE_EQ(lpc[0].getX()[1], 5.0);
+  EXPECT_DOUBLE_EQ(lpc[0].getX()[2], 5.0);
+}
+
+// Test that particles wrap correctly in y-dimension
+TEST_F(PeriodicBoundaryTest, ParticleWrapsInYDimension) {
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, periodicBoundaries);
+
+  // Particle outside bottom boundary
+  lpc.addParticle({5.0, -1.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+
+  lpc.handleOutflowBoundaries();
+
+  // Should wrap to top: -1.0 + 10.0 = 9.0
+  EXPECT_EQ(lpc.size(), 1);
+  EXPECT_DOUBLE_EQ(lpc[0].getX()[0], 5.0);
+  EXPECT_NEAR(lpc[0].getX()[1], 9.0, 1e-10);
+  EXPECT_DOUBLE_EQ(lpc[0].getX()[2], 5.0);
+}
+
+// Test that particles wrap correctly in z-dimension
+TEST_F(PeriodicBoundaryTest, ParticleWrapsInZDimension) {
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, periodicBoundaries);
+
+  // Particle outside front boundary
+  lpc.addParticle({5.0, 5.0, 11.0}, {0.0, 0.0, 0.0}, 1.0);
+
+  lpc.handleOutflowBoundaries();
+
+  // Should wrap to back (11.0 - 10.0 = 1.0)
+  EXPECT_EQ(lpc.size(), 1);
+  EXPECT_DOUBLE_EQ(lpc[0].getX()[0], 5.0);
+  EXPECT_DOUBLE_EQ(lpc[0].getX()[1], 5.0);
+  EXPECT_NEAR(lpc[0].getX()[2], 1.0, 1e-10);
+}
+
+// Test that particles at corners wrap correctly in multiple dimensions
+TEST_F(PeriodicBoundaryTest, ParticleWrapsInMultipleDimensions) {
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, periodicBoundaries);
+
+  // Particle outside in both X and Y
+  lpc.addParticle({-0.5, 10.5, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+
+  lpc.handleOutflowBoundaries();
+
+  // Should wrap in both dims
+  EXPECT_EQ(lpc.size(), 1);
+  EXPECT_NEAR(lpc[0].getX()[0], 9.5, 1e-10);
+  EXPECT_NEAR(lpc[0].getX()[1], 0.5, 1e-10);
+  EXPECT_DOUBLE_EQ(lpc[0].getX()[2], 5.0);
+}
+
+// Test that two particles near opposite periodic boundaries interact correctly
+TEST_F(PeriodicBoundaryTest, CrossBoundaryForceInteraction) {
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, periodicBoundaries);
+
+  // Two particles near opposite x boundaries (within cutoff distance across boundary)
+  // Distance across periodic boundary: (10-9.5) + 0.5 = 1.0 < 3.0
+  lpc.addParticle({0.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+  lpc.addParticle({9.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.calculateF();
+
+  // Both particles should experience non-zero forces (periodic interaction)
+  // Particle at 0.5 should be pulled towards negative x (toward the wrapped particle at 9.5)
+  // Particle at 9.5 should be pulled towards positive x (toward the wrapped particle at 0.5)
+  double f0_x = lpc[0].getF()[0];
+  double f1_x = lpc[1].getF()[0];
+
+  // Forces should be opposite (N3L)
+  EXPECT_NEAR(f0_x + f1_x, 0.0, 1e-10);
+
+  // At distance 1.0 with sigma=1.0, inside repulsion distance (d < 2^(1/6)*sigma ~ 1.12) -> forces should push particles apart
+  EXPECT_GT(f0_x, 0.0);  // Particle 0 pushed toward +x (away from wrapped 9.5)
+  EXPECT_LT(f1_x, 0.0);  // Particle 1 pushed toward -x (away from wrapped 0.5)
+}
+
+// Test that particles inside domain are not affected by periodic wrapping
+TEST_F(PeriodicBoundaryTest, ParticlesInsideDomainUnchanged) {
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, periodicBoundaries);
+
+  // Particle well inside the domain
+  lpc.addParticle({5.0, 5.0, 5.0}, {1.0, 2.0, 3.0}, 1.5);
+
+  lpc.handleOutflowBoundaries();
+
+  // Position should remain unchanged
+  EXPECT_DOUBLE_EQ(lpc[0].getX()[0], 5.0);
+  EXPECT_DOUBLE_EQ(lpc[0].getX()[1], 5.0);
+  EXPECT_DOUBLE_EQ(lpc[0].getX()[2], 5.0);
+}
+
+// Test mixed boundary types: x:periodic, y:reflective, z:outflow
+TEST_F(PeriodicBoundaryTest, MixedBoundaryWithPeriodic) {
+  std::array<LinkedCellParticleContainer::BoundaryType, 6> mixedBoundaries = {
+      LinkedCellParticleContainer::BoundaryType::PERIODIC,   LinkedCellParticleContainer::BoundaryType::PERIODIC,
+      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
+      LinkedCellParticleContainer::BoundaryType::OUTFLOW,    LinkedCellParticleContainer::BoundaryType::OUTFLOW};
+
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, mixedBoundaries);
+
+  // Particle outside X boundary (periodic) -> should wrap
+  lpc.addParticle({-0.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+  // Particle inside
+  lpc.addParticle({5.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+  // Particle outside Z boundary (outflow) -> should be removed
+  lpc.addParticle({5.0, 5.0, 11.0}, {0.0, 0.0, 0.0}, 1.0);
+
+  EXPECT_EQ(lpc.size(), 3);
+
+  lpc.handleOutflowBoundaries();
+
+  // First particle should wrap, second unchanged, third removed
+  EXPECT_EQ(lpc.size(), 2);
+}
+
+// Test single particle with periodic boundaries has no force
+TEST_F(PeriodicBoundaryTest, SingleParticleNoForce) {
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, periodicBoundaries);
+
+  lpc.addParticle({5.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.calculateF();
+
+  // Particle should have zero force
+  EXPECT_DOUBLE_EQ(lpc[0].getF()[0], 0.0);
+  EXPECT_DOUBLE_EQ(lpc[0].getF()[1], 0.0);
+  EXPECT_DOUBLE_EQ(lpc[0].getF()[2], 0.0);
+}
+
+// Test particles too far across periodic boundary don't interact
+TEST_F(PeriodicBoundaryTest, ParticlesBeyondCutoffNoInteraction) {
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, periodicBoundaries);
+
+  // Placed s.t. minimum periodic distance > cutoff (cutoff: 3.0, domain: 10.0)
+  // Particles at x = 2.0 and x = 6.0: direct distance = 4.0, periodic distance = 6.0
+  // Both > cutoff ->no interaction
+  lpc.addParticle({2.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+  lpc.addParticle({6.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.calculateF();
+
+  // Particles should experience zero force (beyond cutoff in all directions)
+  EXPECT_DOUBLE_EQ(lpc[0].getF()[0], 0.0);
+  EXPECT_DOUBLE_EQ(lpc[0].getF()[1], 0.0);
+  EXPECT_DOUBLE_EQ(lpc[0].getF()[2], 0.0);
+  EXPECT_DOUBLE_EQ(lpc[1].getF()[0], 0.0);
+  EXPECT_DOUBLE_EQ(lpc[1].getF()[1], 0.0);
+  EXPECT_DOUBLE_EQ(lpc[1].getF()[2], 0.0);
+}

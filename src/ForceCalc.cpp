@@ -3,7 +3,7 @@
 #include <spdlog/spdlog.h>
 #include "utils/ArrayUtils.h"
 
-//debug
+// debug
 #include <iostream>
 
 #include "LinkedCellParticleContainer.h"
@@ -40,7 +40,7 @@ void GravityForce::calculateF() {
 
   const size_t n_particles = particles.size();
   for (size_t i = 0; i < n_particles; ++i) {
-    // index offset for Newton's third law
+    // Index offset for Newton's third law
     for (size_t j = i + 1; j < n_particles; ++j) {
       auto& p_i = particles[i];
       auto& p_j = particles[j];
@@ -48,7 +48,7 @@ void GravityForce::calculateF() {
       const auto dist = p_j.getX() - p_i.getX();
       const double norm = ArrayUtils::L2Norm(dist);
       if (norm == 0.) {
-        // avoid division by zero
+        // Avoid division by zero
         SPDLOG_ERROR(
             "Calculated a zero norm between particles. This is likely caused "
             "by an incorrect initialization of the Simulation.");
@@ -60,10 +60,10 @@ void GravityForce::calculateF() {
 
       const auto F_vector = ((p_i.getM() * p_j.getM()) / norm3) * dist;
 
-      // apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
+      // Apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
       auto F_i = p_i.getF();
       auto F_j = p_j.getF();
-      // actio est reactio
+      // Actio est reactio
       p_i.setF(F_i + F_vector);
       p_j.setF(F_j - F_vector);
     }
@@ -95,7 +95,7 @@ void LennardJonesForce::calculateFDirectSum() {
 
   const size_t n_particles = particles.size();
   for (size_t i = 0; i < n_particles; ++i) {
-    // index offset for Newton's third law
+    // Index offset for Newton's third law
     for (size_t j = i + 1; j < n_particles; ++j) {
       auto& p_i = particles[i];
       auto& p_j = particles[j];
@@ -103,7 +103,7 @@ void LennardJonesForce::calculateFDirectSum() {
       const auto dist = p_j.getX() - p_i.getX();
       const double norm = ArrayUtils::L2Norm(dist);
       if (norm == 0) {
-        // avoid division by zero
+        // Avoid division by zero
         SPDLOG_ERROR(
             "Calculated a zero norm between particles. This is likely caused by an incorrect initialization of the "
             "Simulation.");
@@ -121,10 +121,10 @@ void LennardJonesForce::calculateFDirectSum() {
 
       const auto F_vector = (24.0 * epsilon) * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12) * dist;
 
-      // apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
+      // Apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
       auto F_i = p_i.getF();
       auto F_j = p_j.getF();
-      // actio est reactio
+      // Actio est reactio
       p_i.setF(F_i + F_vector);
       p_j.setF(F_j - F_vector);
     }
@@ -146,7 +146,7 @@ void LennardJonesForceParallel::calculateF() {
 
 #pragma omp parallel for schedule(guided)
   for (size_t i = 0; i < n_particles; ++i) {
-    // index offset for Newton's third law
+    // Index offset for Newton's third law
     for (size_t j = i + 1; j < n_particles; ++j) {
       auto& p_i = particles[i];
       auto& p_j = particles[j];
@@ -154,7 +154,7 @@ void LennardJonesForceParallel::calculateF() {
       const auto dist = p_j.getX() - p_i.getX();
       const double norm = ArrayUtils::L2Norm(dist);
       if (norm == 0) {
-        // avoid division by zero
+        // Avoid division by zero
         SPDLOG_ERROR(
             "Calculated a zero norm between particles. This is likely caused "
             "by an incorrect initialization of the Simulation.");
@@ -174,7 +174,7 @@ void LennardJonesForceParallel::calculateF() {
 
       auto& Fi = p_i.getF();
       auto& Fj = p_j.getF();
-      // apply forces using Newton's third law and atomic operations
+      // Apply forces using Newton's third law and atomic operations
 #pragma omp atomic
       Fi[0] += F_vector[0];
 #pragma omp atomic
@@ -237,7 +237,7 @@ void LennardJonesForce::calculateFLinkedCell() {
   applyPeriodicBoundaries(lc);
 }
 
-void LennardJonesForce::applyReflectiveBoundaries(LinkedCellParticleContainer* lc) {
+void LennardJonesForce::applyReflectiveBoundaries(const LinkedCellParticleContainer* lc) const {
   const double sigma2 = sigma * sigma;
   const double sigma6 = sigma2 * sigma2 * sigma2;
 
@@ -252,12 +252,12 @@ void LennardJonesForce::applyReflectiveBoundaries(LinkedCellParticleContainer* l
     // Helper computes ghost particle repulsion force for a reflective wall
     auto computeGhostForce = [&](int d, double wallPos) -> std::array<double, 3> {
       auto ghostX = x;
-      ghostX[d] = 2.0 * wallPos - x[d];  // ghost particle is mirrored across the wall
+      ghostX[d] = 2.0 * wallPos - x[d];  // Ghost particle is mirrored across the wall
 
       const auto ghostDist = ghostX - x;
       const double norm = ArrayUtils::L2Norm(ghostDist);
 
-      if (norm < repulsionDistance && norm > 0.) {  // avoid division by zero
+      if (norm < repulsionDistance && norm > 0.) {  // Avoid division by zero
         const double inv_norm2 = 1.0 / (norm * norm);
         const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
         const double crossing_norm_quot_6 = sigma6 * inv_norm6;
@@ -272,7 +272,7 @@ void LennardJonesForce::applyReflectiveBoundaries(LinkedCellParticleContainer* l
       const double minD = domainOrigin[d];
       const double maxD = domainOrigin[d] + domainDims[d];
 
-      // handling two opposite boundaries per dimension d -> 6 faces
+      // Handling two opposite boundaries per dimension d -> 6 faces
       if (boundaryTypes[2 * d] == LinkedCellParticleContainer::BoundaryType::REFLECTIVE) {
         if (const double distToWall = x[d] - minD; distToWall > 0. && distToWall < cutoffRadius) {
           F_total = F_total + computeGhostForce(d, minD);
@@ -288,10 +288,10 @@ void LennardJonesForce::applyReflectiveBoundaries(LinkedCellParticleContainer* l
   }
 }
 
-void LennardJonesForce::calcFPeriodicBoundary(Particle* p1, Particle* p2) {
+void LennardJonesForce::calcFPeriodicBoundary(Particle* p1, Particle* p2) const {
 
-  static const double sigma2 = sigma * sigma;
-  static const double sigma6 = sigma2 * sigma2 * sigma2;
+  const double sigma2 = sigma * sigma;
+  const double sigma6 = sigma2 * sigma2 * sigma2;
 
   std::array<double, 3> dist = {p2->getX()[0] - p1->getX()[0], p2->getX()[1] - p1->getX()[1],
                                 p2->getX()[2] - p1->getX()[2]};
@@ -319,26 +319,27 @@ void LennardJonesForce::calcFPeriodicBoundary(Particle* p1, Particle* p2) {
   p2->setF(p2->getF() - F_vec);
 }
 
-void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc) {
-
+void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc) const {
   const auto domainDims = lc->domain_dims();
   const auto boundaryTypes = lc->boundary_types();
   const auto numCells = lc->num_cells();
 
+  // Face interactions
+  // Handle particle pairs across opposite faces of the domain
+  // X-periodic: left wall (x=1) <-> right wall (x=numCells[0]-2)
   if (boundaryTypes[0] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[1] == LinkedCellParticleContainer::BoundaryType::PERIODIC) {
-    //iterate through all boundary cells of left wall
     for (int c1y = 1; c1y < numCells[1] - 1; c1y++)
       for (int c1z = 1; c1z < numCells[2] - 1; c1z++) {
         auto& cell1 = lc->cell_at(1, c1y, c1z);
-        //iterate through all neighboring cells of cell1 on opposing wall
+        // Iterate through all neighboring cells of cell1 on opposing wall
         for (int c2y = c1y - 1; c2y <= c1y + 1; c2y++)
           for (int c2z = c1z - 1; c2z <= c1z + 1; c2z++) {
             if (c2y < 1 || c2y > numCells[1] - 2 || c2z < 1 || c2z > numCells[2] - 2)
               continue;
 
             auto& cell2 = lc->cell_at(numCells[0] - 2, c2y, c2z);
-            //iterate through all particle pairs between cells and apply force function
+            // Iterate through all particle pairs between cells and apply force function
             for (auto& p1 : cell1)
               for (auto& p2 : cell2) {
                 p2->setX(p2->getX()[0] - domainDims[0], 0);
@@ -349,13 +350,13 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
       }
   }
 
+  // Y-periodic: bottom wall (y=1) <-> top wall (y=numCells[1]-2)
   if (boundaryTypes[2] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[3] == LinkedCellParticleContainer::BoundaryType::PERIODIC) {
-    //iterate through all boundary cells of bottom wall
     for (int c1x = 1; c1x < numCells[0] - 1; c1x++)
       for (int c1z = 1; c1z < numCells[2] - 1; c1z++) {
         auto& cell1 = lc->cell_at(c1x, 1, c1z);
-        //iterate through all neighboring cells of cell1 on opposing wall
+        // Iterate through all neighboring cells of cell1 on opposing wall
         for (int c2x = c1x - 1; c2x <= c1x + 1; c2x++)
           for (int c2z = c1z - 1; c2z <= c1z + 1; c2z++) {
 
@@ -363,7 +364,7 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
               continue;
 
             auto& cell2 = lc->cell_at(c2x, numCells[1] - 2, c2z);
-            //iterate through all particle pairs between cells and apply force function
+            // Iterate through all particle pairs between cells and apply force function
             for (auto& p1 : cell1)
               for (auto& p2 : cell2) {
                 p2->setX(p2->getX()[1] - domainDims[1], 1);
@@ -374,13 +375,13 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
       }
   }
 
+  // Z-periodic: front wall (z=1) <-> back wall (z=numCells[2]-2)
   if (boundaryTypes[4] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[5] == LinkedCellParticleContainer::BoundaryType::PERIODIC) {
-    //iterate through all boundary cells of front wall
     for (int c1x = 1; c1x < numCells[0] - 1; c1x++)
       for (int c1y = 1; c1y < numCells[1] - 1; c1y++) {
         auto& cell1 = lc->cell_at(c1x, c1y, 1);
-        //iterate through all neighboring cells of cell1 on opposing wall
+        // Iterate through all neighboring cells of cell1 on opposing wall
         for (int c2x = c1x - 1; c2x <= c1x + 1; c2x++)
           for (int c2y = c1y - 1; c2y <= c1y + 1; c2y++) {
 
@@ -388,7 +389,7 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
               continue;
 
             auto& cell2 = lc->cell_at(c2x, c2y, numCells[2] - 2);
-            //iterate through all particle pairs between cells and apply force function
+            // Iterate through all particle pairs between cells and apply force function
             for (auto& p1 : cell1)
               for (auto& p2 : cell2) {
                 p2->setX(p2->getX()[2] - domainDims[2], 2);
@@ -399,21 +400,22 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
       }
   }
 
+  // Edge interaction: handle particle pairs along edges (two periodic dimensions)
+  // X+y periodic: bottom-left edge <-> top-right edge, top-left edge <-> bottom-right edge
   if (boundaryTypes[0] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[1] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[2] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[3] == LinkedCellParticleContainer::BoundaryType::PERIODIC) {
-    //iterate through all boundary cells of bottom left edge
     for (int c1z = 1; c1z < numCells[2] - 1; c1z++) {
       auto& cell1 = lc->cell_at(1, 1, c1z);
-      //iterate through all neighboring cells of cell1 on opposing side
+      // Iterate through all neighboring cells of cell1 on opposing side
       for (int c2z = c1z - 1; c2z <= c1z + 1; c2z++) {
 
         if (c2z < 1 || c2z > numCells[0] - 2)
           continue;
 
         auto& cell2 = lc->cell_at(numCells[0] - 2, numCells[1] - 2, c2z);
-        //iterate through all particle pairs between cells and apply force function
+        // Iterate through all particle pairs between cells and apply force function
         for (auto& p1 : cell1)
           for (auto& p2 : cell2) {
             p2->setX(p2->getX()[0] - domainDims[0], 0);
@@ -424,18 +426,18 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
           }
       }
     }
-    //iterate through all boundary cells of top left edge
+    // Iterate through all boundary cells of top left edge
     for (int c1z = 1; c1z < numCells[2] - 1; c1z++) {
       auto& cell1 = lc->cell_at(1, numCells[1] - 2, c1z);
-      //iterate through all neighboring cells of cell1 on opposing side
+      // Iterate through all neighboring cells of cell1 on opposing side
       for (int c2z = c1z - 1; c2z <= c1z + 1; c2z++) {
 
         if (c2z < 1 || c2z > numCells[0] - 2)
           continue;
 
         auto& cell2 = lc->cell_at(numCells[0] - 2, 1, c2z);
-        //iterate through all particle pairs between cells
-        //move particle temporarily and apply force function
+        // Iterate through all particle pairs between cells
+        // Move particle temporarily and apply force function
         for (auto& p1 : cell1)
           for (auto& p2 : cell2) {
             p2->setX(p2->getX()[0] - domainDims[0], 0);
@@ -448,21 +450,21 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
     }
   }
 
+  // X+z periodic: front-left edge <-> back-right edge, back-left edge <-> front-right edge
   if (boundaryTypes[0] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[1] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[4] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[5] == LinkedCellParticleContainer::BoundaryType::PERIODIC) {
-    //iterate through all boundary cells of front left edge
     for (int c1y = 1; c1y < numCells[1] - 1; c1y++) {
       auto& cell1 = lc->cell_at(1, c1y, 1);
-      //iterate through all neighboring cells of cell1 on opposing side
+      // Iterate through all neighboring cells of cell1 on opposing side
       for (int c2y = c1y - 1; c2y <= c1y + 1; c2y++) {
 
         if (c2y < 1 || c2y > numCells[1] - 2)
           continue;
 
         auto& cell2 = lc->cell_at(numCells[0] - 2, c2y, numCells[2] - 2);
-        //iterate through all particle pairs between cells and apply force function
+        // Iterate through all particle pairs between cells and apply force function
         for (auto& p1 : cell1)
           for (auto& p2 : cell2) {
             p2->setX(p2->getX()[0] - domainDims[0], 0);
@@ -473,17 +475,17 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
           }
       }
     }
-    //iterate through all boundary cells of back left edge
+    // Iterate through all boundary cells of back left edge
     for (int c1y = 1; c1y < numCells[1] - 1; c1y++) {
       auto& cell1 = lc->cell_at(1, c1y, numCells[2] - 2);
-      //iterate through all neighboring cells of cell1 on opposing side
+      // Iterate through all neighboring cells of cell1 on opposing side
       for (int c2y = c1y - 1; c2y <= c1y + 1; c2y++) {
 
         if (c2y < 1 || c2y > numCells[1] - 2)
           continue;
 
         auto& cell2 = lc->cell_at(numCells[0] - 2, c2y, 1);
-        //iterate through all particle pairs between cells and apply force function
+        // Iterate through all particle pairs between cells and apply force function
         for (auto& p1 : cell1)
           for (auto& p2 : cell2) {
             p2->setX(p2->getX()[0] - domainDims[0], 0);
@@ -496,21 +498,21 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
     }
   }
 
+  // Y+z periodic: bottom-front edge <-> top-back edge, bottom-back edge <-> top-front edge
   if (boundaryTypes[2] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[3] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[4] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[5] == LinkedCellParticleContainer::BoundaryType::PERIODIC) {
-    //iterate through all boundary cells of bottom front edge
     for (int c1x = 1; c1x < numCells[0] - 1; c1x++) {
       auto& cell1 = lc->cell_at(c1x, 1, 1);
-      //iterate through all neighboring cells of cell1 on opposing side
+      // Iterate through all neighboring cells of cell1 on opposing side
       for (int c2x = c1x - 1; c2x <= c1x + 1; c2x++) {
 
         if (c2x < 1 || c2x > numCells[0] - 2)
           continue;
 
         auto& cell2 = lc->cell_at(c2x, numCells[1] - 2, numCells[2] - 2);
-        //iterate through all particle pairs between cells and apply force function
+        // Iterate through all particle pairs between cells and apply force function
         for (auto& p1 : cell1)
           for (auto& p2 : cell2) {
             p2->setX(p2->getX()[1] - domainDims[1], 1);
@@ -521,17 +523,17 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
           }
       }
     }
-    //iterate through all boundary cells of bottom back edge
+    // Iterate through all boundary cells of bottom back edge
     for (int c1x = 1; c1x < numCells[0] - 1; c1x++) {
       auto& cell1 = lc->cell_at(c1x, 1, numCells[2] - 2);
-      //iterate through all neighboring cells of cell1 on opposing side
+      // Iterate through all neighboring cells of cell1 on opposing side
       for (int c2x = c1x - 1; c2x <= c1x + 1; c2x++) {
 
         if (c2x < 1 || c2x > numCells[0] - 2)
           continue;
 
         auto& cell2 = lc->cell_at(c2x, numCells[1] - 2, 1);
-        //iterate through all particle pairs between cells and apply force function
+        // Iterate through all particle pairs between cells and apply force function
         for (auto& p1 : cell1)
           for (auto& p2 : cell2) {
             p2->setX(p2->getX()[1] - domainDims[1], 1);
@@ -544,13 +546,15 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
     }
   }
 
+  // Corner interactions
+  // Handle particle pairs between all 8 corners in fully periodic 3d domain
+  // 4 corner pairs: (0,0,0)<->(1,1,1), (1,0,0)<->(0,1,1), (0,0,1)<->(1,1,0), (1,0,1)<->(0,1,0)
   if (boundaryTypes[0] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[1] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[2] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[3] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[4] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
       boundaryTypes[5] == LinkedCellParticleContainer::BoundaryType::PERIODIC) {
-    //apply force to particles in opposite corners:
 
     auto& cell1 = lc->cell_at(1, 1, 1);
     auto& cell2 = lc->cell_at(numCells[0] - 2, numCells[1] - 2, numCells[2] - 2);
