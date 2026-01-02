@@ -7,6 +7,7 @@ if(BUILD_DOC AND Doxygen_FOUND)
     set(DOXYGEN_FILE_PATTERNS "*.h;*.hpp;*.c;*.cc;*.cpp;*.md")
     set(DOXYGEN_RECURSIVE YES)
     set(DOXYGEN_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/doxys_documentation")
+    set(DOXYGEN_IMAGE_PATH "${PROJECT_SOURCE_DIR}/findings")
 
     doxygen_add_docs(doc_doxygen
             "${PROJECT_SOURCE_DIR}/src"

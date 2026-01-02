@@ -119,6 +119,11 @@ class Particle {
    *  @param val velocity vector as 3 element array
    */
   void setX(const std::array<double, 3>& val) { this->x = val; }
+  /** @brief set particle position coordinate
+   *  @param val double value of position coordinate
+   *  @param dim dimension of coordinate
+   */
+  void setX(double val, int dim) {  this->x[dim] = val; }
   /** @brief set particle velocity vector
    *  @param val velocity vector as 3 element array
    */

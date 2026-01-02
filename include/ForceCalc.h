@@ -59,7 +59,8 @@ public:
  */
 class LennardJonesForce final : public ForceCalc {
 private:
-  const double epsilon, sigma, cutoffRadius;
+  const double epsilon, sigma, cutoffRadius, repulsionDistance;
+
 
 public:
   /**
@@ -75,6 +76,26 @@ public:
   * @brief Calculates the Lennard-Jones forces acting on the particles
   */
   void calculateF() override;
+
+  /**
+   * @brief Calculates the Lennard-Jones forces using the direct sum O(n^2) algorithm
+   */
+  void calculateFDirectSum();
+
+  /**
+   * @brief Calculates the Lennard-Jones forces acting on the particles using the Linked Cell method
+   */
+  void calculateFLinkedCell();
+
+ private:
+  /**
+   * @brief Applies reflective boundary forces using ghost particles
+   * @param lc Pointer to the LinkedCellParticleContainer
+   */
+  void applyReflectiveBoundaries(const class LinkedCellParticleContainer* lc) const;
+
+  void calcFPeriodicBoundary(Particle* p1, Particle* p2) const;
+  void applyPeriodicBoundaries(class LinkedCellParticleContainer* lc) const;
 };
 
 /**

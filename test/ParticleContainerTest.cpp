@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "ParticleContainer.h"
-// Check if ParticleContainer saves new particles
 
+// Check if ParticleContainer saves new particles
 class ParticleContainerTest : public ::testing::Test {
  protected:
   ParticleContainer pc;
