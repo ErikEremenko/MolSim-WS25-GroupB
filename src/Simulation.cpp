@@ -54,7 +54,7 @@ void BaseSimulation::plotParticles(const int iteration, const std::string& outpu
   outputWriter::VTKWriter::plotParticles(*particles, out_name, iteration);
 }
 
-void BaseSimulation::runFileOutput(int frequency, const std::string& outputBaseName) const {
+void BaseSimulation::runFileOutput(int frequency, const std::string& outputBaseName) {
   // TODO: Do the following checks when reading the config file, not here!
   if (frequency < 1) {
     SPDLOG_INFO("Write frequency must be a positive integer, but was given {}", frequency);
@@ -88,7 +88,7 @@ void BaseSimulation::runFileOutput(int frequency, const std::string& outputBaseN
   }
 }
 
-void BaseSimulation::runBenchmark() const {
+void BaseSimulation::runBenchmark() {
   std::signal(SIGINT, sigint_handler);
   simulation_running = true;
   using namespace std::chrono;
@@ -145,11 +145,33 @@ void BaseSimulation::run() {
 }
 
 // BaseThermostatSimulation below
-void BaseThermostatSimulation::runBenchmark() const {
+void BaseThermostatSimulation::runBenchmark() {
+  constexpr double start_time = 0;
 
+  double current_time = start_time;
+  int iteration = 0;
+
+  // for this loop, we assume: current x, current f and current v are known
+  while (current_time < end_time) {  // TODO: Refactor these loops (also in runBenchmark)
+    // calculate new x
+    forceCalc->calculateX(dt);
+    for (auto& p : *particles) {
+      p.setOldF(p.getF());  // store f(t_n) for v update
+    }
+    // calculate new f
+    forceCalc->calculateF();
+    // calculate new v
+    forceCalc->calculateV(dt);
+
+    iteration++;
+    if (iteration % thermostat.getNThermostat() == 0) {  // TODO: Optimize this if check
+      thermostat.updateTemperature(*particles);
+    }
+    current_time += dt;
+  }
 }
 
-void BaseThermostatSimulation::runFileOutput(int frequency, const std::string& outputBaseName) const {
+void BaseThermostatSimulation::runFileOutput(int frequency, const std::string& outputBaseName) {
   // TODO: Do the following checks when reading the config file, not here!
   if (frequency < 1) {
     SPDLOG_ERROR("Write frequency must be a positive integer, but was given {}", frequency);
@@ -178,6 +200,9 @@ void BaseThermostatSimulation::runFileOutput(int frequency, const std::string& o
     iteration++;
     if (iteration % frequency == 0) {
       plotParticles(iteration, outputBaseName);
+    }
+    if (iteration % thermostat.getNThermostat() == 0) {  // TODO: Optimize this if check
+      thermostat.updateTemperature(*particles);
     }
     current_time += dt;
   }

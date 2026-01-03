@@ -82,13 +82,13 @@ protected:
    * @{
    * @brief Runs the simulation in benchmark mode (no file output).
    */
-  virtual void runFileOutput(int frequency, const std::string& outputBaseName) const;
+  virtual void runFileOutput(int frequency, const std::string& outputBaseName);
 
   /**
    * @brief Runs the simulation in benchmark mode (no file output).
    * @}
    */
-  virtual void runBenchmark() const;
+  virtual void runBenchmark();
 public:
   /**
    * @brief Constructor for \ref Simulation.
@@ -117,8 +117,8 @@ class BaseThermostatSimulation : public BaseSimulation {
 protected:
   Thermostat thermostat;
 
-  void runFileOutput(int frequency, const std::string& outputBaseName) const override;
-  void runBenchmark() const override;
+  void runFileOutput(int frequency, const std::string& outputBaseName) override;
+  void runBenchmark() override;
 public:
   using BaseSimulation::BaseSimulation;
 };
