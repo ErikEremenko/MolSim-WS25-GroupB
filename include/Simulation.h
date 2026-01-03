@@ -2,6 +2,7 @@
 
 #include "ForceCalc.h"
 #include "io/YAMLFileReader.h"
+#include "Thermostat.h"
 
 #include <memory>
 #include <string>
@@ -25,7 +26,7 @@ enum class SimulationMode {
  * and output functionality. Subclasses implement \ref setupSimulation "setupSimulation()"
  * to define a simulation scenario.
  */
-class BaseSimulation {
+class BaseSimulation {  // TODO: Clean up code: Member names and unnecessary parameters passed
 protected:
   /**
    * @brief Total simulated time.
@@ -81,13 +82,13 @@ protected:
    * @{
    * @brief Runs the simulation in benchmark mode (no file output).
    */
-  void runFileOutput(int frequency, const std::string& outputBaseName) const;
+  virtual void runFileOutput(int frequency, const std::string& outputBaseName) const;
 
   /**
    * @brief Runs the simulation in benchmark mode (no file output).
    * @}
    */
-  void runBenchmark() const;
+  virtual void runBenchmark() const;
 public:
   /**
    * @brief Constructor for \ref Simulation.
@@ -104,12 +105,22 @@ public:
  * @param simulationMode Selected simulation mode.
  */
   explicit BaseSimulation(SimulationMode simulationMode);
- virtual ~BaseSimulation();
+  virtual ~BaseSimulation();
 
   /**
    * @brief The entry-point of the simulation.
    */
   void run();
+};
+
+class BaseThermostatSimulation : public BaseSimulation {
+protected:
+  Thermostat thermostat;
+
+  void runFileOutput(int frequency, const std::string& outputBaseName) const override;
+  void runBenchmark() const override;
+public:
+  using BaseSimulation::BaseSimulation;
 };
 
 /**

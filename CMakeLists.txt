@@ -31,6 +31,7 @@ add_library(molsim_core ${SRC_FILES}
         include/LinkedCellParticleContainer.h
         src/ParticleGenerator.cpp
         include/ParticleGenerator.h
+        include/Thermostat.h
 )
 target_include_directories(molsim_core
         PUBLIC
