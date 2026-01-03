@@ -1,5 +1,5 @@
-#include "../../include/io/YAMLFileReader.h"
-#include "../include/ParticleGenerator.h"
+#include "io/YAMLFileReader.h"
+#include "ParticleGenerator.h"
 
 #include <spdlog/spdlog.h>
 
@@ -74,7 +74,6 @@ std::array<std::string, 6> YAMLFileReader::getBoundaryTypesRaw() const {
 }
 
 void YAMLFileReader::readFile(ParticleContainer& particles) {
-
   ParticleGenerator particleGenerator(particles);
 
   const auto& cuboids = config["cuboids"];
@@ -112,4 +111,27 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
 
     SPDLOG_DEBUG("Loaded sphere.");
   }
+
+  // TODO: The issue here is that we already initialize the particles with temperatures - so T_init is irrelevant!
+  // 1. Parse Required Thermostat Parameter: n_thermostat
+  // We expect this to exist if the thermostat block exists.
+  if (const auto& thermostatConfig = config["thermostat"]) {
+    if (!thermostatConfig["n_thermostat"]) {
+      SPDLOG_ERROR("Thermostat config found, but 'n_thermostat' is missing!");
+      throw std::invalid_argument("Thermostat config not found.");
+    }
+    int n_thermostat = thermostatConfig["n_thermostat"].as<int>();
+
+    double t_target = 0.0;
+    if (thermostatConfig["T_target"]) {
+      t_target = thermostatConfig["T_target"].as<double>();
+    } else {
+      SPDLOG_WARN("T_target not specified in thermostat. Defaulting to 0.");
+    }
+
+    // TODO: Add the rest of the thermostat parameters here
+  } else {
+    SPDLOG_INFO("No thermostat configuration found.");
+  }
+  // TODO: Add thermostat initialization now that we have thermostat config parsing
 }

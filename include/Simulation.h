@@ -113,16 +113,6 @@ public:
   void run();
 };
 
-class BaseThermostatSimulation : public BaseSimulation {
-protected:
-  Thermostat thermostat;
-
-  void runFileOutput(int frequency, const std::string& outputBaseName) override;
-  void runBenchmark() override;
-public:
-  using BaseSimulation::BaseSimulation;
-};
-
 /**
  * @class CollisionSimulation
  * @brief Simulation setup for a collision scenario using cuboids from an input file.
@@ -137,7 +127,7 @@ private:
   std::string inputFilename;
 public:
   /**
-   * @brief Constructor for \ref CollisionSimulation.
+   * @brief Constructor for @ref CollisionSimulation.
    * @param inputFilename Path to input cuboid file.
    * @param end_time Total simulation time.
    * @param dt Time step size.
@@ -160,7 +150,7 @@ protected:
   void setupSimulation() override;
 };
 
-class YAMLSimulation final : public BaseSimulation {
+class YAMLSimulation : public BaseSimulation {
 private:
   std::string inputFilename;
   YAMLFileReader reader;
@@ -174,4 +164,18 @@ public:
                );
 protected:
   void setupSimulation() override;
+};
+
+class YAMLThermostatSimulation : public YAMLSimulation {
+protected:
+  Thermostat thermostat;
+
+  void runFileOutput(int frequency, const std::string& outputBaseName) override;
+  void runBenchmark() override;
+public:
+  YAMLThermostatSimulation(std::string inputFilename,
+               SimulationMode simulationMode,
+               const Thermostat& thermostat,
+               ContainerKind kind = ContainerKind::LINKED,
+               Parallelization parallelization = Parallelization::OFF);
 };

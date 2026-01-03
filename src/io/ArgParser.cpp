@@ -4,8 +4,11 @@
 
 void ArgParser::printUsage() {
   SPDLOG_ERROR("Usage:");
-  SPDLOG_ERROR("  YAML mode: ./MolSim filename [file | benchmark] [off | error | debug | trace | info] [linked | direct]");
-  SPDLOG_ERROR("  Legacy mode: ./MolSim filename t_end delta_t [file | benchmark] [off | error | debug | trace | info] [P:OFF | P:ON]");
+  SPDLOG_ERROR(
+      "  YAML mode: ./MolSim filename [file | benchmark] [off | error | debug | trace | info] [linked | direct]");
+  SPDLOG_ERROR(
+      "  Legacy mode: ./MolSim filename t_end delta_t [file | benchmark] [off | error | debug | trace | info] [P:OFF | "
+      "P:ON]");
 }
 
 LogLevelConfig ArgParser::parseLogLevel(const std::string& logLevelStr) {
@@ -109,11 +112,23 @@ std::optional<RunConfig> ArgParser::parseArgs(int argc, char* argv[]) {
 
 void ArgParser::setLogLevel(LogLevelConfig logLevel) {
   switch (logLevel) {
-    case LogLevelConfig::OFF: spdlog::set_level(spdlog::level::off); break;
-    case LogLevelConfig::ERROR: spdlog::set_level(spdlog::level::err); break;
-    case LogLevelConfig::WARN: spdlog::set_level(spdlog::level::warn); break;
-    case LogLevelConfig::INFO: spdlog::set_level(spdlog::level::info); break;
-    case LogLevelConfig::DEBUG: spdlog::set_level(spdlog::level::debug); break;
-    case LogLevelConfig::TRACE: spdlog::set_level(spdlog::level::trace); break;
+    case LogLevelConfig::OFF:
+      spdlog::set_level(spdlog::level::off);
+      break;
+    case LogLevelConfig::ERROR:
+      spdlog::set_level(spdlog::level::err);
+      break;
+    case LogLevelConfig::WARN:
+      spdlog::set_level(spdlog::level::warn);
+      break;
+    case LogLevelConfig::INFO:
+      spdlog::set_level(spdlog::level::info);
+      break;
+    case LogLevelConfig::DEBUG:
+      spdlog::set_level(spdlog::level::debug);
+      break;
+    case LogLevelConfig::TRACE:
+      spdlog::set_level(spdlog::level::trace);
+      break;
   }
 }

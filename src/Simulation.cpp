@@ -144,70 +144,6 @@ void BaseSimulation::run() {
   }
 }
 
-// BaseThermostatSimulation below
-void BaseThermostatSimulation::runBenchmark() {
-  constexpr double start_time = 0;
-
-  double current_time = start_time;
-  int iteration = 0;
-
-  // for this loop, we assume: current x, current f and current v are known
-  while (current_time < end_time) {  // TODO: Refactor these loops (also in runBenchmark)
-    // calculate new x
-    forceCalc->calculateX(dt);
-    for (auto& p : *particles) {
-      p.setOldF(p.getF());  // store f(t_n) for v update
-    }
-    // calculate new f
-    forceCalc->calculateF();
-    // calculate new v
-    forceCalc->calculateV(dt);
-
-    iteration++;
-    if (iteration % thermostat.getNThermostat() == 0) {  // TODO: Optimize this if check
-      thermostat.updateTemperature(*particles);
-    }
-    current_time += dt;
-  }
-}
-
-void BaseThermostatSimulation::runFileOutput(int frequency, const std::string& outputBaseName) {
-  // TODO: Do the following checks when reading the config file, not here!
-  if (frequency < 1) {
-    SPDLOG_ERROR("Write frequency must be a positive integer, but was given {}", frequency);
-    throw std::invalid_argument("Write frequency must be a positive integer");
-  } else if (outputBaseName.empty()) {
-    SPDLOG_ERROR("Write frequency must be a positive integer, but was given an empty string");
-    throw std::invalid_argument("Base name must not be an empty string");
-  }
-  constexpr double start_time = 0;
-
-  double current_time = start_time;
-  int iteration = 0;
-
-  // for this loop, we assume: current x, current f and current v are known
-  while (current_time < end_time) {  // TODO: Refactor these loops (also in runBenchmark)
-    // calculate new x
-    forceCalc->calculateX(dt);
-    for (auto& p : *particles) {
-      p.setOldF(p.getF());  // store f(t_n) for v update
-    }
-    // calculate new f
-    forceCalc->calculateF();
-    // calculate new v
-    forceCalc->calculateV(dt);
-
-    iteration++;
-    if (iteration % frequency == 0) {
-      plotParticles(iteration, outputBaseName);
-    }
-    if (iteration % thermostat.getNThermostat() == 0) {  // TODO: Optimize this if check
-      thermostat.updateTemperature(*particles);
-    }
-    current_time += dt;
-  }
-}
-
 // CollisionSimulation below
 CollisionSimulation::CollisionSimulation(std::string inputFilename, double end_time, double dt,
                                          const SimulationMode simulationMode)
@@ -281,3 +217,72 @@ void YAMLSimulation::setupSimulation() {
   SPDLOG_INFO("YAML Simulation configured. dt={}, t_end={}, write_frequency={}, base_name={}", dt, end_time,
               write_frequency, base_name);
 }
+
+// YAMLThermostatSimulation below
+void YAMLThermostatSimulation::runBenchmark() {
+  constexpr double start_time = 0;
+
+  double current_time = start_time;
+  int iteration = 0;
+
+  // for this loop, we assume: current x, current f and current v are known
+  while (current_time < end_time) {  // TODO: Refactor these loops (also in runBenchmark)
+    // calculate new x
+    forceCalc->calculateX(dt);
+    for (auto& p : *particles) {
+      p.setOldF(p.getF());  // store f(t_n) for v update
+    }
+    // calculate new f
+    forceCalc->calculateF();
+    // calculate new v
+    forceCalc->calculateV(dt);
+
+    iteration++;
+    if (iteration % thermostat.getNThermostat() == 0) {  // TODO: Optimize this if check
+      thermostat.updateTemperature(*particles);
+    }
+    current_time += dt;
+  }
+}
+
+void YAMLThermostatSimulation::runFileOutput(int frequency, const std::string& outputBaseName) {
+  // TODO: Do the following checks when reading the config file, not here!
+  if (frequency < 1) {
+    SPDLOG_ERROR("Write frequency must be a positive integer, but was given {}", frequency);
+    throw std::invalid_argument("Write frequency must be a positive integer");
+  } else if (outputBaseName.empty()) {
+    SPDLOG_ERROR("Write frequency must be a positive integer, but was given an empty string");
+    throw std::invalid_argument("Base name must not be an empty string");
+  }
+  constexpr double start_time = 0;
+
+  double current_time = start_time;
+  int iteration = 0;
+
+  // for this loop, we assume: current x, current f and current v are known
+  while (current_time < end_time) {  // TODO: Refactor these loops (also in runBenchmark)
+    // calculate new x
+    forceCalc->calculateX(dt);
+    for (auto& p : *particles) {
+      p.setOldF(p.getF());  // store f(t_n) for v update
+    }
+    // calculate new f
+    forceCalc->calculateF();
+    // calculate new v
+    forceCalc->calculateV(dt);
+
+    iteration++;
+    if (iteration % frequency == 0) {
+      plotParticles(iteration, outputBaseName);
+    }
+    if (iteration % thermostat.getNThermostat() == 0) {  // TODO: Optimize this if check
+      thermostat.updateTemperature(*particles);
+    }
+    current_time += dt;
+  }
+}
+
+YAMLThermostatSimulation::YAMLThermostatSimulation(std::string inputFilename, SimulationMode simulationMode,
+                                                   const Thermostat& thermostat, ContainerKind kind,
+                                                   Parallelization parallelization)
+    : YAMLSimulation(std::move(inputFilename), simulationMode, kind, parallelization), thermostat(thermostat) {}
