@@ -1,50 +1,51 @@
 #include "Thermostat.h"
 
-#include <utils/ArrayUtils.h>
+#include <algorithm>
 #include <cmath>
+
+#include "utils/ArrayUtils.h"
+#include "utils/MaxwellBoltzmannDistribution.h"
+
+double Thermostat::calculateCurrentTemperature() {
+  double totalKineticEnergyTimesTwo = 0.0;
+  for (const auto& particle : particles) {
+    totalKineticEnergyTimesTwo += ArrayUtils::squaredL2Norm(particle.getV());
+  }
+
+  return totalKineticEnergyTimesTwo / (3 * particles.size());  // number of dimensions = 3 in our case
+}
 
 Thermostat::~Thermostat() = default;
 
-Thermostat::Thermostat(float tempInit, int nThermostat, float tempTarget, float maxTempDiff)
-    : tempCurrent(tempInit), tempTarget(tempTarget), nThermostat(nThermostat) {
-  // TODO: No 'valid argument' checks done here, consider adding exception throwing
-  tempDiff = (tempTarget - tempInit) / nThermostat;
-  if (tempDiff >= 0) {
-    heating = true;
-  } else {
-    heating = false;
-    tempDiff = -tempDiff;
-  }
+Thermostat::Thermostat(ParticleContainer& particles, int nThermostat, double tempTarget, double tempDelta)
+    : particles(particles), nThermostat(nThermostat), tempTarget(tempTarget), tempDelta(tempDelta) {}
 
-  if (tempDiff >= maxTempDiff) {
-    tempDiff = maxTempDiff;
-  }
-
-  if (tempDiff == 0) {
-    holding = true;
+void Thermostat::initializeTemperature(double tempInit) {
+  for (auto& particle : particles) {
+    const std::array<double, 3> v = maxwellBoltzmannDistributedVelocity(tempInit, 3);
+    particle.setV(v);
   }
 }
 
-Thermostat::Thermostat(float tempInit, int nThermostat)
-    : Thermostat(tempInit, nThermostat, tempInit, std::numeric_limits<float>::infinity()) {}
-
-inline void Thermostat::updateTemperature(ParticleContainer& particles) {
-  // Check and skip if we already reached the target temperature
-  if ((heating && tempCurrent >= tempTarget) || (!heating && tempCurrent <= tempTarget)) {
-    return;
-  }
-
-  float tempNew = tempCurrent + tempDiff;
-  const float beta = std::sqrt(tempNew / tempCurrent);  // scaling factor
-
+void Thermostat::setTemperature(double tempNew) {
+  const double tempCurrent = calculateCurrentTemperature();
+  const double beta = std::sqrt(tempNew / tempCurrent);  // scaling factor
   for (auto& particle : particles) {
     particle.setV(beta * particle.getV());
   }
+}
 
-  tempCurrent = tempNew;
+void Thermostat::updateTemperature() {
+  const double tempCurrent = calculateCurrentTemperature();
+  const double tempNew = tempCurrent + std::clamp(tempTarget - tempCurrent, -tempDelta, tempDelta);
+
+  const double beta = std::sqrt(tempNew / tempCurrent);  // scaling factor
+  for (auto& particle : particles) {
+    particle.setV(beta * particle.getV());
+  }
 }
 
 // Getters
-int Thermostat::getNThermostat() const {
+int Thermostat::getUpdateFrequency() const {
   return nThermostat;
 }

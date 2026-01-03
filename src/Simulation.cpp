@@ -224,6 +224,7 @@ void YAMLThermostatSimulation::runBenchmark() {
 
   double current_time = start_time;
   int iteration = 0;
+  const int thermostatFrequency = thermostat.getUpdateFrequency();
 
   // for this loop, we assume: current x, current f and current v are known
   while (current_time < end_time) {  // TODO: Refactor these loops (also in runBenchmark)
@@ -238,8 +239,8 @@ void YAMLThermostatSimulation::runBenchmark() {
     forceCalc->calculateV(dt);
 
     iteration++;
-    if (iteration % thermostat.getNThermostat() == 0) {  // TODO: Optimize this if check
-      thermostat.updateTemperature(*particles);
+    if (iteration % thermostatFrequency == 0) {  // TODO: Optimize this if check
+      thermostat.updateTemperature();
     }
     current_time += dt;
   }
@@ -258,6 +259,7 @@ void YAMLThermostatSimulation::runFileOutput(int frequency, const std::string& o
 
   double current_time = start_time;
   int iteration = 0;
+  const int thermostatFrequency = thermostat.getUpdateFrequency();
 
   // for this loop, we assume: current x, current f and current v are known
   while (current_time < end_time) {  // TODO: Refactor these loops (also in runBenchmark)
@@ -275,8 +277,8 @@ void YAMLThermostatSimulation::runFileOutput(int frequency, const std::string& o
     if (iteration % frequency == 0) {
       plotParticles(iteration, outputBaseName);
     }
-    if (iteration % thermostat.getNThermostat() == 0) {  // TODO: Optimize this if check
-      thermostat.updateTemperature(*particles);
+    if (iteration % thermostatFrequency == 0) {  // TODO: Optimize this if check
+      thermostat.updateTemperature();
     }
     current_time += dt;
   }
