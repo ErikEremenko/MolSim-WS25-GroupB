@@ -89,7 +89,7 @@ class Particle {
    * @param type_arg integer value that offers the ability to differentiate particles
    */
   Particle(
-      // for visualization, we need always 3 coordinates
+      // For visualization, we need always 3 coordinates
       // -> in case of 2d, we use only the first and the second
 
       const std::array<double, 3>& x_arg, const std::array<double, 3>& v_arg,

@@ -15,7 +15,7 @@ LinkedCellParticleContainer::LinkedCellParticleContainer(const std::array<double
 
 void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m) {
   ParticleContainer::addParticle(x, v, m);
-  Particle& p = (*this)[this->size() - 1];  // the newly added particle
+  Particle& p = (*this)[this->size() - 1];  // The newly added particle
   const int cdx = getCellIndex(p.getX());
   cells[cdx].push_back(&p);
 }
@@ -23,7 +23,7 @@ void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::arra
 void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma,
                                               double epsilon) {
   ParticleContainer::addParticle(x, v, m, sigma, epsilon);
-  Particle& p = (*this)[this->size() - 1];  // the newly added particle
+  Particle& p = (*this)[this->size() - 1];  // The newly added particle
   const int cdx = getCellIndex(p.getX());
   cells[cdx].push_back(&p);
 }
@@ -58,12 +58,12 @@ LinkedCellParticleContainer::CellType LinkedCellParticleContainer::getCellType(s
   const int iy = remainder / nx;
   const int ix = remainder % nx;
 
-  // outermost layer in any dimension -> Halo
+  // Outermost layer in any dimension -> Halo
   if (ix == 0 || ix == nx - 1 || iy == 0 || iy == ny - 1 || iz == 0 || iz == nz - 1) {
     return CellType::HALO;
   }
 
-  // next layer  from halo -> Boundary
+  // Next layer  from halo -> Boundary
   if (ix == 1 || ix == nx - 2 || iy == 1 || iy == ny - 2 || iz == 1 || iz == nz - 2) {
     return CellType::BOUNDARY;
   }

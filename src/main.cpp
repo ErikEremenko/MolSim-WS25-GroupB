@@ -23,7 +23,7 @@ int main(const int argc, char* argsv[]) {
   std::string filename = argsv[1];
 
   SimulationMode simulation_mode = SimulationMode::FILE_OUTPUT;
-  int mode_arg_index = 2;  // for .yaml
+  int mode_arg_index = 2;  // For .yaml
 
   bool is_yaml = filename.find(".yaml") != std::string::npos || filename.find(".yml") != std::string::npos;
 

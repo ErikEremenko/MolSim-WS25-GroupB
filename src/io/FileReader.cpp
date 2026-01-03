@@ -54,8 +54,9 @@ void BaseFileReader::readFile(ParticleContainer& particles) {
       }
       datastream >> m;
       particles.addParticle(x, v, m);
-      //      SPDLOG_DEBUG("Generated particle with x={{{0:.2f}, {0:.2f}, {0:.2f}}}, v={{{0:.2f}, {0:.2f}, {0:.2f}}}, m={0:.2f}",
-      //                   x[0], x[1], x[2], v[0], v[1], v[2], m);
+      SPDLOG_DEBUG(
+          "Generated particle with x={{{0:.2f}, {0:.2f}, {0:.2f}}}, v={{{0:.2f}, {0:.2f}, {0:.2f}}}, m={0:.2f}", x[0],
+          x[1], x[2], v[0], v[1], v[2], m);
 
       getline(input_file, tmp_string);
       SPDLOG_DEBUG("Read line: {}", tmp_string);

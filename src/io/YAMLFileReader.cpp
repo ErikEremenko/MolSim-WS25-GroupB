@@ -77,7 +77,7 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
 
   ParticleGenerator particleGenerator(particles);
 
-  // get global sigma/epsilon as defaults
+  // Get global sigma/epsilon as defaults
   const double globalSigma = getSigma();
   const double globalEpsilon = getEpsilon();
 
@@ -86,7 +86,7 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
   for (std::size_t i = 0; i < cuboids.size(); ++i) {
     const auto& cuboid = cuboids[i];
 
-    // read Cuboid Parameters
+    // Read Cuboid Parameters
     auto pos = cuboid["position"].as<std::array<double, 3>>();
     auto vel = cuboid["velocity"].as<std::array<double, 3>>();
     auto dim = cuboid["dimensions"].as<std::array<int, 3>>();
@@ -94,7 +94,7 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
     const auto m = cuboid["mass"].as<double>();
     const auto meanV = cuboid["mean_velocity"].as<double>();
 
-    // per-object sigma/epsilon with fallback to the global values
+    // Per-object sigma/epsilon with fallback to the global values
     const double sigma = cuboid["sigma"] ? cuboid["sigma"].as<double>() : globalSigma;
     const double epsilon = cuboid["epsilon"] ? cuboid["epsilon"].as<double>() : globalEpsilon;
 
@@ -109,7 +109,7 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
   for (std::size_t i = 0; i < spheres.size(); ++i) {
     const auto& sphere = spheres[i];
 
-    // read Sphere Parameters
+    // Read Sphere Parameters
     const auto pos = sphere["position"].as<std::array<double, 3>>();
     const auto vel = sphere["velocity"].as<std::array<double, 3>>();
     const auto rn = sphere["radius_particles"].as<int>();
@@ -117,7 +117,7 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
     const auto m = sphere["mass"].as<double>();
     const auto meanV = sphere["mean_velocity"].as<double>();
 
-    // per-object sigma/epsilon with fallback to the global values
+    // Per-object sigma/epsilon with fallback to the global values
     const double sigma = sphere["sigma"] ? sphere["sigma"].as<double>() : globalSigma;
     const double epsilon = sphere["epsilon"] ? sphere["epsilon"].as<double>() : globalEpsilon;
 

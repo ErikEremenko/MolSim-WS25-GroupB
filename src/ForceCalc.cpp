@@ -37,7 +37,7 @@ void GravityForce::calculateF() {
 
   const size_t n_particles = particles.size();
   for (size_t i = 0; i < n_particles; ++i) {
-    // index offset for Newton's third law
+    // Index offset for Newton's third law
     for (size_t j = i + 1; j < n_particles; ++j) {
       auto& p_i = particles[i];
       auto& p_j = particles[j];
@@ -57,10 +57,10 @@ void GravityForce::calculateF() {
 
       const auto F_vector = ((p_i.getM() * p_j.getM()) / norm3) * dist;
 
-      // apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
+      // Apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
       auto F_i = p_i.getF();
       auto F_j = p_j.getF();
-      // actio est reactio
+      // Actio est reactio
       p_i.setF(F_i + F_vector);
       p_j.setF(F_j - F_vector);
     }
@@ -92,7 +92,7 @@ void LennardJonesForce::calculateFDirectSum() {
 
   const size_t n_particles = particles.size();
   for (size_t i = 0; i < n_particles; ++i) {
-    // index offset for Newton's third law
+    // Index offset for Newton's third law
     for (size_t j = i + 1; j < n_particles; ++j) {
       auto& p_i = particles[i];
       auto& p_j = particles[j];
@@ -100,7 +100,7 @@ void LennardJonesForce::calculateFDirectSum() {
       const auto dist = p_j.getX() - p_i.getX();
       const double norm = ArrayUtils::L2Norm(dist);
       if (norm == 0) {
-        // avoid division by zero
+        // Avoid division by zero
         SPDLOG_ERROR(
             "Calculated a zero norm between particles. This is likely caused by an incorrect initialization of the "
             "Simulation.");
@@ -118,10 +118,10 @@ void LennardJonesForce::calculateFDirectSum() {
 
       const auto F_vector = (24.0 * epsilon) * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12) * dist;
 
-      // apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
+      // Apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
       auto F_i = p_i.getF();
       auto F_j = p_j.getF();
-      // actio est reactio
+      // Actio est reactio
       p_i.setF(F_i + F_vector);
       p_j.setF(F_j - F_vector);
     }
@@ -143,7 +143,7 @@ void LennardJonesForceParallel::calculateF() {
 
 #pragma omp parallel for schedule(guided)
   for (size_t i = 0; i < n_particles; ++i) {
-    // index offset for Newton's third law
+    // Index offset for Newton's third law
     for (size_t j = i + 1; j < n_particles; ++j) {
       auto& p_i = particles[i];
       auto& p_j = particles[j];
@@ -151,7 +151,7 @@ void LennardJonesForceParallel::calculateF() {
       const auto dist = p_j.getX() - p_i.getX();
       const double norm = ArrayUtils::L2Norm(dist);
       if (norm == 0) {
-        // avoid division by zero
+        // Avoid division by zero
         SPDLOG_ERROR(
             "Calculated a zero norm between particles. This is likely caused "
             "by an incorrect initialization of the Simulation.");
@@ -171,7 +171,7 @@ void LennardJonesForceParallel::calculateF() {
 
       auto& Fi = p_i.getF();
       auto& Fj = p_j.getF();
-      // apply forces using Newton's third law and atomic operations
+      // Apply forces using Newton's third law and atomic operations
 #pragma omp atomic
       Fi[0] += F_vector[0];
 #pragma omp atomic
@@ -275,7 +275,7 @@ void LennardJonesForce::applyReflectiveBoundaries(LinkedCellParticleContainer* l
       const double minD = domainOrigin[d];
       const double maxD = domainOrigin[d] + domainDims[d];
 
-      // handling two opposite boundaries per dimension d -> 6 faces
+      // Handling two opposite boundaries per dimension d -> 6 faces
       if (boundaryTypes[2 * d] == LinkedCellParticleContainer::BoundaryType::REFLECTIVE) {
         if (const double distToWall = x[d] - minD; distToWall > 0. && distToWall < cutoffRadius) {
           F_total = F_total + computeGhostForce(d, minD);

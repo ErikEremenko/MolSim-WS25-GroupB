@@ -31,8 +31,9 @@ class YAMLFileReader final : public BaseFileReader {
   std::array<std::string,6> getBoundaryTypesRaw() const;
 
  private:
-  YAML::Node config;  // stores loaded YAML structure
+  // Stores loaded YAML structure
+  YAML::Node config;
 
-  // used to validate configuration keys
+  // uUed to validate configuration keys
   void checkRequiredKeys() const;
 };

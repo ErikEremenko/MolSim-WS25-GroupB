@@ -14,7 +14,7 @@
 #endif  // SPDLOG_ACTIVE_LEVEL
 #include "spdlog/spdlog.h"
 
-// atomic flag for loop control
+// Atomic flag for loop control
 std::atomic<bool> simulation_running{true};
 
 void sigint_handler(int signal) {
@@ -91,7 +91,7 @@ void BaseSimulation::runBenchmark() const {
   std::signal(SIGINT, sigint_handler);
   simulation_running = true;
   using namespace std::chrono;
-  // used for benchmark
+  // Used for benchmarks
   const auto chronoStart = steady_clock::now();
 
   // Benchmark begin
@@ -188,18 +188,18 @@ YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode s
   const auto boundariesRaw = reader.getBoundaryTypesRaw();
 
   if (kind == ContainerKind::DIRECT) {
-    // legacy O(n^2) implementation
+    // Legacy O(n^2) implementation
     particles = std::make_unique<ParticleContainer>();
     forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius);
     if (parallelization == Parallelization::ON) {
-      // parallel direct sum LennardJones
+      // Parallel direct sum LennardJones
       forceCalc = std::make_unique<LennardJonesForceParallel>(*particles, epsilon, sigma, cutoffRadius);
     } else {
-      // serial direct sum LennardJones
+      // Serial direct sum LennardJones
       forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius);
     }
   } else {
-    // linked cell implementation -> O(n)
+    // Linked cell implementation -> O(n)
     std::array<LinkedCellParticleContainer::BoundaryType, 6> boundaryTypes{};
     for (int i = 0; i < 6; ++i) {
       boundaryTypes[i] = parseBoundary(boundariesRaw[i]);
