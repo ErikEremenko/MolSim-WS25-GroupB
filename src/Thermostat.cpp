@@ -1,12 +1,12 @@
 #include "Thermostat.h"
 
-#include <cmath>
 #include <utils/ArrayUtils.h>
+#include <cmath>
 
 Thermostat::~Thermostat() = default;
 
 Thermostat::Thermostat(float tempInit, int nThermostat, float tempTarget, float maxTempDiff)
-  : tempCurrent(tempInit), tempTarget(tempTarget), nThermostat(nThermostat) {
+    : tempCurrent(tempInit), tempTarget(tempTarget), nThermostat(nThermostat) {
   // TODO: No 'valid argument' checks done here, consider adding exception throwing
   tempDiff = (tempTarget - tempInit) / nThermostat;
   if (tempDiff >= 0) {
@@ -26,13 +26,13 @@ Thermostat::Thermostat(float tempInit, int nThermostat, float tempTarget, float 
 }
 
 Thermostat::Thermostat(float tempInit, int nThermostat)
-  : Thermostat(tempInit, nThermostat, tempInit, std::numeric_limits<float>::infinity()) {}
-
-
+    : Thermostat(tempInit, nThermostat, tempInit, std::numeric_limits<float>::infinity()) {}
 
 inline void Thermostat::updateTemperature(ParticleContainer& particles) {
   // Check and skip if we already reached the target temperature
-  if ((heating && tempCurrent >= tempTarget) || (!heating && tempCurrent <= tempTarget)) { return; }
+  if ((heating && tempCurrent >= tempTarget) || (!heating && tempCurrent <= tempTarget)) {
+    return;
+  }
 
   float tempNew = tempCurrent + tempDiff;
   const float beta = std::sqrt(tempNew / tempCurrent);  // scaling factor
@@ -45,4 +45,6 @@ inline void Thermostat::updateTemperature(ParticleContainer& particles) {
 }
 
 // Getters
-int Thermostat::getNThermostat() const { return nThermostat; }
+int Thermostat::getNThermostat() const {
+  return nThermostat;
+}

@@ -24,6 +24,7 @@ include(yamlcpp)
 file(GLOB_RECURSE SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(REMOVE_ITEM SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp") # Exclude main()
 
+# TODO: Fix add_library to avoid explicitly writing down every new file here
 add_library(molsim_core ${SRC_FILES}
         src/io/YAMLFileReader.cpp
         include/io/YAMLFileReader.h
@@ -32,6 +33,7 @@ add_library(molsim_core ${SRC_FILES}
         src/ParticleGenerator.cpp
         include/ParticleGenerator.h
         include/Thermostat.h
+        src/io/ArgParser.cpp
 )
 target_include_directories(molsim_core
         PUBLIC
