@@ -175,6 +175,12 @@ auto L2Norm(const Container& c) {
   return std::sqrt(std::accumulate(std::cbegin(c), std::cend(c), 0.0,
                                    [](auto a, auto b) { return a + b * b; }));
 }
+
+template <class Container>
+auto squaredL2Norm(const Container& c) {
+  return std::accumulate(std::cbegin(c), std::cend(c), 0.0,
+                         [](auto a, auto b) { return a + b * b; });
+}
 }  // namespace ArrayUtils
 
 /**

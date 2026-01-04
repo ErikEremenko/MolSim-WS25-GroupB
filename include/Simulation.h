@@ -2,6 +2,7 @@
 
 #include "ForceCalc.h"
 #include "io/YAMLFileReader.h"
+#include "Thermostat.h"
 
 #include <memory>
 #include <string>
@@ -25,7 +26,7 @@ enum class SimulationMode {
  * and output functionality. Subclasses implement \ref setupSimulation "setupSimulation()"
  * to define a simulation scenario.
  */
-class BaseSimulation {
+class BaseSimulation {  // TODO: Clean up code: Member names and unnecessary parameters passed
 protected:
   /**
    * @brief Total simulated time.
@@ -81,13 +82,13 @@ protected:
    * @{
    * @brief Runs the simulation in benchmark mode (no file output).
    */
-  void runFileOutput(int frequency, const std::string& outputBaseName) const;
+  virtual void runFileOutput(int frequency, const std::string& outputBaseName);
 
   /**
    * @brief Runs the simulation in benchmark mode (no file output).
    * @}
    */
-  void runBenchmark() const;
+  virtual void runBenchmark();
 public:
   /**
    * @brief Constructor for \ref Simulation.
@@ -104,7 +105,7 @@ public:
  * @param simulationMode Selected simulation mode.
  */
   explicit BaseSimulation(SimulationMode simulationMode);
- virtual ~BaseSimulation();
+  virtual ~BaseSimulation();
 
   /**
    * @brief The entry-point of the simulation.
@@ -126,7 +127,7 @@ private:
   std::string inputFilename;
 public:
   /**
-   * @brief Constructor for \ref CollisionSimulation.
+   * @brief Constructor for @ref CollisionSimulation.
    * @param inputFilename Path to input cuboid file.
    * @param end_time Total simulation time.
    * @param dt Time step size.
@@ -149,7 +150,7 @@ protected:
   void setupSimulation() override;
 };
 
-class YAMLSimulation final : public BaseSimulation {
+class YAMLSimulation : public BaseSimulation {
 private:
   std::string inputFilename;
   YAMLFileReader reader;
@@ -163,4 +164,18 @@ public:
                );
 protected:
   void setupSimulation() override;
+};
+
+class YAMLThermostatSimulation : public YAMLSimulation {
+protected:
+  Thermostat thermostat;
+
+  void runFileOutput(int frequency, const std::string& outputBaseName) override;
+  void runBenchmark() override;
+public:
+  YAMLThermostatSimulation(std::string inputFilename,
+               SimulationMode simulationMode,
+               const Thermostat& thermostat,
+               ContainerKind kind = ContainerKind::LINKED,
+               Parallelization parallelization = Parallelization::OFF);
 };

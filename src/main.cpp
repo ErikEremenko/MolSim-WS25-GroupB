@@ -1,121 +1,48 @@
-#include "Simulation.h"
-
 #include <iostream>
 
+#include "Simulation.h"
+#include "io/ArgParser.h"
+
 #ifndef SPDLOG_ACTIVE_LEVEL
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG  // TODO: Make this a global define using CMake
-#endif                                          // SPDLOG_ACTIVE_LEVEL
+#define SPDLOG_ACTIVE_LEVEL \
+  SPDLOG_LEVEL_DEBUG  // TODO: Make this a global define using CMake or even remove completely?
+#endif                // SPDLOG_ACTIVE_LEVEL
 #include "spdlog/spdlog.h"
 
-int main(const int argc, char* argsv[]) {
+int main(const int argc, char* argv[]) {
+  // Greeting
+  spdlog::set_level(spdlog::level::info);
   SPDLOG_INFO("Hello from MolSim for PSE!");
-  // Read arguments from the command line
-  if (argc < 2) {
-    SPDLOG_ERROR("Erroneous programme call!");
-    SPDLOG_ERROR(
-        "YAML mode: ./MolSim filename [file | benchmark] [off | error | debug | trace | info] [linked | direct]");
-    SPDLOG_ERROR(
-        "Legacy mode: ./MolSim filename t_end delta_t [file | benchmark] [off | error | debug | trace | info] [P:OFF | "
-        "P:ON]");
+
+  // Argument parsing and logger configuration
+  const std::optional<RunConfig> configOpt = ArgParser::parseArgs(argc, argv);
+  if (!configOpt)
     return 1;
-  }
+  const RunConfig& config = configOpt.value();
+  ArgParser::setLogLevel(config.logLevel);
 
-  std::string filename = argsv[1];
-
-  SimulationMode simulation_mode = SimulationMode::FILE_OUTPUT;
-  int mode_arg_index = 2;  // For .yaml
-
-  bool is_yaml = filename.find(".yaml") != std::string::npos || filename.find(".yml") != std::string::npos;
-
-  if (!is_yaml && argc != 7) {
-    SPDLOG_ERROR("Erroneous programme call!");
-    SPDLOG_ERROR("Legacy .txt mode requires 7 arguments!");
-    SPDLOG_ERROR(
-        "./MolSim filename t_end delta_t [file | benchmark] [off | error | debug | trace | info] [P:OFF | "
-        "P:ON]");
-    return 1;
-  }
-
-  if (!is_yaml)
-    mode_arg_index = 4;  // for legacy .txt support
-
-  if (argc > mode_arg_index) {
-    if (std::string mode_arg = argsv[mode_arg_index]; mode_arg == "file") {
-      simulation_mode = SimulationMode::FILE_OUTPUT;
-    } else if (mode_arg == "benchmark") {
-      simulation_mode = SimulationMode::BENCHMARK;
-    } else {
-      SPDLOG_ERROR("Invalid simulation mode provided: {}", mode_arg);
-      SPDLOG_ERROR("Please use 'file' or 'benchmark'");
-      return 1;
-    }
-  }
-  if (int log_arg_index = is_yaml ? 3 : 5; argc > log_arg_index) {
-    std::string log_level = argsv[log_arg_index];
-    if (log_level == "info") {
-      spdlog::set_level(spdlog::level::info);
-    } else if (log_level == "off") {
-      spdlog::set_level(spdlog::level::off);
-    } else if (log_level == "error") {
-      spdlog::set_level(spdlog::level::err);
-    } else if (log_level == "warn") {
-      spdlog::set_level(spdlog::level::warn);
-    } else if (log_level == "debug") {
-      spdlog::set_level(spdlog::level::debug);
-    } else if (log_level == "trace") {
-      spdlog::set_level(spdlog::level::trace);
-    } else {
-      SPDLOG_ERROR("Invalid log level. Valid options are off, error, warn, info, debug and trace.");
-      return 1;
-    }
-  }
+  // Running the simulation
   try {
-    if (is_yaml) {
-      auto kind = YAMLSimulation::ContainerKind::LINKED;
-      if (argc > 4) {
-        std::string k = argsv[4];
-        if (k == "direct")
-          kind = YAMLSimulation::ContainerKind::DIRECT;
-        else if (k == "linked")
-          kind = YAMLSimulation::ContainerKind::LINKED;
-        else {
-          SPDLOG_ERROR("Invalid container kind: {}. Use 'direct' or 'linked'.", k);
-          return 1;
-        }
-      }
+    if (config.isYaml) {
+      auto parallelMode =
+          config.useParallelization ? YAMLSimulation::Parallelization::ON : YAMLSimulation::Parallelization::OFF;
 
-      auto parallel = YAMLSimulation::Parallelization::OFF;
-      if (argc > 5) {
-        std::string p = argsv[5];
-        if (p == "P:ON")
-          parallel = YAMLSimulation::Parallelization::ON;
-        else if (p == "P:OFF")
-          parallel = YAMLSimulation::Parallelization::OFF;
-        else {
-          SPDLOG_ERROR("Invalid parallelization option: {}. Use 'P:ON' or 'P:OFF'.", p);
-          return 1;
-        }
-      }
-
-      YAMLSimulation simulation(argsv[1], simulation_mode, kind, parallel);
+      // We can safely dereference *config.containerKind because the parser guarantees it exists in YAML mode
+      YAMLSimulation simulation(config.filename, config.simulationMode, *config.containerKind, parallelMode);
       simulation.run();
-    } else {
-      // legacy simulation
-      if (std::string parallelization = argsv[6]; parallelization == "P:OFF") {
-        CollisionSimulation simulation(argsv[1], std::stod(argsv[2]), std::stod(argsv[3]), simulation_mode);
-        simulation.run();
-      } else if (parallelization == "P:ON") {
-        CollisionSimulationParallel simulation(argsv[1], std::stod(argsv[2]), std::stod(argsv[3]), simulation_mode);
+    } else {  // Legacy Mode
+      // The parser guarantees tEnd and deltaT exist if isYamlMode is false
+      if (config.useParallelization) {
+        CollisionSimulationParallel simulation(config.filename, config.tEnd.value(), config.deltaT.value(),
+                                               config.simulationMode);
         simulation.run();
       } else {
-        SPDLOG_ERROR(
-            "Invalid parallelization option of file name. Valid options are P:OFF and P:ON. Input filename must not be "
-            "empty");
+        CollisionSimulation simulation(config.filename, *config.tEnd, *config.deltaT, config.simulationMode);
+        simulation.run();
       }
     }
-
-  } catch (const std::invalid_argument& e) {
-    SPDLOG_ERROR("Simulation failed: {}", e.what());
+  } catch (const std::exception& e) {
+    SPDLOG_ERROR("Simulation runtime error: {}", e.what());
     return 1;
   }
 
