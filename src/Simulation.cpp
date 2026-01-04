@@ -190,7 +190,7 @@ YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode s
   domainSize = reader.getDomainSize();
   boundaryTypes = reader.getBoundaryTypesRaw();
   checkpointFrequency = reader.getCheckpointFrequency();
-  
+
   // Checkpoint resume state (0 if not a checkpoint file)
   startIteration = reader.getCheckpointIteration();
   startTime = reader.getCheckpointTime();
@@ -242,7 +242,7 @@ void YAMLSimulation::runFileOutput(int frequency, const std::string& outputBaseN
   // Use checkpoint values if resuming, otherwise start from 0
   double current_time = startTime;
   int iteration = startIteration;
-  
+
   if (startIteration > 0) {
     SPDLOG_INFO("Resuming simulation from checkpoint: iteration={}, time={}", startIteration, startTime);
   }
@@ -258,7 +258,7 @@ void YAMLSimulation::runFileOutput(int frequency, const std::string& outputBaseN
 
     iteration++;
     current_time += dt;
-    
+
     if (iteration % frequency == 0) {
       plotParticles(iteration, outputBaseName);
     }
@@ -334,7 +334,7 @@ void YAMLThermostatSimulation::runFileOutput(int frequency, const std::string& o
 
     iteration++;
     current_time += dt;
-    
+
     if (iteration % frequency == 0) {
       plotParticles(iteration, outputBaseName);
     }
@@ -345,7 +345,7 @@ void YAMLThermostatSimulation::runFileOutput(int frequency, const std::string& o
       writeCheckpoint(iteration, current_time);
     }
   }
-  
+
   // Write final checkpoint at end of simulation
   if (checkpointFrequency > 0) {
     writeCheckpoint(iteration, current_time);

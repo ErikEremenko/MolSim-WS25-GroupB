@@ -10,9 +10,8 @@ namespace outputWriter {
 
 void CheckpointWriter::writeCheckpoint(const ParticleContainer& particles, const std::string& filename, int iteration,
                                        double currentTime, const std::string& baseName, int writeFrequency,
-                                       int checkpointFrequency, double tEnd,
-                                       double deltaT, double epsilon, double sigma, double cutoffRadius,
-                                       const std::array<double, 3>& domainSize,
+                                       int checkpointFrequency, double tEnd, double deltaT, double epsilon,
+                                       double sigma, double cutoffRadius, const std::array<double, 3>& domainSize,
                                        const std::array<std::string, 6>& boundaryTypes) {
 
   // Create output directory if it doesn't exist
