@@ -22,6 +22,7 @@ class YAMLFileReader final : public BaseFileReader {
   // Getters for simulation parameters
   std::string getOutputBaseName() const;
   int getWriteFrequency() const;
+  int getCheckpointFrequency() const;
   double getTend() const;
   double getDeltaT() const;
   double getEpsilon() const;
@@ -29,6 +30,14 @@ class YAMLFileReader final : public BaseFileReader {
   double getCutoff() const;
   std::array<double,3> getDomainSize() const;
   std::array<std::string,6> getBoundaryTypesRaw() const;
+  
+  // Checkpoint-related getters
+  /** @brief Returns true if this file contains checkpoint particle data */
+  bool isCheckpoint() const;
+  /** @brief Returns the iteration number from checkpoint (0 if not a checkpoint) */
+  int getCheckpointIteration() const;
+  /** @brief Returns the simulation time from checkpoint (0.0 if not a checkpoint) */
+  double getCheckpointTime() const;
 
  private:
   // Stores loaded YAML structure

@@ -183,12 +183,17 @@ YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode s
   this->write_frequency = reader.getWriteFrequency();
   this->base_name = reader.getOutputBaseName();
 
-  double epsilon = reader.getEpsilon();
-  double sigma = reader.getSigma();
-  double cutoffRadius = reader.getCutoff();
-
-  const auto domainSize = reader.getDomainSize();
-  const auto boundariesRaw = reader.getBoundaryTypesRaw();
+  // imulation parameters for checkpoint generation
+  epsilon = reader.getEpsilon();
+  sigma = reader.getSigma();
+  cutoffRadius = reader.getCutoff();
+  domainSize = reader.getDomainSize();
+  boundaryTypes = reader.getBoundaryTypesRaw();
+  checkpointFrequency = reader.getCheckpointFrequency();
+  
+  // Checkpoint resume state (0 if not a checkpoint file)
+  startIteration = reader.getCheckpointIteration();
+  startTime = reader.getCheckpointTime();
 
   if (kind == ContainerKind::DIRECT) {
     // Legacy O(n^2) implementation
@@ -203,11 +208,11 @@ YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode s
     }
   } else {
     // Linked cell implementation -> O(n)
-    std::array<LinkedCellParticleContainer::BoundaryType, 6> boundaryTypes{};
+    std::array<LinkedCellParticleContainer::BoundaryType, 6> boundaryTypesEnum{};
     for (int i = 0; i < 6; ++i) {
-      boundaryTypes[i] = parseBoundary(boundariesRaw[i]);
+      boundaryTypesEnum[i] = parseBoundary(boundaryTypes[i]);
     }
-    particles = std::make_unique<LinkedCellParticleContainer>(domainSize, cutoffRadius, boundaryTypes);
+    particles = std::make_unique<LinkedCellParticleContainer>(domainSize, cutoffRadius, boundaryTypesEnum);
     forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius);
   }
 }
@@ -216,6 +221,57 @@ void YAMLSimulation::setupSimulation() {
   reader.readFile(*particles);
   SPDLOG_INFO("YAML Simulation configured. dt={}, t_end={}, write_frequency={}, base_name={}", dt, end_time,
               write_frequency, base_name);
+}
+
+void YAMLSimulation::writeCheckpoint(int iteration, double currentTime) const {
+  std::string checkpointFilename = base_name + "_checkpoint_" + std::to_string(iteration) + ".yaml";
+  outputWriter::CheckpointWriter::writeCheckpoint(*particles, checkpointFilename, iteration, currentTime, base_name,
+                                                  write_frequency, checkpointFrequency, end_time, dt, epsilon, sigma,
+                                                  cutoffRadius, domainSize, boundaryTypes);
+}
+
+void YAMLSimulation::runFileOutput(int frequency, const std::string& outputBaseName) {
+  if (frequency < 1) {
+    SPDLOG_INFO("Write frequency must be a positive integer, but was given {}", frequency);
+    throw std::invalid_argument("Write frequency must be a positive integer");
+  } else if (outputBaseName.empty()) {
+    SPDLOG_INFO("Base name must not be an empty string");
+    throw std::invalid_argument("Base name must not be an empty string");
+  }
+
+  // Use checkpoint values if resuming, otherwise start from 0
+  double current_time = startTime;
+  int iteration = startIteration;
+  
+  if (startIteration > 0) {
+    SPDLOG_INFO("Resuming simulation from checkpoint: iteration={}, time={}", startIteration, startTime);
+  }
+
+  // For this loop, we assume: current x, current f and current v are known
+  while (current_time < end_time) {
+    forceCalc->calculateX(dt);
+    for (auto& p : *particles) {
+      p.setOldF(p.getF());  // Store f(t_n) for v update (Störmer-Verlet)
+    }
+    forceCalc->calculateF();
+    forceCalc->calculateV(dt);
+
+    iteration++;
+    current_time += dt;
+    
+    if (iteration % frequency == 0) {
+      plotParticles(iteration, outputBaseName);
+    }
+    if (checkpointFrequency > 0 && iteration % checkpointFrequency == 0) {
+      writeCheckpoint(iteration, current_time);
+    }
+  }
+
+  // Write final checkpoint at end of simulation
+  if (checkpointFrequency > 0) {
+    writeCheckpoint(iteration, current_time);
+    SPDLOG_INFO("Final checkpoint written at iteration {}", iteration);
+  }
 }
 
 // YAMLThermostatSimulation below
@@ -247,19 +303,22 @@ void YAMLThermostatSimulation::runBenchmark() {
 }
 
 void YAMLThermostatSimulation::runFileOutput(int frequency, const std::string& outputBaseName) {
-  // TODO: Do the following checks when reading the config file, not here!
   if (frequency < 1) {
     SPDLOG_ERROR("Write frequency must be a positive integer, but was given {}", frequency);
     throw std::invalid_argument("Write frequency must be a positive integer");
   } else if (outputBaseName.empty()) {
-    SPDLOG_ERROR("Write frequency must be a positive integer, but was given an empty string");
+    SPDLOG_ERROR("Base name must not be an empty string");
     throw std::invalid_argument("Base name must not be an empty string");
   }
-  constexpr double start_time = 0;
 
-  double current_time = start_time;
-  int iteration = 0;
+  // Use checkpoint values if resuming, otherwise start from 0
+  double current_time = startTime;
+  int iteration = startIteration;
   const int thermostatFrequency = thermostat.getUpdateFrequency();
+
+  if (startIteration > 0) {
+    SPDLOG_INFO("Resuming thermostat simulation from checkpoint: iteration={}, time={}", startIteration, startTime);
+  }
 
   // for this loop, we assume: current x, current f and current v are known
   while (current_time < end_time) {  // TODO: Refactor these loops (also in runBenchmark)
@@ -274,13 +333,23 @@ void YAMLThermostatSimulation::runFileOutput(int frequency, const std::string& o
     forceCalc->calculateV(dt);
 
     iteration++;
+    current_time += dt;
+    
     if (iteration % frequency == 0) {
       plotParticles(iteration, outputBaseName);
     }
     if (iteration % thermostatFrequency == 0) {  // TODO: Optimize this if check
       thermostat.updateTemperature();
     }
-    current_time += dt;
+    if (checkpointFrequency > 0 && iteration % checkpointFrequency == 0) {
+      writeCheckpoint(iteration, current_time);
+    }
+  }
+  
+  // Write final checkpoint at end of simulation
+  if (checkpointFrequency > 0) {
+    writeCheckpoint(iteration, current_time);
+    SPDLOG_INFO("Final checkpoint written at iteration {}", iteration);
   }
 }
 

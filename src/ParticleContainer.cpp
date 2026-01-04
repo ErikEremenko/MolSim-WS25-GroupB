@@ -17,6 +17,14 @@ void ParticleContainer::addParticle(const Particle* p) {
   particles.emplace_back(*p);
 }
 
+void ParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, std::array<double, 3> f,
+                                    std::array<double, 3> oldF, int type, double sigma, double epsilon) {
+  Particle p(x, v, m, type, sigma, epsilon);
+  p.setF(f);
+  p.setOldF(oldF);
+  particles.emplace_back(std::move(p));
+}
+
 void ParticleContainer::removeParticle(const size_t idx) {
   if (idx < particles.size())
     particles.erase(particles.begin() + idx);

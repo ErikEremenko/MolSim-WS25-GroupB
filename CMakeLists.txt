@@ -34,6 +34,8 @@ add_library(molsim_core ${SRC_FILES}
         include/ParticleGenerator.h
         include/Thermostat.h
         src/io/ArgParser.cpp
+        src/io/CheckpointWriter.cpp
+        include/io/CheckpointWriter.h
 )
 target_include_directories(molsim_core
         PUBLIC

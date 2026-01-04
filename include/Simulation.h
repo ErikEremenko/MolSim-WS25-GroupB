@@ -2,6 +2,7 @@
 
 #include "ForceCalc.h"
 #include "io/YAMLFileReader.h"
+#include "io/CheckpointWriter.h"
 #include "Thermostat.h"
 
 #include <memory>
@@ -153,7 +154,27 @@ protected:
 class YAMLSimulation : public BaseSimulation {
 private:
   std::string inputFilename;
+
+protected:
   YAMLFileReader reader;
+  
+  // Simulation parameters for checkpoint generation
+  double epsilon;
+  double sigma;
+  double cutoffRadius;
+  std::array<double, 3> domainSize;
+  std::array<std::string, 6> boundaryTypes;
+  int checkpointFrequency = 0;  // 0 = disabled
+  
+  // Checkpoint resume state (0 if starting fresh)
+  int startIteration = 0;
+  double startTime = 0.0;
+  
+  /**
+   * @brief Writes a checkpoint file with current simulation state
+   */
+  void writeCheckpoint(int iteration, double currentTime) const;
+  
 public:
   enum class ContainerKind {DIRECT, LINKED};
   enum class Parallelization {OFF, ON};
@@ -162,8 +183,16 @@ public:
                ContainerKind kind = ContainerKind::LINKED,
                Parallelization parallelization = Parallelization::OFF
                );
+               
+  /**
+   * @brief Set checkpoint frequency (0 to disable)
+   * @param frequency Write checkpoint every N iterations
+   */
+  void setCheckpointFrequency(int frequency) { checkpointFrequency = frequency; }
+  
 protected:
   void setupSimulation() override;
+  void runFileOutput(int frequency, const std::string& outputBaseName) override;
 };
 
 class YAMLThermostatSimulation : public YAMLSimulation {

@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include <array>
 #include "Particle.h"
 /**
  * @class ParticleContainer
@@ -45,6 +46,21 @@ class ParticleContainer {
   virtual void addParticle(const Particle* p);
 
   virtual void removeParticle(size_t idx);
+
+  /**
+   * @brief Adds a particle from checkpoint with complete state to the container
+   * @param x position vector
+   * @param v velocity vector
+   * @param m mass
+   * @param f current force vector
+   * @param oldF old force vector from previous iteration
+   * @param type particle type
+   * @param sigma Lennard-Jones sigma parameter
+   * @param epsilon Lennard-Jones epsilon parameter
+   */
+  virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m,
+                           std::array<double, 3> f, std::array<double, 3> oldF,
+                           int type, double sigma, double epsilon);
 
   using iterator = std::vector<Particle>::iterator;
   using const_iterator = std::vector<Particle>::const_iterator;

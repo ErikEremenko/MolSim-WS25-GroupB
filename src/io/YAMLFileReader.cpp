@@ -15,8 +15,16 @@ YAMLFileReader::YAMLFileReader(std::string filename) : BaseFileReader(filename) 
 }
 
 void YAMLFileReader::checkRequiredKeys() const {
-  if (!config["output"] || !config["simulation"] || !config["cuboids"]) {
-    SPDLOG_ERROR("YAML file missing required top level keys (output, simulation, or cuboids)!");
+  if (!config["output"] || !config["simulation"]) {
+    SPDLOG_ERROR("YAML file missing required top level keys (output or simulation)!");
+    exit(-1);
+  }
+  // Either cuboids or particles (checkpoint) must be present
+  const bool hasCuboids = config["cuboids"] && config["cuboids"].size() > 0;
+  const bool hasSpheres = config["spheres"] && config["spheres"].size() > 0;
+  const bool hasParticles = config["particles"] && config["particles"].size() > 0;
+  if (!hasCuboids && !hasSpheres && !hasParticles) {
+    SPDLOG_ERROR("YAML file must contain at least one of: cuboids, spheres, or particles!");
     exit(-1);
   }
   if (!config["domain"] || !config["domain"]["size"]) {
@@ -35,6 +43,13 @@ std::string YAMLFileReader::getOutputBaseName() const {
 
 int YAMLFileReader::getWriteFrequency() const {
   return config["output"]["write_frequency"].as<int>();
+}
+
+int YAMLFileReader::getCheckpointFrequency() const {
+  if (config["output"]["checkpoint_frequency"]) {
+    return config["output"]["checkpoint_frequency"].as<int>();
+  }
+  return 0;  // Default to 0 (disabled) if not specified
 }
 
 double YAMLFileReader::getTend() const {
@@ -71,6 +86,24 @@ std::array<std::string, 6> YAMLFileReader::getBoundaryTypesRaw() const {
   b[4] = node["z_min"].as<std::string>();
   b[5] = node["z_max"].as<std::string>();
   return b;
+}
+
+bool YAMLFileReader::isCheckpoint() const {
+  return config["particles"] && config["particles"].size() > 0;
+}
+
+int YAMLFileReader::getCheckpointIteration() const {
+  if (config["checkpoint"] && config["checkpoint"]["iteration"]) {
+    return config["checkpoint"]["iteration"].as<int>();
+  }
+  return 0;
+}
+
+double YAMLFileReader::getCheckpointTime() const {
+  if (config["checkpoint"] && config["checkpoint"]["time"]) {
+    return config["checkpoint"]["time"].as<double>();
+  }
+  return 0.0;
 }
 
 void YAMLFileReader::readFile(ParticleContainer& particles) {
@@ -123,6 +156,42 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
     particleGenerator.generateDisc(pos, vel, rn, h, m, meanV, sigma, epsilon);
 
     SPDLOG_DEBUG("Loaded sphere (sigma={}, epsilon={}).", sigma, epsilon);
+  }
+
+  // Checkpoint loading: if "particles" section exists, load individual particles
+  // precedence over cuboid/sphere generation
+  if (config["particles"] && config["particles"].size() > 0) {
+    SPDLOG_INFO("Loading {} particles from checkpoint...", config["particles"].size());
+
+    for (const auto& p : config["particles"]) {
+      auto x = p["x"].as<std::array<double, 3>>();
+      auto v = p["v"].as<std::array<double, 3>>();
+      double m = p["m"].as<double>();
+
+      // Force vectors (required for proper restart)
+      std::array<double, 3> f = {0.0, 0.0, 0.0};
+      std::array<double, 3> oldF = {0.0, 0.0, 0.0};
+      if (p["f"]) {
+        f = p["f"].as<std::array<double, 3>>();
+      }
+      if (p["oldF"]) {
+        oldF = p["oldF"].as<std::array<double, 3>>();
+      }
+
+      // Type defaults to 0
+      int type = 0;
+      if (p["type"]) {
+        type = p["type"].as<int>();
+      }
+
+      // Per-particle sigma/epsilon with fallback to global values
+      double sigma = p["sigma"] ? p["sigma"].as<double>() : globalSigma;
+      double epsilon = p["epsilon"] ? p["epsilon"].as<double>() : globalEpsilon;
+
+      particles.addParticle(x, v, m, f, oldF, type, sigma, epsilon);
+    }
+
+    SPDLOG_DEBUG("Loaded {} particles from checkpoint.", config["particles"].size());
   }
 
   // TODO: The issue here is that we already initialize the particles with temperatures - so T_init is irrelevant!
