@@ -82,9 +82,9 @@ TEST_F(ThermostatTest, CheckThermostatTemperatureCalculation) {
   // Set up 5 particles
   constexpr double sigma = 1;
   constexpr double epsilon = 1;
-  particles->addParticle({0, 0, 0}, {1, 0, 0}, 2, sigma, epsilon);  // m*v^2 = 2*1*1 = 2
-  particles->addParticle({1, 1, 1}, {0, 2, 0}, 1, sigma, epsilon);  // m*v^2 = 1*2*2 = 4
-  particles->addParticle({50, 0, 0}, {0, 0, 4}, 1, sigma, epsilon);  // m*v^2 = 1*4*4 = 16
+  particles->addParticle({0, 0, 0}, {1, 0, 0}, 2, sigma, epsilon);    // m*v^2 = 2*1*1 = 2
+  particles->addParticle({1, 1, 1}, {0, 2, 0}, 1, sigma, epsilon);    // m*v^2 = 1*2*2 = 4
+  particles->addParticle({50, 0, 0}, {0, 0, 4}, 1, sigma, epsilon);   // m*v^2 = 1*4*4 = 16
   particles->addParticle({0, 100, 0}, {3, 4, 0}, 2, sigma, epsilon);  // m*v^2 = 2*5*5 = 50
   particles->addParticle({0, 0, 150}, {1, 4, 8}, 3, sigma, epsilon);  // m*v^2 = 3*9*9 = 243
 
