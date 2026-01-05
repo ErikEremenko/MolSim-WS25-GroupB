@@ -74,16 +74,24 @@ class ThermostatTest : public testing::Test {
   ~ThermostatTest() override = default;
 };
 
-TEST_F(ThermostatTest, CheckGeneratorInitialTemperature) {
-  // TODO: Check that the particle generator initializes the temperature correctly
-}
-
 TEST_F(ThermostatTest, CheckThermostatInitialTemperature) {
   // TODO: Check that the thermostat initializes the temperature correctly
 }
 
 TEST_F(ThermostatTest, CheckThermostatTemperatureCalculation) {
-  // TODO: Check the correctness of the current temperature calculation from kinetic energy
+  // Set up 5 particles
+  constexpr double sigma = 1;
+  constexpr double epsilon = 1;
+  particles->addParticle({0, 0, 0}, {1, 0, 0}, 2, sigma, epsilon);  // m*v^2 = 2*1*1 = 2
+  particles->addParticle({1, 1, 1}, {0, 2, 0}, 1, sigma, epsilon);  // m*v^2 = 1*2*2 = 4
+  particles->addParticle({50, 0, 0}, {0, 0, 4}, 1, sigma, epsilon);  // m*v^2 = 1*4*4 = 16
+  particles->addParticle({0, 100, 0}, {3, 4, 0}, 2, sigma, epsilon);  // m*v^2 = 2*5*5 = 50
+  particles->addParticle({0, 0, 150}, {1, 4, 8}, 3, sigma, epsilon);  // m*v^2 = 3*9*9 = 243
+
+  // Initialize thermostat for temperature calculation
+  Thermostat thermostat(*particles, 1, 1, 1);  // don't care values except 'particles'
+
+  ASSERT_EQ(21, thermostat.calculateCurrentTemperature());  // compare with hand-calculated value
 }
 
 TEST_F(ThermostatTest, Holding) {
