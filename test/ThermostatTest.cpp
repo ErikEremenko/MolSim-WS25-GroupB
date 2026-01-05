@@ -7,7 +7,7 @@
 
 // Simulation defines
 constexpr double SIM_END_TIME = 0.2;
-constexpr double SIM_DT = 0.002;  // ~100 simulation iterations
+constexpr double SIM_DT = 0.002;      // ~100 simulation iterations
 constexpr int THERMO_FREQUENCY = 20;  // ~5 thermostat applications
 
 constexpr double SIM_FORCE_EPSILON = 5.0;
@@ -21,11 +21,11 @@ constexpr double THERMO_TEMP_TOLERANCE = 1e-4;  // how far off is the thermostat
 // Temperature holding test defines
 constexpr double THERMO_HOLDING_TEMP = 50.0;
 
-
 class ThermostatTestingSimulation : public BaseSimulation {
-private:
+ private:
   Thermostat& thermostat;
-protected:
+
+ protected:
   void setupSimulation() override { /* empty override for compilation */ }
   void runFileOutput(int frequency, const std::string& outputBaseName) override { /* empty as it will not be called */ }
   void runBenchmark() override {
@@ -48,32 +48,29 @@ protected:
       current_time += dt;
     }
   }
-public:
+
+ public:
   explicit ThermostatTestingSimulation(std::unique_ptr<ParticleContainer> particles, Thermostat& thermostat)
-    : BaseSimulation(
-        SIM_END_TIME,
-        SIM_DT,
-        0,  // don't care about file output
-        "",  // don't care about file output
-        SimulationMode::BENCHMARK  // we want runBenchmark() to run
-      ), thermostat(thermostat) {
+      : BaseSimulation(SIM_END_TIME, SIM_DT,
+                       0,                         // don't care about file output
+                       "",                        // don't care about file output
+                       SimulationMode::BENCHMARK  // we want runBenchmark() to run
+                       ),
+        thermostat(thermostat) {
 
     this->particles = std::move(particles);
-    forceCalc = std::make_unique<LennardJonesForce>(
-      *this->particles, SIM_FORCE_EPSILON, SIM_FORCE_SIGMA, SIM_FORCE_CUTOFF_RADIUS
-      );
+    forceCalc = std::make_unique<LennardJonesForce>(*this->particles, SIM_FORCE_EPSILON, SIM_FORCE_SIGMA,
+                                                    SIM_FORCE_CUTOFF_RADIUS);
   }
   ~ThermostatTestingSimulation() override = default;
 };
 
 class ThermostatTest : public testing::Test {
-protected:
+ protected:
   std::unique_ptr<ParticleContainer> particles;  // ownership transferred to simulation later on
   ParticleGenerator generator;
 
-  ThermostatTest()
-  : particles(std::make_unique<ParticleContainer>()),
-    generator(*particles) {}
+  ThermostatTest() : particles(std::make_unique<ParticleContainer>()), generator(*particles) {}
   ~ThermostatTest() override = default;
 };
 
@@ -96,15 +93,7 @@ TEST_F(ThermostatTest, Holding) {
 
   // Add objects (particles) to simulation
   generator.generateCuboid(  // cuboid from collision8000.yaml
-    {10.0, 10.0, 0.0},
-    {0.0, 0.0, 0.0},
-    {120, 60, 1},
-    1.1225,
-    1.0,
-    THERMO_HOLDING_TEMP,
-    1.0,
-    5.0
-  );
+      {10.0, 10.0, 0.0}, {0.0, 0.0, 0.0}, {120, 60, 1}, 1.1225, 1.0, THERMO_HOLDING_TEMP, 1.0, 5.0);
 
   // Check initial temperature being correct
   ThermostatTestingSimulation simulation(std::move(particles), thermostat);
@@ -112,9 +101,9 @@ TEST_F(ThermostatTest, Holding) {
 
   double finalTemp = thermostat.calculateCurrentTemperature();
 
-  std::cout << "\n[   INFO   ] Final Temperature: " << finalTemp
-            << " | Target Holding Temp: " << THERMO_HOLDING_TEMP
-            << "\n" << std::endl;
+  std::cout << "\n[   INFO   ] Final Temperature: " << finalTemp << " | Target Holding Temp: " << THERMO_HOLDING_TEMP
+            << "\n"
+            << std::endl;
   // -------------------------
 
   ASSERT_NEAR(thermostat.calculateCurrentTemperature(), THERMO_HOLDING_TEMP, THERMO_TEMP_TOLERANCE);
