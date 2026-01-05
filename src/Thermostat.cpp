@@ -9,7 +9,7 @@
 double Thermostat::calculateCurrentTemperature() {
   double totalKineticEnergyTimesTwo = 0.0;
   for (const auto& particle : particles) {
-    totalKineticEnergyTimesTwo += ArrayUtils::squaredL2Norm(particle.getV());
+    totalKineticEnergyTimesTwo += particle.getM() * ArrayUtils::squaredL2Norm(particle.getV());
   }
 
   return totalKineticEnergyTimesTwo / (3 * particles.size());  // number of dimensions = 3 in our case
