@@ -18,6 +18,8 @@ constexpr double SIM_FORCE_CUTOFF_RADIUS = 3.0;
 // Temperature test defines
 constexpr double THERMO_TEMP_TOLERANCE = 1e-4;  // how far off is the thermostat allowed to be?
 
+constexpr double THERMO_CUBOID_TEMPERATURE = 27.0;
+
 // Temperature holding test defines
 constexpr double THERMO_HOLDING_TEMP = 50.0;
 
@@ -74,10 +76,16 @@ class ThermostatTest : public testing::Test {
   ~ThermostatTest() override = default;
 };
 
+/**
+ * @brief Check that the thermostat initializes the temperature correctly.
+ */
 TEST_F(ThermostatTest, CheckThermostatInitialTemperature) {
-  // TODO: Check that the thermostat initializes the temperature correctly
+  // TODO
 }
 
+/**
+ * @brief Check that the thermostat correctly calculates the system's current temperature from its kinetic energy.
+ */
 TEST_F(ThermostatTest, CheckThermostatTemperatureCalculation) {
   // Set up 5 particles
   constexpr double sigma = 1;
@@ -91,7 +99,29 @@ TEST_F(ThermostatTest, CheckThermostatTemperatureCalculation) {
   // Initialize thermostat for temperature calculation
   Thermostat thermostat(*particles, 1, 1, 1);  // don't care values except 'particles'
 
-  ASSERT_EQ(21, thermostat.calculateCurrentTemperature());  // compare with hand-calculated value
+  ASSERT_EQ(21, thermostat.calculateCurrentTemperature());  // compare with hand-calculated temperature value
+}
+
+/**
+ * @brief Check that the particle generator initializes the temperature correctly.
+ */
+TEST_F(ThermostatTest, CheckGeneratorInitialTemperature) {
+  // Initialize cuboid
+  generator.generateCuboid(
+    {0.0, 0.0, 0.0},  // don't care
+    {0.0, 0.0, 0.0},  // cuboid stationary
+    {100, 50, 1},  // 5000 particles
+    1.0,  // don't care
+    1.0,  // mass is 1 for easier calculations
+    THERMO_CUBOID_TEMPERATURE,
+    1.0,  // don't care
+    5.0  // don't care
+    );
+
+  // Initialize thermostat for temperature calculation
+  Thermostat thermostat(*particles, 1, 1, 1);  // don't care values except 'particles'
+
+  ASSERT_NEAR(thermostat.calculateCurrentTemperature(), THERMO_CUBOID_TEMPERATURE, THERMO_TEMP_TOLERANCE);
 }
 
 TEST_F(ThermostatTest, Holding) {
