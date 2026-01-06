@@ -1,6 +1,7 @@
+#include "physics/ParticleGenerator.h"
+
 #include <cmath>
 
-#include "ParticleGenerator.h"
 #include "utils/MaxwellBoltzmannDistribution.h"
 
 // TODO: Why do we set the logging level here again? Isn't it enough in main.cpp?

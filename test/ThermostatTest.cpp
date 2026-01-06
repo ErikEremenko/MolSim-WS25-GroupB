@@ -3,8 +3,8 @@
 
 #include <gtest/gtest.h>
 
-#include "ParticleGenerator.h"
-#include "Simulation.h"
+#include "../include/simulation/Simulation.h"
+#include "physics/ParticleGenerator.h"
 
 // Simulation defines
 constexpr double SIM_END_TIME = 0.2;

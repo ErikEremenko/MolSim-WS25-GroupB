@@ -1,9 +1,10 @@
-#include "ForceCalc.h"
-#include <math.h>
-#include <spdlog/spdlog.h>
-#include "utils/ArrayUtils.h"
+#include "physics/ForceCalc.h"
 
-#include "LinkedCellParticleContainer.h"
+#include <spdlog/spdlog.h>
+#include <math.h>  // TODO: Replace with <cmath>, never use C headers in C++!
+
+#include "utils/ArrayUtils.h"
+#include "physics/LinkedCellParticleContainer.h"
 
 ForceCalc::~ForceCalc() = default;
 

@@ -1,5 +1,5 @@
 #include "io/YAMLFileReader.h"
-#include "ParticleGenerator.h"
+#include "physics/ParticleGenerator.h"
 
 #include <spdlog/spdlog.h>
 

@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "Simulation.h"
+#include "simulation/Simulation.h"
 #include "io/ArgParser.h"
 
 #ifndef SPDLOG_ACTIVE_LEVEL

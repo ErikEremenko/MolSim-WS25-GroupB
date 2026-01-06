@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "ParticleContainer.h"
+#include "physics/ParticleContainer.h"
 /**
  * @class ForceCalc
  * @brief Virtual class used as a base for different calculation methods for simulation

@@ -7,7 +7,7 @@
 
 #include <limits>
 
-#include "ParticleContainer.h"
+#include "physics/ParticleContainer.h"
 
 class Thermostat {
 private:

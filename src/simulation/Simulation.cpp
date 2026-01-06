@@ -1,11 +1,11 @@
-#include "Simulation.h"
+#include "simulation/Simulation.h"
 
-#include "LinkedCellParticleContainer.h"
+#include "physics/LinkedCellParticleContainer.h"
 #include "io/FileReader.h"
 #include "io/VTKWriter.h"
 //benchmark
 #include <chrono>
-// process signal handling
+// process signal handling, TODO: Implement signal handling for all simulation types (?)
 #include <atomic>
 #include <csignal>
 

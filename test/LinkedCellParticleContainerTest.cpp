@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "LinkedCellParticleContainer.h"
+#include "physics/LinkedCellParticleContainer.h"
 
 class LinkedCellParticleContainerTest : public ::testing::Test {
  protected:

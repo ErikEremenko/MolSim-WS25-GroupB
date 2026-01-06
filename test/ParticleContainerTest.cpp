@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "ParticleContainer.h"
+#include "physics/ParticleContainer.h"
 
 // Check if ParticleContainer saves new particles
 class ParticleContainerTest : public ::testing::Test {

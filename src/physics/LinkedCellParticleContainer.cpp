@@ -1,8 +1,7 @@
-#include "../include/LinkedCellParticleContainer.h"
+#include "physics/LinkedCellParticleContainer.h"
 
 #include <cmath>
-
-#include "spdlog/fmt/bundled/format.h"
+#include "spdlog/fmt/bundled/format.h"  // TODO: Replace with <spdlog/spdlog.h> ?
 
 LinkedCellParticleContainer::LinkedCellParticleContainer(const std::array<double, 3>& domain_dims, double cutoff_radius,
                                                          const std::array<BoundaryType, 6>& boundary_types)

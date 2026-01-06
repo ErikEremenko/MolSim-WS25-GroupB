@@ -2,7 +2,7 @@
 
 #include <array>
 
-#include "../include/ParticleContainer.h"
+#include "physics/ParticleContainer.h"
 /**
  * @class ParticleGenerator
  * @brief Class for particle generation

@@ -8,7 +8,7 @@
 #include <functional>
 #include <vector>
 
-#include "ParticleContainer.h"
+#include "physics/ParticleContainer.h"
 
 /**
  * @class LinkedCellParticleContainer

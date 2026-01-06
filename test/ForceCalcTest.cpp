@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <cmath>
 
-#include "ForceCalc.h"
-#include "LinkedCellParticleContainer.h"
-#include "ParticleContainer.h"
+#include "physics/ForceCalc.h"
+#include "physics/LinkedCellParticleContainer.h"
+#include "physics/ParticleContainer.h"
 #include "utils/ArrayUtils.h"
 
 class ForceCalcTest : public ::testing::Test {

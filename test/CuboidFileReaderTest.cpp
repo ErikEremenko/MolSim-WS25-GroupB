@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
-
 #include <cmath>
-#include "ParticleContainer.h"
-#include "Simulation.h"
+
+#include "physics/ParticleContainer.h"
+#include "simulation/Simulation.h"
 #include "io/FileReader.h"
 #include "utils/ArrayUtils.h"
 class CuboidFileReaderTest : public ::testing::Test {

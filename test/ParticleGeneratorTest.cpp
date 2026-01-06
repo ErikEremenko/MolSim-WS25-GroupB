@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <array>
 
-#include "ParticleGenerator.h"
+#include "physics/ParticleGenerator.h"
 
 class ParticleGeneratorTest : public ::testing::Test {
  protected:

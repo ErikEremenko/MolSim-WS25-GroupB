@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ForceCalc.h"
-#include "io/YAMLFileReader.h"
 #include "io/CheckpointWriter.h"
-#include "Thermostat.h"
+#include "io/YAMLFileReader.h"
+#include "physics/ForceCalc.h"
+#include "physics/Thermostat.h"
 
 #include <memory>
 #include <string>

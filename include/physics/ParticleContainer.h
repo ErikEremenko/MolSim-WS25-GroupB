@@ -11,7 +11,7 @@
 #include <vector>
 
 #include <array>
-#include "Particle.h"
+#include "physics/Particle.h"
 /**
  * @class ParticleContainer
  * @brief Iterable container class used for storing particles for a simulation.

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "ParticleContainer.h"
+#include "physics/ParticleContainer.h"
 #include "io/YAMLFileReader.h"
 
 class YAMLFileReaderTest : public ::testing::Test {

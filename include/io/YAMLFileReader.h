@@ -1,7 +1,7 @@
 #pragma once
 #include <yaml-cpp/yaml.h>
 #include <string>
-#include "ParticleContainer.h"
+#include "physics/ParticleContainer.h"
 #include "io/FileReader.h"
 #include "utils/MaxwellBoltzmannDistribution.h"
 
