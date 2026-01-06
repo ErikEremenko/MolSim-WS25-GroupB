@@ -22,7 +22,7 @@ Thermostat::Thermostat(ParticleContainer& particles, int nThermostat, double tem
 
 void Thermostat::initializeTemperature(double tempInit) {
   for (auto& particle : particles) {
-    const std::array<double, 3> v = maxwellBoltzmannDistributedVelocity(tempInit, 3);
+    const std::array<double, 3> v = maxwellBoltzmannDistributedVelocity(std::sqrt(tempInit / particle.getM()), 3);
     particle.setV(v);
   }
 }
