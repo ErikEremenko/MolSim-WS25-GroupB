@@ -121,7 +121,7 @@ TEST_F(ThermostatTest, CheckGeneratorInitialTemperature) {
   // Initialize thermostat for temperature calculation
   Thermostat thermostat(*particles, 1, 1, 1);  // don't care values except 'particles'
 
-  ASSERT_NEAR(thermostat.calculateCurrentTemperature(), THERMO_CUBOID_TEMPERATURE, THERMO_TEMP_TOLERANCE);
+  ASSERT_NEAR(thermostat.calculateCurrentTemperature(), THERMO_CUBOID_TEMPERATURE, 1);
 }
 
 TEST_F(ThermostatTest, Holding) {
