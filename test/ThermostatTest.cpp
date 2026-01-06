@@ -28,7 +28,11 @@ constexpr double THERMO_HOLDING_TEMP = 50.0;
 constexpr double THERMO_HEATING_START_TEMP = 10;
 constexpr double THERMO_HEATING_TARGET_TEMP = 60;
 constexpr double THERMO_HEATING_TEMP_DELTA = 5;
-constexpr double THERMO_HEATING_END_TEMP = 35;  // ~5 iterations => 10 + (5 iter * 5 temp) = 35
+
+// Cooling test defines
+constexpr double THERMO_COOLING_START_TEMP = 150;
+constexpr double THERMO_COOLING_TARGET_TEMP = 50;
+constexpr double THERMO_COOLING_TEMP_DELTA = 10;
 
 class ThermostatTestingSimulation : public BaseSimulation {
  private:
@@ -36,8 +40,10 @@ class ThermostatTestingSimulation : public BaseSimulation {
   std::function<void(bool)> temperatureChecker;  // called after updating the temperature
 
  protected:
-  void setupSimulation() override { /* empty override for compilation */ }
-  void runFileOutput(int frequency, const std::string& outputBaseName) override { /* empty as it will not be called */ }
+  void setupSimulation() override { /* empty override for compilation */
+  }
+  void runFileOutput(int frequency, const std::string& outputBaseName) override { /* empty as it will not be called */
+  }
   void runBenchmark() override {
     // No benchmarking, just simulate and regularly apply thermostat
     double current_time = 0;
@@ -136,7 +142,7 @@ TEST_F(ThermostatTest, CheckGeneratorInitialTemperature) {
 }
 
 // TODO: Uncomment before committing
-TEST_F(ThermostatTest, Holding) {
+TEST_F(ThermostatTest, HoldingTemperature) {
   // Set up simulation and thermostat
   Thermostat thermostat(*particles, THERMO_FREQUENCY, THERMO_HOLDING_TEMP);
 
@@ -151,11 +157,36 @@ TEST_F(ThermostatTest, Holding) {
   ASSERT_NEAR(thermostat.calculateCurrentTemperature(), THERMO_HOLDING_TEMP, THERMO_TEMP_TOLERANCE);
 }
 
-TEST_F(ThermostatTest, Cooling) {
-  // TODO
+TEST_F(ThermostatTest, CoolingDown) {
+  // Set up simulation and thermostat
+  Thermostat thermostat(*particles, THERMO_FREQUENCY, THERMO_COOLING_TARGET_TEMP, THERMO_COOLING_TEMP_DELTA);
+
+  // Add objects (particles) to simulation
+  generator.generateCuboid(  // cuboid from collision8000.yaml
+      {10.0, 10.0, 0.0}, {0.0, 0.0, 0.0}, {120, 60, 1}, 1.1225, 1.0, THERMO_COOLING_START_TEMP, 1.0, 5.0);
+
+  // Define temperature checking function - check if every temperature jump is in the 'tempDelta' range
+  double lastTemp = 0;
+  auto heatingChecker = [&](bool beforeUpdate) {
+    double currentTemp = thermostat.calculateCurrentTemperature();
+    if (beforeUpdate) {
+      // Called before thermostat application, capture last temperature of the system
+      lastTemp = currentTemp;
+    } else {
+      // Called after thermostat application, run checks
+      EXPECT_LE(currentTemp, lastTemp) << "Temperature should drop during cooling!";  // did we cool down?
+      EXPECT_LE(lastTemp - currentTemp,
+                THERMO_COOLING_TEMP_DELTA +
+                    0.01);  // is the jump less than or equal to the max delta (accounting for rounding errors)?
+    }
+  };
+
+  // Run simulation with checks every temperature update using the lambda function
+  ThermostatTestingSimulation simulation(std::move(particles), thermostat, heatingChecker);
+  simulation.run();
 }
 
-TEST_F(ThermostatTest, Heating) {
+TEST_F(ThermostatTest, HeatingUp) {
   // Set up simulation and thermostat
   Thermostat thermostat(*particles, THERMO_FREQUENCY, THERMO_HEATING_TARGET_TEMP, THERMO_HEATING_TEMP_DELTA);
 
@@ -176,8 +207,6 @@ TEST_F(ThermostatTest, Heating) {
       EXPECT_LE(currentTemp - lastTemp,
                 THERMO_HEATING_TEMP_DELTA +
                     0.01);  // is the jump less than or equal to the max delta (accounting for rounding errors)?
-
-      std::cout << "Current temperature: " << currentTemp << ", Last temperature: " << lastTemp << std::endl;
     }
   };
 
