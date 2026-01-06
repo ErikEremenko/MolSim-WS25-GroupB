@@ -36,10 +36,8 @@ class ThermostatTestingSimulation : public BaseSimulation {
   std::function<void(bool)> temperatureChecker;  // called after updating the temperature
 
  protected:
-  void setupSimulation() override { /* empty override for compilation */
-  }
-  void runFileOutput(int frequency, const std::string& outputBaseName) override { /* empty as it will not be called */
-  }
+  void setupSimulation() override { /* empty override for compilation */ }
+  void runFileOutput(int frequency, const std::string& outputBaseName) override { /* empty as it will not be called */ }
   void runBenchmark() override {
     // No benchmarking, just simulate and regularly apply thermostat
     double current_time = 0;
