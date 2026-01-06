@@ -18,7 +18,8 @@ void ParticleGenerator::generateCuboid(std::array<double, 3> cx, std::array<doub
     for (int ny = 0; ny < n[1]; ny++) {
       for (int nz = 0; nz < n[2]; nz++) {
         std::array<double, 3> temperatureVel = maxwellBoltzmannDistributedVelocity(std::sqrt(t / m), 3);
-        std::array<double, 3> particleVelocity = {cv[0] + temperatureVel[0], cv[1] + temperatureVel[1], cv[2] + temperatureVel[2]};
+        std::array<double, 3> particleVelocity = {cv[0] + temperatureVel[0], cv[1] + temperatureVel[1],
+                                                  cv[2] + temperatureVel[2]};
         std::array<double, 3> particlePosition = {cx[0] + h * nx, cx[1] + h * ny, cx[2] + h * nz};
         particles.addParticle(particlePosition, particleVelocity, m, sigma, epsilon);
       }

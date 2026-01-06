@@ -107,16 +107,15 @@ TEST_F(ThermostatTest, CheckThermostatTemperatureCalculation) {
  */
 TEST_F(ThermostatTest, CheckGeneratorInitialTemperature) {
   // Initialize cuboid
-  generator.generateCuboid(
-    {0.0, 0.0, 0.0},  // don't care
-    {0.0, 0.0, 0.0},  // cuboid stationary
-    {100, 50, 1},  // 5000 particles
-    1.0,  // don't care
-    1.0,  // mass is 1 for easier calculations
-    THERMO_CUBOID_TEMPERATURE,
-    1.0,  // don't care
-    5.0  // don't care
-    );
+  generator.generateCuboid({0.0, 0.0, 0.0},  // don't care
+                           {0.0, 0.0, 0.0},  // cuboid stationary
+                           {100, 50, 1},     // 5000 particles
+                           1.0,              // don't care
+                           1.0,              // mass is 1 for easier calculations
+                           THERMO_CUBOID_TEMPERATURE,
+                           1.0,  // don't care
+                           5.0   // don't care
+  );
 
   // Initialize thermostat for temperature calculation
   Thermostat thermostat(*particles, 1, 1, 1);  // don't care values except 'particles'
