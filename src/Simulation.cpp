@@ -151,7 +151,7 @@ CollisionSimulation::CollisionSimulation(std::string inputFilename, double end_t
   particles = std::make_unique<ParticleContainer>();
   constexpr double sigma = 1.0;
   constexpr double cutoffRadius = 2.5 * sigma;
-  forceCalc = std::make_unique<LennardJonesForce>(*particles, 5.0, sigma, cutoffRadius);
+  forceCalc = std::make_unique<LennardJonesForce>(*particles, 5.0, sigma, cutoffRadius, 0);
 }
 
 void CollisionSimulation::setupSimulation() {
@@ -191,6 +191,8 @@ YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode s
   boundaryTypes = reader.getBoundaryTypesRaw();
   checkpointFrequency = reader.getCheckpointFrequency();
 
+  double gravity = reader.getGravity();
+
   // Checkpoint resume state (0 if not a checkpoint file)
   startIteration = reader.getCheckpointIteration();
   startTime = reader.getCheckpointTime();
@@ -198,13 +200,13 @@ YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode s
   if (kind == ContainerKind::DIRECT) {
     // Legacy O(n^2) implementation
     particles = std::make_unique<ParticleContainer>();
-    forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius);
+    forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius, gravity);
     if (parallelization == Parallelization::ON) {
       // Parallel direct sum LennardJones
       forceCalc = std::make_unique<LennardJonesForceParallel>(*particles, epsilon, sigma, cutoffRadius);
     } else {
       // Serial direct sum LennardJones
-      forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius);
+      forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius, gravity);
     }
   } else {
     // Linked cell implementation -> O(n)
@@ -213,7 +215,7 @@ YAMLSimulation::YAMLSimulation(std::string inputFilename, const SimulationMode s
       boundaryTypesEnum[i] = parseBoundary(boundaryTypes[i]);
     }
     particles = std::make_unique<LinkedCellParticleContainer>(domainSize, cutoffRadius, boundaryTypesEnum);
-    forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius);
+    forceCalc = std::make_unique<LennardJonesForce>(*particles, epsilon, sigma, cutoffRadius, gravity);
   }
 }
 

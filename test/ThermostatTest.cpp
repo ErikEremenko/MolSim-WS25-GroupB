@@ -60,7 +60,7 @@ class ThermostatTestingSimulation : public BaseSimulation {
 
     this->particles = std::move(particles);
     forceCalc = std::make_unique<LennardJonesForce>(*this->particles, SIM_FORCE_EPSILON, SIM_FORCE_SIGMA,
-                                                    SIM_FORCE_CUTOFF_RADIUS);
+                                                    SIM_FORCE_CUTOFF_RADIUS, 0);
   }
   ~ThermostatTestingSimulation() override = default;
 };

@@ -28,9 +28,10 @@ class YAMLFileReader final : public BaseFileReader {
   double getEpsilon() const;
   double getSigma() const;
   double getCutoff() const;
+  double getGravity() const;
   std::array<double,3> getDomainSize() const;
   std::array<std::string,6> getBoundaryTypesRaw() const;
-  
+
   // Checkpoint-related getters
   /** @brief Returns true if this file contains checkpoint particle data */
   bool isCheckpoint() const;

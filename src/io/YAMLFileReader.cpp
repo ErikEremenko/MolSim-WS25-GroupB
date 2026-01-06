@@ -72,6 +72,10 @@ double YAMLFileReader::getCutoff() const {
   return config["simulation"]["cutoff_radius"].as<double>();
 }
 
+double YAMLFileReader::getGravity() const {
+  return config["simulation"]["gravity"].as<double>();
+}
+
 std::array<double, 3> YAMLFileReader::getDomainSize() const {
   return config["domain"]["size"].as<std::array<double, 3>>();
 }

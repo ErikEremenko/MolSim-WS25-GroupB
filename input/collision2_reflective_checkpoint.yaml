@@ -9,6 +9,7 @@ simulation:
   epsilon: 5.0
   sigma: 1.0
   cutoff_radius: 3.0
+  gravity: -12.44
 
 domain:
   size: [180.0, 90.0, 1.0] # z=1 for 2D

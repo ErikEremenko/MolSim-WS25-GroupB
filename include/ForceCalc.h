@@ -59,7 +59,7 @@ public:
  */
 class LennardJonesForce final : public ForceCalc {
 private:
-  const double epsilon, sigma, cutoffRadius, repulsionDistance;
+  const double epsilon, sigma, cutoffRadius, repulsionDistance, gravity;
 
 
 public:
@@ -70,7 +70,7 @@ public:
    * @param sigma Sigma in the Lennard-Jones potential formula
    * @param cutoffRadius Distance beyond which interactions between the particles are not calculated (ignored)
    */
-  LennardJonesForce(ParticleContainer& particles, double epsilon, double sigma, double cutoffRadius);
+  LennardJonesForce(ParticleContainer& particles, double epsilon, double sigma, double cutoffRadius, double gravity);
 
   /**
   * @brief Calculates the Lennard-Jones forces acting on the particles
