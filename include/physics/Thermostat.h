@@ -30,7 +30,7 @@ private:
   double tempDelta;
 public:
   ~Thermostat();
-  Thermostat(ParticleContainer& particles, int nThermostat, double tempTarget, double tempDelta = std::numeric_limits<double>::infinity());
+  Thermostat(ParticleContainer& particles, int nThermostat, double tempTarget = 1.0, double tempDelta = std::numeric_limits<double>::infinity());
 
   /**
    * @brief Initializes the temperature of the system using Maxwell-Boltzmann velocities in Anderson thermostat style.
@@ -57,8 +57,18 @@ public:
    */
   double calculateCurrentTemperature();
 
+  // Getters and setters
   /**
-   * @return The update frequency of the thermostat, see @ref nThermostat.
+   * @brief Gets the frequency of thermostat applications
+   * @return nThermostat member
    */
   [[nodiscard]] int getUpdateFrequency() const;
+
+  /**
+   * @brief Sets the target temperature of the system.
+   * @note Used in @ref Simulation to set the target temperature to the current calculated temperature
+   * if no initial temperature or target temperature was specified.
+   * @param newTempTarget
+   */
+  void setTargetTemperature(double newTempTarget);
 };

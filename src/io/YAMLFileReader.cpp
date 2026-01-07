@@ -187,8 +187,8 @@ SimulationConfig YAMLFileReader::getConfig() {
   // Thermostat
   simConfig.thermostatConfig = getThermostatConfig();
 
-  // Particle generator
-  ParticleGenerator& particleGenerator = simConfig.particleGenerator;  // get ref for 'lighter' code
+  // Particle generation
+  ParticleGenerator& generatorRaw = *simConfig.particleGenerator;  // particle generator owned by config at this point, so it's ok to deref ptr
 
   const double globalSigma = *simConfig.sigma;
   const double globalEpsilon = *simConfig.epsilon;
@@ -210,7 +210,7 @@ SimulationConfig YAMLFileReader::getConfig() {
     const double sigma = cuboid["sigma"] ? cuboid["sigma"].as<double>() : globalSigma;
     const double epsilon = cuboid["epsilon"] ? cuboid["epsilon"].as<double>() : globalEpsilon;
 
-    particleGenerator.queueCuboid(pos, vel, dim, h, m, meanV, sigma, epsilon);
+    generatorRaw.queueCuboid(pos, vel, dim, h, m, meanV, sigma, epsilon);
     SPDLOG_DEBUG("Loaded cuboid {} with {} particles (sigma={}, epsilon={}).", i, dim[0] * dim[1] * dim[2], sigma,
                  epsilon);
   }
@@ -233,7 +233,7 @@ SimulationConfig YAMLFileReader::getConfig() {
     const double sigma = sphere["sigma"] ? sphere["sigma"].as<double>() : globalSigma;
     const double epsilon = sphere["epsilon"] ? sphere["epsilon"].as<double>() : globalEpsilon;
 
-    particleGenerator.queueDisc(pos, vel, rn, h, m, meanV, sigma, epsilon);
+    generatorRaw.queueDisc(pos, vel, rn, h, m, meanV, sigma, epsilon);
     SPDLOG_DEBUG("Loaded sphere (sigma={}, epsilon={}).", sigma, epsilon);
   }
 
@@ -267,7 +267,7 @@ SimulationConfig YAMLFileReader::getConfig() {
       double sigma = p["sigma"] ? p["sigma"].as<double>() : globalSigma;
       double epsilon = p["epsilon"] ? p["epsilon"].as<double>() : globalEpsilon;
 
-      particleGenerator.queueParticle(x, v, m, f, oldF, type, sigma, epsilon);
+      generatorRaw.queueParticle(x, v, m, f, oldF, type, sigma, epsilon);
     }
 
     SPDLOG_DEBUG("Loaded {} particles from checkpoint.", config["particles"].size());

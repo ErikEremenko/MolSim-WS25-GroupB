@@ -3,6 +3,7 @@
 #include <array>
 #include <optional>
 #include <string>
+#include <memory>
 
 #include "physics/LinkedCellParticleContainer.h"
 #include "physics/ParticleGenerator.h"
@@ -81,7 +82,7 @@ struct SimulationConfig {
   SimulationMode simulationMode = SimulationMode::FILE_OUTPUT;
 
   // Particle initialization
-  ParticleGenerator particleGenerator;
+  std::unique_ptr<ParticleGenerator> particleGenerator;
 
   // File output
   int writeFrequency = 10;  // not used when benchmarking

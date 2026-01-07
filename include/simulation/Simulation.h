@@ -1,10 +1,11 @@
 #pragma once
 
-#include "simulation/SimulationConfig.h"
-#include "io/CheckpointWriter.h"
+#include "io/CheckpointWriter.h"  // TODO: Re-implement checkpointing
 #include "io/YAMLFileReader.h"
 #include "physics/ForceCalc.h"
 #include "physics/Thermostat.h"
+#include "simulation/SimulationConfig.h"
+#include "physics/ParticleGenerator.h"
 
 #include <memory>
 #include <string>
@@ -20,7 +21,7 @@
  * Other classes can inherit from this class to build more specific simulations, but this is strongly discouraged.
  */
 class Simulation {  // TODO: For now, we keep the virtual methods for thermostat testing - make class final!
-protected:
+ protected:
   /**
    * @brief Total simulated time.
    */
@@ -46,6 +47,8 @@ protected:
    */
   std::string outputBasename;
 
+  std::unique_ptr<ParticleGenerator> particleGenerator;
+
   /**
    * @brief Strategy defining how particles are stored and accessed.
    */
@@ -56,7 +59,10 @@ protected:
    */
   std::unique_ptr<ForceCalc> forceCalc;
 
+  // Thermostat-related members, TODO: Add docstrings for them
   std::unique_ptr<Thermostat> thermostat;
+  bool needToAutoSetTargetTemperature = false;
+  std::optional<double> initialTemperature = std::nullopt;
 
   /**
    * @brief Outputs the state of the particles for visualization in ParaView.
@@ -84,14 +90,15 @@ protected:
    * @}
    */
   virtual void runBenchmark();
-public:
+
+ public:
   /**
    * @brief Constructs a simulation object from the given configuration.
    * @param config Simulation configuration
    */
-  explicit Simulation(const SimulationConfig& config);
+  explicit Simulation(SimulationConfig& config);
 
- /**
+  /**
    * @brief Destructor.
    */
   virtual ~Simulation();

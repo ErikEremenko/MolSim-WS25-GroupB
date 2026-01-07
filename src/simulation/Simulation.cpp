@@ -6,6 +6,7 @@
 
 #include <chrono>  // for benchmarking
 #include <memory>
+#include <utility>
 // process signal handling, TODO: Implement signal handling for all simulation types (?)
 #include <atomic>
 #include <csignal>
@@ -24,12 +25,13 @@ void sigint_handler(int signal) {
   }
 }
 
-Simulation::Simulation(const SimulationConfig& config)
+Simulation::Simulation(SimulationConfig& config)
     : endTime(config.tEnd),
       dt(config.deltaT),
       simulationMode(config.simulationMode),
       writeFrequency(config.writeFrequency),
-      outputBasename(config.outputBasename) {
+      outputBasename(std::move(config.outputBasename)),
+      particleGenerator(std::move(config.particleGenerator)) {
   // Initialize particle container and force calculation strategy
   switch (config.containerType) {
     case ContainerType::DIRECT:
@@ -54,10 +56,28 @@ Simulation::Simulation(const SimulationConfig& config)
   // Initialize thermostat
   if (config.thermostatConfig) {
     const ThermostatConfig& thermoConfig = *config.thermostatConfig;
-    // TODO: Fix thermostat initialization - T_init missing and T_target should be optional !!!
+
+    // Target temperature and initial temperature initialization
+    double actualTargetTemp;
+    if (thermoConfig.tempTarget) {
+      actualTargetTemp = *thermoConfig.tempTarget;
+      needToAutoSetTargetTemperature = false;
+    } else if (thermoConfig.tempInit) {
+      // Fallback: Target temp missing but T_init exists, target = init
+      actualTargetTemp = *thermoConfig.tempInit;
+      needToAutoSetTargetTemperature = false;
+    } else {
+      // Fallback: Target temp and initial temp both missing, target = current (calculated).
+      actualTargetTemp = 0.0;  // we don't know "Current" yet, so set dummy and flag it.
+      needToAutoSetTargetTemperature = true;
+    }
+
+    // Create thermostat object
     thermostat =
-        std::make_unique<Thermostat>(*particles, thermoConfig.nThermostat, thermoConfig.tempTarget.value_or(10.0),
+        std::make_unique<Thermostat>(*particles, thermoConfig.nThermostat, actualTargetTemp,
                                      thermoConfig.tempDelta.value_or(std::numeric_limits<double>::infinity()));
+
+    initialTemperature = thermoConfig.tempInit;  // copy optional, used in simulation setup
   } else {
     thermostat = nullptr;
   }
@@ -83,6 +103,8 @@ void Simulation::run() {
 }
 
 void Simulation::runFileOutput() {
+  const int thermoFrequency = thermostat ? thermostat->getUpdateFrequency() : 1;
+
   double currentTime = 0;
   int iteration = 0;
 
@@ -99,9 +121,13 @@ void Simulation::runFileOutput() {
     forceCalc->calculateV(dt);
 
     iteration++;
+    if (thermostat && (iteration % thermoFrequency == 0)) {
+      thermostat->updateTemperature();
+    }
     if (iteration % writeFrequency == 0) {
       plotParticles(iteration);
     }
+
     currentTime += dt;
   }
 }
@@ -115,6 +141,9 @@ void Simulation::runBenchmark() {
 
   // Benchmark begin
   const auto chronoStart = steady_clock::now();
+
+  const int thermoFrequency = thermostat ? thermostat->getUpdateFrequency() : 1;
+
   double currentTime = 0;
   long iteration = 0;
 
@@ -129,8 +158,12 @@ void Simulation::runBenchmark() {
     forceCalc->calculateF();
     forceCalc->calculateV(dt);
 
-    currentTime += dt;
     iteration++;
+    if (thermostat && (iteration % thermoFrequency == 0)) {
+      thermostat->updateTemperature();
+    }
+
+    currentTime += dt;
   }
 
   const auto chronoEnd = steady_clock::now();
@@ -153,5 +186,22 @@ void Simulation::runBenchmark() {
 }
 
 void Simulation::setupSimulation() {
-  // TODO: Implement particle generation here
+  // Generate particles
+  particleGenerator->generate(*particles);
+
+  // Set up special thermostat situations (if applicable)
+  if (thermostat) {
+    // Apply T_init
+    if (initialTemperature.has_value()) {
+      SPDLOG_INFO("Applying initial thermostat temperature (Brownian motion): {}", *initialTemperature);
+      thermostat->initializeTemperature(*initialTemperature);
+    }
+
+    // Fix target temperature (if it was missing)
+    if (needToAutoSetTargetTemperature) {
+      double currentTemp = thermostat->calculateCurrentTemperature();
+      thermostat->setTargetTemperature(currentTemp);
+      SPDLOG_INFO("Thermostat target set to initial calculated system temperature: {}", currentTemp);
+    }
+  }
 }

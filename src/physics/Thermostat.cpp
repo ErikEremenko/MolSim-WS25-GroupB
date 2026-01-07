@@ -45,7 +45,11 @@ void Thermostat::updateTemperature() {
   }
 }
 
-// Getters
+// Getters and setters
 int Thermostat::getUpdateFrequency() const {
   return nThermostat;
+}
+
+void Thermostat::setTargetTemperature(const double newTempTarget) {
+  tempTarget = newTempTarget;
 }
