@@ -2,11 +2,15 @@
 
 #include <spdlog/spdlog.h>
 
+ArgParser::ArgParser(const int argc, char* argv[]) : argc(argc), args(argv, argv + argc) {}
+
+ArgParser::~ArgParser() = default;
+
 void ArgParser::printUsage() {
-  SPDLOG_ERROR("Usage:");
-  SPDLOG_ERROR(
+  SPDLOG_INFO("Usage:");
+  SPDLOG_INFO(
       "  YAML mode: ./MolSim filename [file | benchmark] [off | error | debug | trace | info] [linked | direct]");
-  SPDLOG_ERROR(
+  SPDLOG_INFO(
       "  Legacy mode: ./MolSim filename t_end delta_t [file | benchmark] [off | error | debug | trace | info] [P:OFF | "
       "P:ON]");
 }
@@ -35,75 +39,75 @@ SimulationMode ArgParser::parseSimulationMode(const std::string& simModeStr) {
   throw std::invalid_argument("Invalid simulation mode: " + simModeStr);
 }
 
-std::optional<RunConfig> ArgParser::parseArgs(int argc, char* argv[]) {
+ContainerType ArgParser::parseContainerType(const std::string& containerTypeStr) {
+  if (containerTypeStr == "direct")
+    return ContainerType::DIRECT;
+  if (containerTypeStr == "linked")
+    return ContainerType::LINKED;
+  throw std::invalid_argument("Invalid container kind: " + containerTypeStr);
+}
+
+bool ArgParser::parseParallelization(const std::string& parallelStr) {
+  if (parallelStr == "P:ON")
+    return true;
+  if (parallelStr == "P:OFF")
+    return false;
+  throw std::invalid_argument("Invalid parallel option: " + parallelStr);
+}
+
+std::optional<CLIConfig> ArgParser::parse() const {
   if (argc < 2) {
     printUsage();
     return std::nullopt;
   }
 
-  std::vector<std::string> args(argv, argv + argc);  // cpp-safe version
-  RunConfig config;
-
-  // Set defaults
+  CLIConfig config;
   config.filename = args[1];
-  config.simulationMode = SimulationMode::FILE_OUTPUT;
-  config.logLevel = LogLevelConfig::INFO;
-  config.useParallelization = false;
 
-  // Detect YAML extension
+  // Detect YAML vs Legacy based on extension
   config.isYaml =
       (config.filename.find(".yaml") != std::string::npos || config.filename.find(".yml") != std::string::npos);
 
   try {
     if (config.isYaml) {
-      // Indices: 0-prog, 1-file, 2-mode, 3-log, 4-container, 5-parallel
+      // YAML Mode, sparse parsing
+      // We only set values if arguments are present
 
+      // Index 2: Mode (Optional)
       if (args.size() > 2)
         config.simulationMode = parseSimulationMode(args[2]);
+
+      // Index 3: Log Level (Optional)
       if (args.size() > 3)
         config.logLevel = parseLogLevel(args[3]);
 
-      config.containerKind = YAMLSimulation::ContainerKind::LINKED;  // Default
-      if (args.size() > 4) {
-        if (args[4] == "direct")
-          config.containerKind = YAMLSimulation::ContainerKind::DIRECT;
-        else if (args[4] == "linked")
-          config.containerKind = YAMLSimulation::ContainerKind::LINKED;
-        else
-          throw std::invalid_argument("Invalid container kind: " + args[4]);
-      }
+      // Index 4: Container (Optional)
+      if (args.size() > 4)
+        config.containerType = parseContainerType(args[4]);
 
-      if (args.size() > 5) {
-        if (args[5] == "P:ON")
-          config.useParallelization = true;
-        else if (args[5] == "P:OFF")
-          config.useParallelization = false;
-        else
-          throw std::invalid_argument("Invalid parallel option: " + args[5]);
-      }
+      // Index 5: Parallel (Optional)
+      if (args.size() > 5)
+        config.useParallelization = parseParallelization(args[5]);
+
     } else {
-      // Legacy mode parsing
+      // Legacy mode, full parsing
+      // Requires exactly 7 arguments (program + 6 args)
       if (argc != 7) {
         SPDLOG_ERROR("Legacy mode requires exactly 7 arguments.");
         printUsage();
         return std::nullopt;
       }
 
-      // Indices: 0:prog, 1:file, 2:t_end, 3:dt, 4:mode, 5:log, 6:parallel
+      // Default container for legacy is direct
       config.tEnd = std::stod(args[2]);
       config.deltaT = std::stod(args[3]);
       config.simulationMode = parseSimulationMode(args[4]);
       config.logLevel = parseLogLevel(args[5]);
-
-      if (args[6] == "P:ON")
-        config.useParallelization = true;
-      else if (args[6] == "P:OFF")
-        config.useParallelization = false;
-      else
-        throw std::invalid_argument("Invalid parallel option: " + args[6]);
+      config.useParallelization = parseParallelization(args[6]);
     }
   } catch (const std::exception& e) {
     SPDLOG_ERROR("Argument parsing error: {}", e.what());
+    printUsage();
     return std::nullopt;
   }
 
