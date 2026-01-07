@@ -150,6 +150,7 @@ double YAMLFileReader::getCheckpointTime() const {
 }
 
 SimulationConfig YAMLFileReader::getConfig() {
+  // TODO: Some of these parameters are optional but their lack in the YAML file causes errors - fix by using std::optional
   SimulationConfig simConfig;
 
   // Basic simulation parameters

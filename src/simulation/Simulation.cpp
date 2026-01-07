@@ -87,6 +87,7 @@ Simulation::~Simulation() = default;
 
 void Simulation::plotParticles(const int iteration) const {
   outputWriter::VTKWriter::plotParticles(*particles, outputBasename, iteration);
+  SPDLOG_DEBUG("Succesfully wrote particles to file, iteration={}", iteration);
 }
 
 void Simulation::run() {
@@ -94,9 +95,11 @@ void Simulation::run() {
 
   switch (simulationMode) {
     case SimulationMode::BENCHMARK:
+      SPDLOG_INFO("Simulation loop starting in benchmark mode...");
       runBenchmark();
       break;
     case SimulationMode::FILE_OUTPUT:
+      SPDLOG_INFO("Simulation loop starting in file output mode...");
       runFileOutput();
       break;
   }

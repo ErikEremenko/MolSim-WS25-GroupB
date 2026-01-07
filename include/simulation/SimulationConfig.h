@@ -82,7 +82,7 @@ struct SimulationConfig {
   SimulationMode simulationMode = SimulationMode::FILE_OUTPUT;
 
   // Particle initialization
-  std::unique_ptr<ParticleGenerator> particleGenerator;
+  std::unique_ptr<ParticleGenerator> particleGenerator = std::make_unique<ParticleGenerator>();;
 
   // File output
   int writeFrequency = 10;  // not used when benchmarking
