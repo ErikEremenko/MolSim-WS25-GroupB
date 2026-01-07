@@ -24,17 +24,77 @@ class YAMLFileReader {
   SimulationConfig getConfig();
 
   // Getters for simulation parameters
+  /**
+ * @brief Gets the base name for output files.
+ * @return The base name string used for output file generation.
+ */
   std::string getOutputBaseName() const;
+
+  /**
+   * @brief Gets the frequency at which simulation output is written.
+   * @return The write frequency in number of iterations.
+   */
   int getWriteFrequency() const;
+
+  /**
+   * @brief Gets the frequency at which checkpoint files are written.
+   * @return The checkpoint frequency in number of iterations.
+   */
   int getCheckpointFrequency() const;
+
+  /**
+   * @brief Gets the simulation end time.
+   * @return The total simulation time in seconds.
+   */
   double getTEnd() const;
+
+  /**
+   * @brief Gets the simulation time step size.
+   * @return The time step in seconds.
+   */
   double getDeltaT() const;
+
+  /**
+   * @brief Gets the global Lennard-Jones epsilon parameter.
+   * @return The epsilon value for force calculations.
+   */
   double getEpsilon() const;
+
+  /**
+   * @brief Gets the global Lennard-Jones sigma parameter.
+   * @return The sigma value for force calculations.
+   */
   double getSigma() const;
+
+  /**
+   * @brief Gets the cutoff radius for force calculations.
+   * @return The cutoff radius in simulation units.
+   */
   double getCutoff() const;
+
+  /**
+   * @brief Gets the gravity constant applied to particles.
+   * @return The gravity value (typically in negative y-direction).
+   */
   double getGravity() const;
+
+  /**
+   * @brief Gets the simulation domain size.
+   * @return Array containing domain dimensions [x, y, z].
+   */
   std::array<double, 3> getDomainSize() const;
+
+  /**
+   * @brief Gets the boundary condition types as raw strings.
+   * @return Array of boundary type strings in order: [x_min, x_max, y_min, y_max, z_min, z_max].
+   */
   std::array<std::string, 6> getBoundaryTypesRaw() const;
+
+  /**
+   * @brief Parses the 'thermostat' YAML block.
+   * @return Optional ThermostatConfig. Returns nullopt if block is missing.
+   */
+  std::optional<ThermostatConfig> getThermostatConfig() const;
 
   // Checkpoint-related getters
   /** @brief Returns true if this file contains checkpoint particle data */

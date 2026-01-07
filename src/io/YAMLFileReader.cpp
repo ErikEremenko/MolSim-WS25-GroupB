@@ -37,6 +37,7 @@ void YAMLFileReader::checkRequiredKeys() const {
   }
 }
 
+// Getters for simulation parameters
 std::string YAMLFileReader::getOutputBaseName() const {
   return config["output"]["base_name"].as<std::string>();
 }
@@ -92,6 +93,44 @@ std::array<std::string, 6> YAMLFileReader::getBoundaryTypesRaw() const {
   return b;
 }
 
+std::optional<ThermostatConfig> YAMLFileReader::getThermostatConfig() const {
+  if (!config["thermostat"]) {
+    return std::nullopt;
+  }
+
+  const auto& node = config["thermostat"];
+  ThermostatConfig thermoConfig;
+
+  // Else cases are omitted below as the default value in the struct for optionals is std::nullopt
+  // n_thermostat - mandatory
+  if (!node["n_thermostat"]) {
+    SPDLOG_ERROR("Thermostat config found, but 'n_thermostat' is missing!");
+    throw std::runtime_error("YAML Error: Thermostat config missing n_thermostat");
+  }
+  thermoConfig.nThermostat = node["n_thermostat"].as<int>();
+
+  // T_init - optional
+  if (node["temp_init"]) {
+    thermoConfig.tempInit = node["temp_init"].as<double>();
+  }
+
+  // T_target - optional
+  if (node["temp_target"]) {
+    thermoConfig.tempTarget = node["temp_target"].as<double>();
+  }
+
+  // delta_T - optional
+  // Maps to tempDelta in your struct
+  if (node["temp_delta"]) {
+    thermoConfig.tempDelta = node["temp_delta"].as<double>();
+  }
+
+  SPDLOG_INFO("Thermostat configured with frequency={}", thermoConfig.nThermostat);
+
+  return thermoConfig;
+}
+
+// Checkpoint-related getters
 bool YAMLFileReader::isCheckpoint() const {
   return config["particles"] && config["particles"].size() > 0;
 }
@@ -131,7 +170,6 @@ SimulationConfig YAMLFileReader::getConfig() {
   // simConfig.useParallelization = FALSE - by default (in the struct), overridden by CLI
 
   // Container and Linked Cell parameters
-  // TODO: Boundary parsing
   auto parseBoundary = [](const std::string& s) -> BoundaryType {
     if (s == "OUTFLOW") return BoundaryType::OUTFLOW;
     if (s == "REFLECTIVE") return BoundaryType::REFLECTIVE;
@@ -145,6 +183,9 @@ SimulationConfig YAMLFileReader::getConfig() {
     boundariesEnum[i] = parseBoundary(rawBoundaries[i]);
   }
   simConfig.boundaryTypes = boundariesEnum;
+
+  // Thermostat
+  simConfig.thermostatConfig = getThermostatConfig();
 
   // Particle generator
   ParticleGenerator& particleGenerator = simConfig.particleGenerator;  // get ref for 'lighter' code
@@ -231,29 +272,6 @@ SimulationConfig YAMLFileReader::getConfig() {
 
     SPDLOG_DEBUG("Loaded {} particles from checkpoint.", config["particles"].size());
   }
-
-  // TODO: Finish thermostat parsing
-  // We expect this to exist if the thermostat block exists.
-  if (const auto& thermostatConfig = config["thermostat"]) {
-    if (!thermostatConfig["n_thermostat"]) {
-      SPDLOG_ERROR("Thermostat config found, but 'n_thermostat' is missing!");
-      throw std::invalid_argument("Thermostat config not found.");
-    }
-    int n_thermostat = thermostatConfig["n_thermostat"].as<int>();
-
-    double t_target = 0.0;
-    if (thermostatConfig["T_target"]) {
-      t_target = thermostatConfig["T_target"].as<double>();
-    } else {
-      SPDLOG_WARN("T_target not specified in thermostat. Defaulting to 0.");
-    }
-
-    // TODO: Add the rest of the thermostat parameters here
-  } else {
-    SPDLOG_INFO("No thermostat configuration found.");
-  }
-  // TODO: Add thermostat initialization now that we have thermostat config parsing
-  simConfig.thermostatConfig = std::nullopt;  // TODO
 
   return simConfig;
 }
