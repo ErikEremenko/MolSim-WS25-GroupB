@@ -6,6 +6,11 @@
 #include "utils/ArrayUtils.h"
 #include "utils/MaxwellBoltzmannDistribution.h"
 
+#ifndef SPDLOG_ACTIVE_LEVEL
+  #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#endif  // SPDLOG_ACTIVE_LEVEL
+#include <spdlog/spdlog.h>
+
 double Thermostat::calculateCurrentTemperature() {
   double totalKineticEnergyTimesTwo = 0.0;
   for (const auto& particle : particles) {
@@ -43,6 +48,8 @@ void Thermostat::updateTemperature() {
   for (auto& particle : particles) {
     particle.setV(beta * particle.getV());
   }
+
+  SPDLOG_DEBUG("Updated temperature from {} to {}", tempCurrent, tempNew);
 }
 
 // Getters and setters
