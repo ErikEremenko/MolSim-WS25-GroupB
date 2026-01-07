@@ -35,7 +35,7 @@ enum class SimulationMode {
  *
  * Determines the underlying data structure used to store and access particles.
  */
-enum class ContainerType {
+enum class ContainerType {  // TODO: Consider moving this to a separate header file
   /**
    * @var ContainerType::DIRECT
    * Uses a direct-access container (e.g. array-based storage).

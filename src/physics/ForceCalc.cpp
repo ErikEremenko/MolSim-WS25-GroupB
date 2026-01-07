@@ -5,6 +5,7 @@
 
 #include "utils/ArrayUtils.h"
 #include "physics/LinkedCellParticleContainer.h"
+#include "simulation/SimulationConfig.h"  // For boundary types, TODO: Refactor boundary types into another file
 
 ForceCalc::~ForceCalc() = default;
 
@@ -280,12 +281,12 @@ void LennardJonesForce::applyReflectiveBoundaries(const LinkedCellParticleContai
       const double maxD = domainOrigin[d] + domainDims[d];
 
       // Handling two opposite boundaries per dimension d -> 6 faces
-      if (boundaryTypes[2 * d] == LinkedCellParticleContainer::BoundaryType::REFLECTIVE) {
+      if (boundaryTypes[2 * d] == BoundaryType::REFLECTIVE) {
         if (const double distToWall = x[d] - minD; distToWall > 0. && distToWall < cutoffRadius) {
           F_total = F_total + computeGhostForce(d, minD);
         }
       }
-      if (boundaryTypes[2 * d + 1] == LinkedCellParticleContainer::BoundaryType::REFLECTIVE) {
+      if (boundaryTypes[2 * d + 1] == BoundaryType::REFLECTIVE) {
         if (const double distToWall = maxD - x[d]; distToWall > 0. && distToWall < cutoffRadius) {
           F_total = F_total + computeGhostForce(d, maxD);
         }
@@ -334,8 +335,10 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
   // Face interactions
   // Handle particle pairs across opposite faces of the domain
   // X-periodic: left wall (x=1) <-> right wall (x=numCells[0]-2)
-  if (boundaryTypes[0] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[1] == LinkedCellParticleContainer::BoundaryType::PERIODIC) {
+  if (boundaryTypes[0] ==
+    BoundaryType::PERIODIC &&
+      boundaryTypes[1] ==
+      BoundaryType::PERIODIC) {
     for (int c1y = 1; c1y < numCells[1] - 1; c1y++)
       for (int c1z = 1; c1z < numCells[2] - 1; c1z++) {
         auto& cell1 = lc->cell_at(1, c1y, c1z);
@@ -358,8 +361,8 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
   }
 
   // Y-periodic: bottom wall (y=1) <-> top wall (y=numCells[1]-2)
-  if (boundaryTypes[2] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[3] == LinkedCellParticleContainer::BoundaryType::PERIODIC) {
+  if (boundaryTypes[2] == BoundaryType::PERIODIC &&
+      boundaryTypes[3] == BoundaryType::PERIODIC) {
     for (int c1x = 1; c1x < numCells[0] - 1; c1x++)
       for (int c1z = 1; c1z < numCells[2] - 1; c1z++) {
         auto& cell1 = lc->cell_at(c1x, 1, c1z);
@@ -383,8 +386,8 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
   }
 
   // Z-periodic: front wall (z=1) <-> back wall (z=numCells[2]-2)
-  if (boundaryTypes[4] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[5] == LinkedCellParticleContainer::BoundaryType::PERIODIC) {
+  if (boundaryTypes[4] == BoundaryType::PERIODIC &&
+      boundaryTypes[5] == BoundaryType::PERIODIC) {
     for (int c1x = 1; c1x < numCells[0] - 1; c1x++)
       for (int c1y = 1; c1y < numCells[1] - 1; c1y++) {
         auto& cell1 = lc->cell_at(c1x, c1y, 1);
@@ -409,10 +412,10 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
 
   // Edge interaction: handle particle pairs along edges (two periodic dimensions)
   // X+y periodic: bottom-left edge <-> top-right edge, top-left edge <-> bottom-right edge
-  if (boundaryTypes[0] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[1] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[2] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[3] == LinkedCellParticleContainer::BoundaryType::PERIODIC) {
+  if (boundaryTypes[0] == BoundaryType::PERIODIC &&
+      boundaryTypes[1] == BoundaryType::PERIODIC &&
+      boundaryTypes[2] == BoundaryType::PERIODIC &&
+      boundaryTypes[3] == BoundaryType::PERIODIC) {
     for (int c1z = 1; c1z < numCells[2] - 1; c1z++) {
       auto& cell1 = lc->cell_at(1, 1, c1z);
       // Iterate through all neighboring cells of cell1 on opposing side
@@ -458,10 +461,10 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
   }
 
   // X+z periodic: front-left edge <-> back-right edge, back-left edge <-> front-right edge
-  if (boundaryTypes[0] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[1] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[4] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[5] == LinkedCellParticleContainer::BoundaryType::PERIODIC) {
+  if (boundaryTypes[0] == BoundaryType::PERIODIC &&
+      boundaryTypes[1] == BoundaryType::PERIODIC &&
+      boundaryTypes[4] == BoundaryType::PERIODIC &&
+      boundaryTypes[5] == BoundaryType::PERIODIC) {
     for (int c1y = 1; c1y < numCells[1] - 1; c1y++) {
       auto& cell1 = lc->cell_at(1, c1y, 1);
       // Iterate through all neighboring cells of cell1 on opposing side
@@ -506,10 +509,10 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
   }
 
   // Y+z periodic: bottom-front edge <-> top-back edge, bottom-back edge <-> top-front edge
-  if (boundaryTypes[2] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[3] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[4] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[5] == LinkedCellParticleContainer::BoundaryType::PERIODIC) {
+  if (boundaryTypes[2] == BoundaryType::PERIODIC &&
+      boundaryTypes[3] == BoundaryType::PERIODIC &&
+      boundaryTypes[4] == BoundaryType::PERIODIC &&
+      boundaryTypes[5] == BoundaryType::PERIODIC) {
     for (int c1x = 1; c1x < numCells[0] - 1; c1x++) {
       auto& cell1 = lc->cell_at(c1x, 1, 1);
       // Iterate through all neighboring cells of cell1 on opposing side
@@ -556,12 +559,12 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
   // Corner interactions
   // Handle particle pairs between all 8 corners in fully periodic 3d domain
   // 4 corner pairs: (0,0,0)<->(1,1,1), (1,0,0)<->(0,1,1), (0,0,1)<->(1,1,0), (1,0,1)<->(0,1,0)
-  if (boundaryTypes[0] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[1] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[2] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[3] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[4] == LinkedCellParticleContainer::BoundaryType::PERIODIC &&
-      boundaryTypes[5] == LinkedCellParticleContainer::BoundaryType::PERIODIC) {
+  if (boundaryTypes[0] == BoundaryType::PERIODIC &&
+      boundaryTypes[1] == BoundaryType::PERIODIC &&
+      boundaryTypes[2] == BoundaryType::PERIODIC &&
+      boundaryTypes[3] == BoundaryType::PERIODIC &&
+      boundaryTypes[4] == BoundaryType::PERIODIC &&
+      boundaryTypes[5] == BoundaryType::PERIODIC) {
 
     auto& cell1 = lc->cell_at(1, 1, 1);
     auto& cell2 = lc->cell_at(numCells[0] - 2, numCells[1] - 2, numCells[2] - 2);

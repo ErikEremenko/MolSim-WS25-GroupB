@@ -1,18 +1,16 @@
-/**
- * @file CalcMethod.h
- *
- */
-
 #pragma once
 
 #include "physics/ParticleContainer.h"
+
 /**
  * @class ForceCalc
- * @brief Virtual class used as a base for different calculation methods for simulation
- *
+ * @brief Abstract base class used for implementing different force calculation strategies
  */
 class ForceCalc {
  protected:
+  /**
+   * @brief Particles to apply the force calculations on
+   */
   ParticleContainer& particles;
 
  public:
@@ -59,8 +57,8 @@ public:
  */
 class LennardJonesForce final : public ForceCalc {
 private:
+  // TODO: Docstring these members
   const double epsilon, sigma, cutoffRadius, repulsionDistance, gravity;
-
 
 public:
   /**
@@ -94,6 +92,7 @@ public:
    */
   void applyReflectiveBoundaries(const class LinkedCellParticleContainer* lc) const;
 
+  // TODO: Docstring these methods
   void calcFPeriodicBoundary(Particle* p1, Particle* p2) const;
   void applyPeriodicBoundaries(LinkedCellParticleContainer* lc) const;
 };
@@ -104,16 +103,17 @@ public:
  */
 class LennardJonesForceParallel final : public ForceCalc {
 private:
+  // TODO: Either docstring these or inherit from LennardJonesForce
   const double epsilon, sigma, cutoffRadius;
 
 public:
   /**
- *
- * @param particles ParticleContainer that stores the particles used by the calculation method
- * @param epsilon Epsilon in the Lennard-Jones potential formula
- * @param sigma Sigma in the Lennard-Jones potential formula
- * @param cutoffRadius Distance beyond which interactions between the particles are not calculated (ignored)
- */
+   *
+   * @param particles ParticleContainer that stores the particles used by the calculation method
+   * @param epsilon Epsilon in the Lennard-Jones potential formula
+   * @param sigma Sigma in the Lennard-Jones potential formula
+   * @param cutoffRadius Distance beyond which interactions between the particles are not calculated (ignored)
+   */
   LennardJonesForceParallel(ParticleContainer& particles, double epsilon, double sigma, double cutoffRadius);
 
   /**

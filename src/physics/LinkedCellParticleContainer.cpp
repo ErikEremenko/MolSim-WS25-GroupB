@@ -53,7 +53,7 @@ void LinkedCellParticleContainer::updateCells() {
   }
 }
 
-LinkedCellParticleContainer::CellType LinkedCellParticleContainer::getCellType(size_t cdx) const {
+CellType LinkedCellParticleContainer::getCellType(size_t cdx) const {
   const int nx = numCells[0];
   const int ny = numCells[1];
   const int nz = numCells[2];
