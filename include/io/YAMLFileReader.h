@@ -1,11 +1,11 @@
 #pragma once
 #include <yaml-cpp/yaml.h>
 #include <string>
-#include "physics/ParticleContainer.h"
 #include "io/FileReader.h"
+#include "physics/ParticleContainer.h"
 #include "utils/MaxwellBoltzmannDistribution.h"
 
-class YAMLFileReader final : public BaseFileReader {
+class YAMLFileReader {
  public:
   /**
    * @brief Constructor loads the YAML file immediately.
@@ -14,10 +14,9 @@ class YAMLFileReader final : public BaseFileReader {
   explicit YAMLFileReader(std::string filename);
 
   /**
-   * @brief Parses cuboids section and populates the container.
-   * @param particles The container to add particles to.
+   * @brief Parses cuboids section and queues orders to the particle generator.
    */
-  void readFile(ParticleContainer& particles) override;
+  void readFile();
 
   // Getters for simulation parameters
   std::string getOutputBaseName() const;
@@ -29,8 +28,8 @@ class YAMLFileReader final : public BaseFileReader {
   double getSigma() const;
   double getCutoff() const;
   double getGravity() const;
-  std::array<double,3> getDomainSize() const;
-  std::array<std::string,6> getBoundaryTypesRaw() const;
+  std::array<double, 3> getDomainSize() const;
+  std::array<std::string, 6> getBoundaryTypesRaw() const;
 
   // Checkpoint-related getters
   /** @brief Returns true if this file contains checkpoint particle data */
@@ -44,6 +43,8 @@ class YAMLFileReader final : public BaseFileReader {
   // Stores loaded YAML structure
   YAML::Node config;
 
-  // uUed to validate configuration keys
+  std::string filename;
+
+  // used to validate configuration keys
   void checkRequiredKeys() const;
 };

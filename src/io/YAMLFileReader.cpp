@@ -3,7 +3,7 @@
 
 #include <spdlog/spdlog.h>
 
-YAMLFileReader::YAMLFileReader(std::string filename) : BaseFileReader(filename) {
+YAMLFileReader::YAMLFileReader(std::string filename) : filename(filename) {
   try {
     config = YAML::LoadFile(filename);
     checkRequiredKeys();
@@ -110,19 +110,20 @@ double YAMLFileReader::getCheckpointTime() const {
   return 0.0;
 }
 
-void YAMLFileReader::readFile(ParticleContainer& particles) {
-  ParticleGenerator particleGenerator(particles);
+void YAMLFileReader::readFile() {
+  // TODO: This particle generator gets scrapped without doing anything, integrate to SimulationConfig!
+  ParticleGenerator particleGenerator{};
 
   // Get global sigma/epsilon as defaults
   const double globalSigma = getSigma();
   const double globalEpsilon = getEpsilon();
 
+  // Parse cuboids
   const auto& cuboids = config["cuboids"];
-
   for (std::size_t i = 0; i < cuboids.size(); ++i) {
     const auto& cuboid = cuboids[i];
 
-    // Read Cuboid Parameters
+    // Cuboid parameters
     auto pos = cuboid["position"].as<std::array<double, 3>>();
     auto vel = cuboid["velocity"].as<std::array<double, 3>>();
     auto dim = cuboid["dimensions"].as<std::array<int, 3>>();
@@ -134,18 +135,18 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
     const double sigma = cuboid["sigma"] ? cuboid["sigma"].as<double>() : globalSigma;
     const double epsilon = cuboid["epsilon"] ? cuboid["epsilon"].as<double>() : globalEpsilon;
 
-    particleGenerator.generateCuboid(pos, vel, dim, h, m, meanV, sigma, epsilon);
-
+    particleGenerator.queueCuboid(pos, vel, dim, h, m, meanV, sigma, epsilon);
     SPDLOG_DEBUG("Loaded cuboid {} with {} particles (sigma={}, epsilon={}).", i, dim[0] * dim[1] * dim[2], sigma,
                  epsilon);
   }
 
+  // Parse spheres
+  // TODO: Why is this named 'sphere' here and 'disc' in ParticleGenerator?
   const auto& spheres = config["spheres"];
-
   for (std::size_t i = 0; i < spheres.size(); ++i) {
     const auto& sphere = spheres[i];
 
-    // Read Sphere Parameters
+    // Sphere parameters
     const auto pos = sphere["position"].as<std::array<double, 3>>();
     const auto vel = sphere["velocity"].as<std::array<double, 3>>();
     const auto rn = sphere["radius_particles"].as<int>();
@@ -157,8 +158,7 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
     const double sigma = sphere["sigma"] ? sphere["sigma"].as<double>() : globalSigma;
     const double epsilon = sphere["epsilon"] ? sphere["epsilon"].as<double>() : globalEpsilon;
 
-    particleGenerator.generateDisc(pos, vel, rn, h, m, meanV, sigma, epsilon);
-
+    particleGenerator.queueDisc(pos, vel, rn, h, m, meanV, sigma, epsilon);
     SPDLOG_DEBUG("Loaded sphere (sigma={}, epsilon={}).", sigma, epsilon);
   }
 
@@ -192,14 +192,13 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
       double sigma = p["sigma"] ? p["sigma"].as<double>() : globalSigma;
       double epsilon = p["epsilon"] ? p["epsilon"].as<double>() : globalEpsilon;
 
-      particles.addParticle(x, v, m, f, oldF, type, sigma, epsilon);
+      particleGenerator.queueParticle(x, v, m, f, oldF, type, sigma, epsilon);
     }
 
     SPDLOG_DEBUG("Loaded {} particles from checkpoint.", config["particles"].size());
   }
 
-  // TODO: The issue here is that we already initialize the particles with temperatures - so T_init is irrelevant!
-  // 1. Parse Required Thermostat Parameter: n_thermostat
+  // TODO: Finish thermostat parsing
   // We expect this to exist if the thermostat block exists.
   if (const auto& thermostatConfig = config["thermostat"]) {
     if (!thermostatConfig["n_thermostat"]) {
