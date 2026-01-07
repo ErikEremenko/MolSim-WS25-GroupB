@@ -96,7 +96,7 @@ void CuboidFileReader::readFile(ParticleContainer& particles) {
     getline(input_file, tmp_string);
     SPDLOG_DEBUG("Read line: {}", tmp_string);
 
-    ParticleGenerator particleGenerator(particles);
+    ParticleGenerator particleGenerator{};
 
     for (int i = 0; i < num_cuboids; i++) {
       std::istringstream datastream(tmp_string);
@@ -118,7 +118,8 @@ void CuboidFileReader::readFile(ParticleContainer& particles) {
       datastream >> m;
       datastream >> t;
 
-      particleGenerator.generateCuboid(cx, cv, n, h, m, t);
+      particleGenerator.queueCuboid(cx, cv, n, h, m, t);
+      particleGenerator.generate(particles);
 
       getline(input_file, tmp_string);
       SPDLOG_DEBUG("Read line: {}", tmp_string);

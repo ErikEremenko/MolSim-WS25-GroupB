@@ -11,6 +11,26 @@
 #include "physics/ParticleContainer.h"
 
 /**
+ * @enum BoundaryType
+ * @brief Defines behavior of particles at  boundaries.
+ */
+enum class BoundaryType {
+  OUTFLOW,     ///< Particles leave the domain and are deleted
+  REFLECTIVE,  ///< Particles bounce back (velocity reflection)
+  PERIODIC     ///< Particles wrap around to opposite boundary
+};
+
+/**
+ * @enum CellType
+ * @brief Defines type of particles in the cells.
+ */
+enum class CellType {
+  INNER,
+  BOUNDARY,
+  HALO,
+};
+
+/**
  * @class LinkedCellParticleContainer
  * @brief Iterable container class which extends ParticleContainer used for storing particles for a simulation.
  * It offers methods for adding, accessing particles and iterating through a set of particles
@@ -21,34 +41,13 @@
 class LinkedCellParticleContainer : public ParticleContainer {
  public:
   /**
-   * @enum BoundaryType
-   * @brief Defines behavior of particles at  boundaries.
+   * @brief Constructor for LinkedCellParticleContainer
+   * @param domainDims Size of the simulation domain (x, y, z)
+   * @param cutoffRadius The cutoff radius for interactions
+   * @param boundaryTypes Boundary types for each face (left, right, bottom, top, back, front)
    */
-  enum class BoundaryType {
-    OUTFLOW,    ///< Particles leave the domain and are deleted
-    REFLECTIVE, ///< Particles bounce back (velocity reflection)
-    PERIODIC    ///< Particles wrap around to opposite boundary
-  };
-
-  /**
-  * @enum CellType
-  * @brief Defines type of particles in the cells.
-  */
-  enum class CellType {
-    INNER,
-    BOUNDARY,
-    HALO,
-  };
-
-  /**
- * @brief Constructor for LinkedCellParticleContainer
- * @param domainDims Size of the simulation domain (x, y, z)
- * @param cutoffRadius The cutoff radius for interactions
- * @param boundaryTypes Boundary types for each face (left, right, bottom, top, back, front)
- */
-  LinkedCellParticleContainer( const std::array<double, 3>& domain_dims,
-    double cutoff_radius,
-    const std::array<BoundaryType, 6>& boundary_types);
+  LinkedCellParticleContainer(const std::array<double, 3>& domain_dims, double cutoff_radius,
+                              const std::array<BoundaryType, 6>& boundary_types);
 
   ~LinkedCellParticleContainer() = default;
 
@@ -57,9 +56,8 @@ class LinkedCellParticleContainer : public ParticleContainer {
   void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m);
   void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma, double epsilon);
   void addParticle(const Particle* p);
-  void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m,
-                   std::array<double, 3> f, std::array<double, 3> oldF,
-                   int type, double sigma, double epsilon) override;
+  void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, std::array<double, 3> f,
+                   std::array<double, 3> oldF, int type, double sigma, double epsilon) override;
 
   /**
    * @brief Update cell assignments after particle positions change
@@ -82,8 +80,7 @@ class LinkedCellParticleContainer : public ParticleContainer {
    * @param cdx Index of the central cell
    * @param func Function to apply
    */
-  void iterateCellNeighbors(size_t cdx,
-                            const std::function<void(Particle&, Particle&)>& func) const;
+  void iterateCellNeighbors(size_t cdx, const std::function<void(Particle&, Particle&)>& func) const;
 
   /**
    * @brief Access cell by grid coordinates.
@@ -95,7 +92,7 @@ class LinkedCellParticleContainer : public ParticleContainer {
   std::vector<Particle*>& cell_at(int cx, int cy, int cz);
 
   // Getters
-[[nodiscard]] std::array<double, 3> domain_dims() const { return domainDims; }
+  [[nodiscard]] std::array<double, 3> domain_dims() const { return domainDims; }
   [[nodiscard]] std::array<double, 3> domain_origin() const { return domainOrigin; }
   [[nodiscard]] double cutoff_radius() const { return cutoffRadius; }
   [[nodiscard]] std::array<double, 3> cell_size() const { return cellSize; }
@@ -103,21 +100,22 @@ class LinkedCellParticleContainer : public ParticleContainer {
   [[nodiscard]] std::array<BoundaryType, 6> boundary_types() const { return boundaryTypes; }
 
  private:
-    std::array<double, 3> domainDims;               ///< Dimensions of the simulation domain (x, y, z)
-    std::array<double, 3> domainOrigin{0., 0., 0.}; ///< Coordinates of the domain origin (bottom-left-front corner)
-    double cutoffRadius;                            ///< Cutoff radius for particle-particle interactions
-    std::array<double, 3> cellSize;                 ///< Dimensions of a single cell
-    CellType cellType;                              ///< Type of the current cell
-    std::array<int, 3> numCells;                    ///< Number of cells in each dimension (including halo layer)
-    std::array<BoundaryType, 6> boundaryTypes = {
-        BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
-        BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW}; ///< Boundary conditions for the 6 faces (x-, x+, y-, y+, z-, z+)
-    std::vector<std::vector<Particle*>> cells;      ///< Linearized vector of cells, where each cell contains pointers to particles
+  std::array<double, 3> domainDims;                ///< Dimensions of the simulation domain (x, y, z)
+  std::array<double, 3> domainOrigin{0., 0., 0.};  ///< Coordinates of the domain origin (bottom-left-front corner)
+  double cutoffRadius;                             ///< Cutoff radius for particle-particle interactions
+  std::array<double, 3> cellSize;                  ///< Dimensions of a single cell
+  CellType cellType;                               ///< Type of the current cell
+  std::array<int, 3> numCells;                     ///< Number of cells in each dimension (including halo layer)
+  std::array<BoundaryType, 6> boundaryTypes = {
+      BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
+      BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};  ///< Boundary conditions for the 6 faces (x-, x+, y-, y+, z-, z+)
+  std::vector<std::vector<Particle*>>
+      cells;  ///< Linearized vector of cells, where each cell contains pointers to particles
 
   /**
 * @brief Initialize cell grid
 */
-    void initCells();
+  void initCells();
 
   /**
  * @brief Get all 3*3*3=27 neighbor cell indices, including the centered cell itself
@@ -151,5 +149,4 @@ class LinkedCellParticleContainer : public ParticleContainer {
 * @brief Map the position of a particle's position to the index of the respective cell
 */
   [[nodiscard]] int getCellIndex(const std::array<double, 3>& x) const;
-
 };

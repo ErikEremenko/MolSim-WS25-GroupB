@@ -18,10 +18,10 @@ enum class LogLevelConfig { OFF, ERROR, WARN, INFO, DEBUG, TRACE };
 struct CLIConfig {
   std::string filename;
   bool isYaml;
+  std::optional<LogLevelConfig> logLevel;
 
   // CLI overrides the parameters below even if they are defined in YAML
   std::optional<SimulationMode> simulationMode;
-  std::optional<LogLevelConfig> logLevel;
   std::optional<ContainerType> containerType;
   std::optional<bool> useParallelization;
 

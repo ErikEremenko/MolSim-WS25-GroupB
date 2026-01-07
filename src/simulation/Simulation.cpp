@@ -1,11 +1,11 @@
 #include "simulation/Simulation.h"
 
-#include "physics/LinkedCellParticleContainer.h"
 #include "io/FileReader.h"
 #include "io/VTKWriter.h"
+#include "physics/LinkedCellParticleContainer.h"
 
-#include <memory>
 #include <chrono>  // for benchmarking
+#include <memory>
 // process signal handling, TODO: Implement signal handling for all simulation types (?)
 #include <atomic>
 #include <csignal>
@@ -24,38 +24,30 @@ void sigint_handler(int signal) {
   }
 }
 
-namespace {
-BoundaryType parseBoundary(const std::string& s) {
-  if (s == "OUTFLOW")
-    return BoundaryType::OUTFLOW;
-  if (s == "REFLECTIVE")
-    return BoundaryType::REFLECTIVE;
-  if (s == "PERIODIC")
-    return BoundaryType::PERIODIC;
-  throw std::runtime_error("Unknown boundary type in YAML: " + s);
-}
-}  // namespace
-
-
 Simulation::Simulation(const SimulationConfig& config)
-  : endTime(config.tEnd),
-    dt(config.deltaT),
-    simulationMode(config.simulationMode),
-    writeFrequency(config.writeFrequency),
-    outputBasename(config.outputBasename) {
+    : endTime(config.tEnd),
+      dt(config.deltaT),
+      simulationMode(config.simulationMode),
+      writeFrequency(config.writeFrequency),
+      outputBasename(config.outputBasename) {
   // Initialize particle container and force calculation strategy
   switch (config.containerType) {
     case ContainerType::DIRECT:
       particles = std::make_unique<ParticleContainer>();
       if (config.useParallelization) {
-        forceCalc = std::make_unique<LennardJonesForceParallel>(*particles, *config.epsilon, *config.sigma, *config.cutoff);
+        forceCalc =
+            std::make_unique<LennardJonesForceParallel>(*particles, *config.epsilon, *config.sigma, *config.cutoff);
       } else {
-        forceCalc = std::make_unique<LennardJonesForce>(*particles, *config.epsilon, *config.sigma, *config.cutoff, config.gravity.value_or(0.0));
+        forceCalc = std::make_unique<LennardJonesForce>(*particles, *config.epsilon, *config.sigma, *config.cutoff,
+                                                        config.gravity.value_or(0.0));
       }
       break;
     case ContainerType::LINKED:
-      particles = std::make_unique<LinkedCellParticleContainer>(*config.domainSize, *config.cutoff, *config.boundaryTypes);
-      forceCalc = std::make_unique<LennardJonesForce>(*particles, *config.epsilon, *config.sigma, *config.cutoff, config.gravity.value_or(0.0));  // TODO: Does parallelization not work with linked cell containers?
+      particles =
+          std::make_unique<LinkedCellParticleContainer>(*config.domainSize, *config.cutoff, *config.boundaryTypes);
+      forceCalc = std::make_unique<LennardJonesForce>(
+          *particles, *config.epsilon, *config.sigma, *config.cutoff,
+          config.gravity.value_or(0.0));  // TODO: Does parallelization not work with linked cell containers?
       break;
   }
 
@@ -63,7 +55,9 @@ Simulation::Simulation(const SimulationConfig& config)
   if (config.thermostatConfig) {
     const ThermostatConfig& thermoConfig = *config.thermostatConfig;
     // TODO: Fix thermostat initialization - T_init missing and T_target should be optional !!!
-    thermostat = std::make_unique<Thermostat>(*particles, thermoConfig.nThermostat, thermoConfig.tempTarget.value_or(10.0), thermoConfig.tempDelta.value_or(std::numeric_limits<double>::infinity()));
+    thermostat =
+        std::make_unique<Thermostat>(*particles, thermoConfig.nThermostat, thermoConfig.tempTarget.value_or(10.0),
+                                     thermoConfig.tempDelta.value_or(std::numeric_limits<double>::infinity()));
   } else {
     thermostat = nullptr;
   }

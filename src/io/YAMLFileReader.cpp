@@ -52,7 +52,7 @@ int YAMLFileReader::getCheckpointFrequency() const {
   return 0;  // Default to 0 (disabled) if not specified
 }
 
-double YAMLFileReader::getTend() const {
+double YAMLFileReader::getTEnd() const {
   return config["simulation"]["t_end"].as<double>();
 }
 
@@ -110,13 +110,47 @@ double YAMLFileReader::getCheckpointTime() const {
   return 0.0;
 }
 
-void YAMLFileReader::readFile() {
-  // TODO: This particle generator gets scrapped without doing anything, integrate to SimulationConfig!
-  ParticleGenerator particleGenerator{};
+SimulationConfig YAMLFileReader::getConfig() {
+  SimulationConfig simConfig;
 
-  // Get global sigma/epsilon as defaults
-  const double globalSigma = getSigma();
-  const double globalEpsilon = getEpsilon();
+  // Basic simulation parameters
+  simConfig.tEnd = getTEnd();
+  simConfig.deltaT = getDeltaT();
+  // simConfig.simulationMode = FILE OUTPUT - by default (in the struct), overridden by CLI
+
+  // File output parameters
+  simConfig.outputBasename = getOutputBaseName();
+  simConfig.writeFrequency = getWriteFrequency();
+  // TODO: Add checkpoint frequency here
+
+  // Force parameters
+  simConfig.epsilon = getEpsilon();
+  simConfig.sigma = getSigma();
+  simConfig.cutoff = getCutoff();
+  simConfig.gravity = getGravity();
+  // simConfig.useParallelization = FALSE - by default (in the struct), overridden by CLI
+
+  // Container and Linked Cell parameters
+  // TODO: Boundary parsing
+  auto parseBoundary = [](const std::string& s) -> BoundaryType {
+    if (s == "OUTFLOW") return BoundaryType::OUTFLOW;
+    if (s == "REFLECTIVE") return BoundaryType::REFLECTIVE;
+    if (s == "PERIODIC") return BoundaryType::PERIODIC;
+    throw std::runtime_error("Unknown boundary type in YAML: " + s);
+  };
+
+  std::array<std::string, 6> rawBoundaries = getBoundaryTypesRaw();
+  std::array<BoundaryType, 6> boundariesEnum;
+  for(int i=0; i<6; ++i) {
+    boundariesEnum[i] = parseBoundary(rawBoundaries[i]);
+  }
+  simConfig.boundaryTypes = boundariesEnum;
+
+  // Particle generator
+  ParticleGenerator& particleGenerator = simConfig.particleGenerator;  // get ref for 'lighter' code
+
+  const double globalSigma = *simConfig.sigma;
+  const double globalEpsilon = *simConfig.epsilon;
 
   // Parse cuboids
   const auto& cuboids = config["cuboids"];
@@ -219,4 +253,7 @@ void YAMLFileReader::readFile() {
     SPDLOG_INFO("No thermostat configuration found.");
   }
   // TODO: Add thermostat initialization now that we have thermostat config parsing
+  simConfig.thermostatConfig = std::nullopt;  // TODO
+
+  return simConfig;
 }

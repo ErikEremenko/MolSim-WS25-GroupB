@@ -1,10 +1,14 @@
 #pragma once
 #include <yaml-cpp/yaml.h>
 #include <string>
-#include "io/FileReader.h"
-#include "physics/ParticleContainer.h"
 #include "utils/MaxwellBoltzmannDistribution.h"
+#include "simulation/SimulationConfig.h"
 
+/**
+ * @class YAMLFileReader
+ * @brief Reads a YAML file and extracts a simulation configuration.
+ *
+ */
 class YAMLFileReader {
  public:
   /**
@@ -14,15 +18,16 @@ class YAMLFileReader {
   explicit YAMLFileReader(std::string filename);
 
   /**
-   * @brief Parses cuboids section and queues orders to the particle generator.
+   * @brief Parses the simulation configuration from the loaded YAML nodes.
+   * @return Simulation configuration
    */
-  void readFile();
+  SimulationConfig getConfig();
 
   // Getters for simulation parameters
   std::string getOutputBaseName() const;
   int getWriteFrequency() const;
   int getCheckpointFrequency() const;
-  double getTend() const;
+  double getTEnd() const;
   double getDeltaT() const;
   double getEpsilon() const;
   double getSigma() const;
@@ -40,11 +45,18 @@ class YAMLFileReader {
   double getCheckpointTime() const;
 
  private:
-  // Stores loaded YAML structure
+  /**
+   * @brief Stores loaded YAML structure.
+   */
   YAML::Node config;
 
+  /**
+   * @brief Path to the YAML file.
+   */
   std::string filename;
 
-  // used to validate configuration keys
+  /**
+   * @brief Validate configuration keys.
+   */
   void checkRequiredKeys() const;
 };

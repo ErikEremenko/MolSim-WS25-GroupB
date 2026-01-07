@@ -1,10 +1,11 @@
 #pragma once
 
-#include <optional>
 #include <array>
+#include <optional>
 #include <string>
 
 #include "physics/LinkedCellParticleContainer.h"
+#include "physics/ParticleGenerator.h"
 
 /**
  * @enum SimulationMode
@@ -74,16 +75,20 @@ struct ThermostatConfig {
 };
 
 struct SimulationConfig {
-  // Simulation parameters
+  // Basic simulation parameters
   double tEnd = 0.0;
   double deltaT = 0.0;
-  SimulationMode simulationMode;
+  SimulationMode simulationMode = SimulationMode::FILE_OUTPUT;
+
+  // Particle initialization
+  ParticleGenerator particleGenerator;
 
   // File output
   int writeFrequency = 10;  // not used when benchmarking
   std::string outputBasename = "MD_vtk";
 
   // Force parameters
+  // TODO: Are these really all 'optional' parameters?
   std::optional<double> epsilon = std::nullopt;
   std::optional<double> sigma = std::nullopt;
   std::optional<double> cutoff = std::nullopt;
@@ -92,7 +97,7 @@ struct SimulationConfig {
   bool useParallelization = false;
 
   // Container and Linked Cell parameters
-  ContainerType containerType;
+  ContainerType containerType = ContainerType::DIRECT;
   std::optional<std::array<double, 3>> domainSize = std::nullopt;
   std::optional<std::array<BoundaryType, 6>> boundaryTypes = std::nullopt;
 
