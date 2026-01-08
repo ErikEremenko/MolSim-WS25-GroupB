@@ -1,9 +1,9 @@
 #include "io/YAMLFileReader.h"
-#include "ParticleGenerator.h"
+#include "physics/ParticleGenerator.h"
 
 #include <spdlog/spdlog.h>
 
-YAMLFileReader::YAMLFileReader(std::string filename) : BaseFileReader(filename) {
+YAMLFileReader::YAMLFileReader(std::string filename) : filename(filename) {
   try {
     config = YAML::LoadFile(filename);
     checkRequiredKeys();
@@ -37,6 +37,7 @@ void YAMLFileReader::checkRequiredKeys() const {
   }
 }
 
+// Getters for simulation parameters
 std::string YAMLFileReader::getOutputBaseName() const {
   return config["output"]["base_name"].as<std::string>();
 }
@@ -52,7 +53,7 @@ int YAMLFileReader::getCheckpointFrequency() const {
   return 0;  // Default to 0 (disabled) if not specified
 }
 
-double YAMLFileReader::getTend() const {
+double YAMLFileReader::getTEnd() const {
   return config["simulation"]["t_end"].as<double>();
 }
 
@@ -73,7 +74,17 @@ double YAMLFileReader::getCutoff() const {
 }
 
 double YAMLFileReader::getGravity() const {
-  return config["simulation"]["gravity"].as<double>();
+  if (config["simulation"]["gravity"]) {
+    return config["simulation"]["gravity"].as<double>();
+  }
+  return 0.0;  // Default to 0 if not specified
+}
+
+int YAMLFileReader::getDimensions() const {
+  if (config["simulation"]["dimensions"]) {
+    return config["simulation"]["dimensions"].as<int>();
+  }
+  return 3;  // Default to 3D
 }
 
 std::array<double, 3> YAMLFileReader::getDomainSize() const {
@@ -92,6 +103,44 @@ std::array<std::string, 6> YAMLFileReader::getBoundaryTypesRaw() const {
   return b;
 }
 
+std::optional<ThermostatConfig> YAMLFileReader::getThermostatConfig() const {
+  if (!config["thermostat"]) {
+    return std::nullopt;
+  }
+
+  const auto& node = config["thermostat"];
+  ThermostatConfig thermoConfig;
+
+  // Else cases are omitted below as the default value in the struct for optionals is std::nullopt
+  // n_thermostat - mandatory
+  if (!node["n_thermostat"]) {
+    SPDLOG_ERROR("Thermostat config found, but 'n_thermostat' is missing!");
+    throw std::runtime_error("YAML Error: Thermostat config missing n_thermostat");
+  }
+  thermoConfig.nThermostat = node["n_thermostat"].as<int>();
+
+  // T_init - optional
+  if (node["temp_init"]) {
+    thermoConfig.tempInit = node["temp_init"].as<double>();
+  }
+
+  // T_target - optional
+  if (node["temp_target"]) {
+    thermoConfig.tempTarget = node["temp_target"].as<double>();
+  }
+
+  // delta_T - optional
+  // Maps to tempDelta in your struct
+  if (node["temp_delta"]) {
+    thermoConfig.tempDelta = node["temp_delta"].as<double>();
+  }
+
+  SPDLOG_INFO("Thermostat configured with frequency={}", thermoConfig.nThermostat);
+
+  return thermoConfig;
+}
+
+// Checkpoint-related getters
 bool YAMLFileReader::isCheckpoint() const {
   return config["particles"] && config["particles"].size() > 0;
 }
@@ -110,19 +159,66 @@ double YAMLFileReader::getCheckpointTime() const {
   return 0.0;
 }
 
-void YAMLFileReader::readFile(ParticleContainer& particles) {
-  ParticleGenerator particleGenerator(particles);
+SimulationConfig YAMLFileReader::getConfig() {
+  // TODO: Some of these parameters are optional but their lack in the YAML file causes errors - fix by using std::optional
+  SimulationConfig simConfig;
 
-  // Get global sigma/epsilon as defaults
-  const double globalSigma = getSigma();
-  const double globalEpsilon = getEpsilon();
+  // Basic simulation parameters
+  simConfig.tEnd = getTEnd();
+  simConfig.deltaT = getDeltaT();
+  // simConfig.simulationMode = FILE OUTPUT - by default (in the struct), overridden by CLI
 
+  // File output parameters
+  simConfig.outputBasename = getOutputBaseName();
+  simConfig.writeFrequency = getWriteFrequency();
+  simConfig.checkpointFrequency = getCheckpointFrequency();
+
+  // Checkpoint parameters
+  simConfig.startIteration = getCheckpointIteration();
+  simConfig.startTime = getCheckpointTime();
+
+  // Force parameters
+  simConfig.epsilon = getEpsilon();
+  simConfig.sigma = getSigma();
+  simConfig.cutoff = getCutoff();
+  simConfig.gravity = getGravity();
+  simConfig.dimensions = getDimensions();
+  // simConfig.useParallelization = FALSE - by default (in the struct), overridden by CLI
+
+  // Container and Linked Cell parameters
+  auto parseBoundary = [](const std::string& s) -> BoundaryType {
+    if (s == "OUTFLOW")
+      return BoundaryType::OUTFLOW;
+    if (s == "REFLECTIVE")
+      return BoundaryType::REFLECTIVE;
+    if (s == "PERIODIC")
+      return BoundaryType::PERIODIC;
+    throw std::runtime_error("Unknown boundary type in YAML: " + s);
+  };
+
+  std::array<std::string, 6> rawBoundaries = getBoundaryTypesRaw();
+  std::array<BoundaryType, 6> boundariesEnum;
+  for (int i = 0; i < 6; ++i) {
+    boundariesEnum[i] = parseBoundary(rawBoundaries[i]);
+  }
+  simConfig.boundaryTypes = boundariesEnum;
+
+  // Thermostat
+  simConfig.thermostatConfig = getThermostatConfig();
+
+  // Particle generation
+  ParticleGenerator& generatorRaw =
+      *simConfig.particleGenerator;  // particle generator owned by config at this point, so it's ok to deref ptr
+
+  const double globalSigma = *simConfig.sigma;
+  const double globalEpsilon = *simConfig.epsilon;
+
+  // Parse cuboids
   const auto& cuboids = config["cuboids"];
-
   for (std::size_t i = 0; i < cuboids.size(); ++i) {
     const auto& cuboid = cuboids[i];
 
-    // Read Cuboid Parameters
+    // Cuboid parameters
     auto pos = cuboid["position"].as<std::array<double, 3>>();
     auto vel = cuboid["velocity"].as<std::array<double, 3>>();
     auto dim = cuboid["dimensions"].as<std::array<int, 3>>();
@@ -134,18 +230,18 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
     const double sigma = cuboid["sigma"] ? cuboid["sigma"].as<double>() : globalSigma;
     const double epsilon = cuboid["epsilon"] ? cuboid["epsilon"].as<double>() : globalEpsilon;
 
-    particleGenerator.generateCuboid(pos, vel, dim, h, m, meanV, sigma, epsilon);
-
-    SPDLOG_DEBUG("Loaded cuboid {} with {} particles (sigma={}, epsilon={}).", i, dim[0] * dim[1] * dim[2], sigma,
-                 epsilon);
+    generatorRaw.queueCuboid(pos, vel, dim, h, m, meanV, static_cast<int>(i), sigma, epsilon);
+    SPDLOG_DEBUG("Loaded cuboid {} with {} particles (sigma={}, epsilon={}, type={}).", i, dim[0] * dim[1] * dim[2],
+                 sigma, epsilon, i);
   }
 
+  // Parse spheres
+  // TODO: Why is this named 'sphere' here and 'disc' in ParticleGenerator?
   const auto& spheres = config["spheres"];
-
   for (std::size_t i = 0; i < spheres.size(); ++i) {
     const auto& sphere = spheres[i];
 
-    // Read Sphere Parameters
+    // Sphere parameters
     const auto pos = sphere["position"].as<std::array<double, 3>>();
     const auto vel = sphere["velocity"].as<std::array<double, 3>>();
     const auto rn = sphere["radius_particles"].as<int>();
@@ -157,9 +253,11 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
     const double sigma = sphere["sigma"] ? sphere["sigma"].as<double>() : globalSigma;
     const double epsilon = sphere["epsilon"] ? sphere["epsilon"].as<double>() : globalEpsilon;
 
-    particleGenerator.generateDisc(pos, vel, rn, h, m, meanV, sigma, epsilon);
+    // Generate a unique type for each sphere, starting after the cuboids
+    const int type = static_cast<int>(cuboids.size() + i);
 
-    SPDLOG_DEBUG("Loaded sphere (sigma={}, epsilon={}).", sigma, epsilon);
+    generatorRaw.queueDisc(pos, vel, rn, h, m, meanV, type, sigma, epsilon);
+    SPDLOG_DEBUG("Loaded sphere (sigma={}, epsilon={}, type={}).", sigma, epsilon, type);
   }
 
   // Checkpoint loading: if "particles" section exists, load individual particles
@@ -192,32 +290,11 @@ void YAMLFileReader::readFile(ParticleContainer& particles) {
       double sigma = p["sigma"] ? p["sigma"].as<double>() : globalSigma;
       double epsilon = p["epsilon"] ? p["epsilon"].as<double>() : globalEpsilon;
 
-      particles.addParticle(x, v, m, f, oldF, type, sigma, epsilon);
+      generatorRaw.queueParticle(x, v, m, f, oldF, type, sigma, epsilon);
     }
 
     SPDLOG_DEBUG("Loaded {} particles from checkpoint.", config["particles"].size());
   }
 
-  // TODO: The issue here is that we already initialize the particles with temperatures - so T_init is irrelevant!
-  // 1. Parse Required Thermostat Parameter: n_thermostat
-  // We expect this to exist if the thermostat block exists.
-  if (const auto& thermostatConfig = config["thermostat"]) {
-    if (!thermostatConfig["n_thermostat"]) {
-      SPDLOG_ERROR("Thermostat config found, but 'n_thermostat' is missing!");
-      throw std::invalid_argument("Thermostat config not found.");
-    }
-    int n_thermostat = thermostatConfig["n_thermostat"].as<int>();
-
-    double t_target = 0.0;
-    if (thermostatConfig["T_target"]) {
-      t_target = thermostatConfig["T_target"].as<double>();
-    } else {
-      SPDLOG_WARN("T_target not specified in thermostat. Defaulting to 0.");
-    }
-
-    // TODO: Add the rest of the thermostat parameters here
-  } else {
-    SPDLOG_INFO("No thermostat configuration found.");
-  }
-  // TODO: Add thermostat initialization now that we have thermostat config parsing
+  return simConfig;
 }

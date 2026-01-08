@@ -24,8 +24,12 @@
 namespace outputWriter {
 
 void VTKWriter::plotParticles(const ParticleContainer& particles, const std::string& filename, const int iteration) {
-  // create separate output directory
-  const std::string output_directory = "output";
+  // Determine output directory based on current working directory
+  std::string output_directory = "build/output";
+  if (std::filesystem::exists("CMakeCache.txt")) {
+    output_directory = "output";
+  }
+
   try {
     std::filesystem::create_directories(output_directory);
   } catch (const std::filesystem::filesystem_error& err) {

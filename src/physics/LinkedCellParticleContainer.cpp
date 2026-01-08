@@ -1,8 +1,7 @@
-#include "../include/LinkedCellParticleContainer.h"
+#include "physics/LinkedCellParticleContainer.h"
 
 #include <cmath>
-
-#include "spdlog/fmt/bundled/format.h"
+#include "spdlog/fmt/bundled/format.h"  // TODO: Replace with <spdlog/spdlog.h> ?
 
 LinkedCellParticleContainer::LinkedCellParticleContainer(const std::array<double, 3>& domain_dims, double cutoff_radius,
                                                          const std::array<BoundaryType, 6>& boundary_types)
@@ -23,6 +22,14 @@ void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::arra
 void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma,
                                               double epsilon) {
   ParticleContainer::addParticle(x, v, m, sigma, epsilon);
+  Particle& p = (*this)[this->size() - 1];  // The newly added particle
+  const int cdx = getCellIndex(p.getX());
+  cells[cdx].push_back(&p);
+}
+
+void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type,
+                                              double sigma, double epsilon) {
+  ParticleContainer::addParticle(x, v, m, type, sigma, epsilon);
   Particle& p = (*this)[this->size() - 1];  // The newly added particle
   const int cdx = getCellIndex(p.getX());
   cells[cdx].push_back(&p);
@@ -54,7 +61,7 @@ void LinkedCellParticleContainer::updateCells() {
   }
 }
 
-LinkedCellParticleContainer::CellType LinkedCellParticleContainer::getCellType(size_t cdx) const {
+CellType LinkedCellParticleContainer::getCellType(size_t cdx) const {
   const int nx = numCells[0];
   const int ny = numCells[1];
   const int nz = numCells[2];

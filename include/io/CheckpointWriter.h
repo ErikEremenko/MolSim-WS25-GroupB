@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include "ParticleContainer.h"
+#include "physics/ParticleContainer.h"
 
 namespace outputWriter {
 
@@ -31,21 +31,12 @@ class CheckpointWriter {
    * @param domainSize Simulation domain size
    * @param boundaryTypes Boundary type strings (x_min, x_max, y_min, y_max, z_min, z_max)
    */
-  static void writeCheckpoint(
-      const ParticleContainer& particles,
-      const std::string& filename,
-      int iteration,
-      double currentTime,
-      const std::string& baseName,
-      int writeFrequency,
-      int checkpointFrequency,
-      double tEnd,
-      double deltaT,
-      double epsilon,
-      double sigma,
-      double cutoffRadius,
-      const std::array<double, 3>& domainSize,
-      const std::array<std::string, 6>& boundaryTypes);
+  static void writeCheckpoint(const ParticleContainer& particles, const std::string& filename, int iteration,
+                              double currentTime, const std::string& baseName, int writeFrequency,
+                              int checkpointFrequency, double tEnd, double deltaT, double epsilon, double sigma,
+                              double cutoffRadius, double gravity, const std::array<double, 3>& domainSize,
+                              const std::array<std::string, 6>& boundaryTypes,
+                              const std::string& outputDirectory = "output/checkpoints");
 };
 
 }  // namespace outputWriter

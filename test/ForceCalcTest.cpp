@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <cmath>
 
-#include "ForceCalc.h"
-#include "LinkedCellParticleContainer.h"
-#include "ParticleContainer.h"
+#include "physics/ForceCalc.h"
+#include "physics/LinkedCellParticleContainer.h"
+#include "physics/ParticleContainer.h"
 #include "utils/ArrayUtils.h"
 
 class ForceCalcTest : public ::testing::Test {
@@ -106,10 +106,8 @@ class BoundaryConditionTest : public ::testing::Test {
 
 // Test that outflow boundary removes particles that move outside the domain
 TEST_F(BoundaryConditionTest, OutflowRemovesParticles) {
-  std::array<LinkedCellParticleContainer::BoundaryType, 6> outflowBoundaries = {
-      LinkedCellParticleContainer::BoundaryType::OUTFLOW, LinkedCellParticleContainer::BoundaryType::OUTFLOW,
-      LinkedCellParticleContainer::BoundaryType::OUTFLOW, LinkedCellParticleContainer::BoundaryType::OUTFLOW,
-      LinkedCellParticleContainer::BoundaryType::OUTFLOW, LinkedCellParticleContainer::BoundaryType::OUTFLOW};
+  std::array<BoundaryType, 6> outflowBoundaries = {BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
+                                                   BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
 
   LinkedCellParticleContainer lpc(domainDims, cutoffRadius, outflowBoundaries);
 
@@ -131,10 +129,9 @@ TEST_F(BoundaryConditionTest, OutflowRemovesParticles) {
 
 // Test that reflective boundaries apply repulsive force near walls
 TEST_F(BoundaryConditionTest, ReflectiveAppliesForce) {
-  std::array<LinkedCellParticleContainer::BoundaryType, 6> reflectiveBoundaries = {
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE};
+  std::array<BoundaryType, 6> reflectiveBoundaries = {BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
+                                                      BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
+                                                      BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE};
 
   LinkedCellParticleContainer lpc(domainDims, cutoffRadius, reflectiveBoundaries);
 
@@ -150,10 +147,9 @@ TEST_F(BoundaryConditionTest, ReflectiveAppliesForce) {
 
 // Test mixed boundary conditions
 TEST_F(BoundaryConditionTest, MixedBoundaries) {
-  std::array<LinkedCellParticleContainer::BoundaryType, 6> mixedBoundaries = {
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::OUTFLOW,
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::OUTFLOW,
-      LinkedCellParticleContainer::BoundaryType::OUTFLOW,    LinkedCellParticleContainer::BoundaryType::OUTFLOW};
+  std::array<BoundaryType, 6> mixedBoundaries = {BoundaryType::REFLECTIVE, BoundaryType::OUTFLOW,
+                                                 BoundaryType::REFLECTIVE, BoundaryType::OUTFLOW,
+                                                 BoundaryType::OUTFLOW,    BoundaryType::OUTFLOW};
 
   LinkedCellParticleContainer lpc(domainDims, cutoffRadius, mixedBoundaries);
 
@@ -172,10 +168,9 @@ TEST_F(BoundaryConditionTest, MixedBoundaries) {
 
 // Test that particles far from reflective walls don't experience extra forces
 TEST_F(BoundaryConditionTest, ReflectiveNoForceWhenFar) {
-  std::array<LinkedCellParticleContainer::BoundaryType, 6> reflectiveBoundaries = {
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE};
+  std::array<BoundaryType, 6> reflectiveBoundaries = {BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
+                                                      BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
+                                                      BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE};
 
   LinkedCellParticleContainer lpc(domainDims, cutoffRadius, reflectiveBoundaries);
 
@@ -197,10 +192,9 @@ class PeriodicBoundaryTest : public ::testing::Test {
   double cutoffRadius = 3.0;
   double epsilon = 5.0;
   double sigma = 1.0;
-  std::array<LinkedCellParticleContainer::BoundaryType, 6> periodicBoundaries = {
-      LinkedCellParticleContainer::BoundaryType::PERIODIC, LinkedCellParticleContainer::BoundaryType::PERIODIC,
-      LinkedCellParticleContainer::BoundaryType::PERIODIC, LinkedCellParticleContainer::BoundaryType::PERIODIC,
-      LinkedCellParticleContainer::BoundaryType::PERIODIC, LinkedCellParticleContainer::BoundaryType::PERIODIC};
+  std::array<BoundaryType, 6> periodicBoundaries = {BoundaryType::PERIODIC, BoundaryType::PERIODIC,
+                                                    BoundaryType::PERIODIC, BoundaryType::PERIODIC,
+                                                    BoundaryType::PERIODIC, BoundaryType::PERIODIC};
 };
 
 // Test that particles outside left boundary (x < 0) wrap to right side
@@ -330,10 +324,9 @@ TEST_F(PeriodicBoundaryTest, ParticlesInsideDomainUnchanged) {
 
 // Test mixed boundary types: x:periodic, y:reflective, z:outflow
 TEST_F(PeriodicBoundaryTest, MixedBoundaryWithPeriodic) {
-  std::array<LinkedCellParticleContainer::BoundaryType, 6> mixedBoundaries = {
-      LinkedCellParticleContainer::BoundaryType::PERIODIC,   LinkedCellParticleContainer::BoundaryType::PERIODIC,
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
-      LinkedCellParticleContainer::BoundaryType::OUTFLOW,    LinkedCellParticleContainer::BoundaryType::OUTFLOW};
+  std::array<BoundaryType, 6> mixedBoundaries = {BoundaryType::PERIODIC,   BoundaryType::PERIODIC,
+                                                 BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
+                                                 BoundaryType::OUTFLOW,    BoundaryType::OUTFLOW};
 
   LinkedCellParticleContainer lpc(domainDims, cutoffRadius, mixedBoundaries);
 

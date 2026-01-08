@@ -1,15 +1,13 @@
 #include <gtest/gtest.h>
 
-#include "LinkedCellParticleContainer.h"
+#include "physics/LinkedCellParticleContainer.h"
 
 class LinkedCellParticleContainerTest : public ::testing::Test {
  protected:
   std::array<double, 3> domainDims = {10.0, 10.0, 10.0};
   double cutoffRadius = 2.5;
-  std::array<LinkedCellParticleContainer::BoundaryType, 6> outflowBoundaries = {
-      LinkedCellParticleContainer::BoundaryType::OUTFLOW, LinkedCellParticleContainer::BoundaryType::OUTFLOW,
-      LinkedCellParticleContainer::BoundaryType::OUTFLOW, LinkedCellParticleContainer::BoundaryType::OUTFLOW,
-      LinkedCellParticleContainer::BoundaryType::OUTFLOW, LinkedCellParticleContainer::BoundaryType::OUTFLOW};
+  std::array<BoundaryType, 6> outflowBoundaries = {BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
+                                                   BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
 };
 
 // Test that the container initializes with correct domain dimensions
@@ -116,16 +114,15 @@ TEST_F(LinkedCellParticleContainerTest, ParticleAtBoundary) {
 
 // Test reflective boundaries setup
 TEST_F(LinkedCellParticleContainerTest, ReflectiveBoundaryTypes) {
-  std::array<LinkedCellParticleContainer::BoundaryType, 6> reflectiveBoundaries = {
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE};
+  std::array<BoundaryType, 6> reflectiveBoundaries = {BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
+                                                      BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
+                                                      BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE};
 
   LinkedCellParticleContainer lpc(domainDims, cutoffRadius, reflectiveBoundaries);
 
   auto bt = lpc.boundary_types();
   for (int i = 0; i < 6; ++i) {
-    EXPECT_EQ(bt[i], LinkedCellParticleContainer::BoundaryType::REFLECTIVE);
+    EXPECT_EQ(bt[i], BoundaryType::REFLECTIVE);
   }
 }
 

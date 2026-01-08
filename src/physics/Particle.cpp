@@ -5,9 +5,9 @@
  *      Author: eckhardw
  */
 
-#include <ostream>
+#include "physics/Particle.h"
 
-#include "Particle.h"
+#include <ostream>
 
 #include "utils/ArrayUtils.h"
 

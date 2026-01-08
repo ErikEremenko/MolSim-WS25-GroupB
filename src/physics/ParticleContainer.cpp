@@ -1,4 +1,4 @@
-#include "ParticleContainer.h"
+#include "physics/ParticleContainer.h"
 
 std::size_t ParticleContainer::size() const {
   return particles.size();
@@ -11,6 +11,11 @@ void ParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 
 void ParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma,
                                     double epsilon) {
   particles.emplace_back(x, v, m, 0, sigma, epsilon);
+}
+
+void ParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type, double sigma,
+                                    double epsilon) {
+  particles.emplace_back(x, v, m, type, sigma, epsilon);
 }
 
 void ParticleContainer::addParticle(const Particle* p) {
