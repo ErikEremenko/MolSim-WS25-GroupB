@@ -186,6 +186,7 @@ SimulationConfig YAMLFileReader::getConfig() {
   // simConfig.useParallelization = FALSE - by default (in the struct), overridden by CLI
 
   // Container and Linked Cell parameters
+  simConfig.domainSize = getDomainSize();
   auto parseBoundary = [](const std::string& s) -> BoundaryType {
     if (s == "OUTFLOW")
       return BoundaryType::OUTFLOW;
@@ -230,9 +231,15 @@ SimulationConfig YAMLFileReader::getConfig() {
     const double sigma = cuboid["sigma"] ? cuboid["sigma"].as<double>() : globalSigma;
     const double epsilon = cuboid["epsilon"] ? cuboid["epsilon"].as<double>() : globalEpsilon;
 
-    generatorRaw.queueCuboid(pos, vel, dim, h, m, meanV, static_cast<int>(i), sigma, epsilon);
+    // Type: explicit or auto-incremented
+    int type = static_cast<int>(i);
+    if (cuboid["type"]) {
+      type = cuboid["type"].as<int>();
+    }
+
+    generatorRaw.queueCuboid(pos, vel, dim, h, m, meanV, type, sigma, epsilon);
     SPDLOG_DEBUG("Loaded cuboid {} with {} particles (sigma={}, epsilon={}, type={}).", i, dim[0] * dim[1] * dim[2],
-                 sigma, epsilon, i);
+                 sigma, epsilon, type);
   }
 
   // Parse spheres
@@ -254,7 +261,10 @@ SimulationConfig YAMLFileReader::getConfig() {
     const double epsilon = sphere["epsilon"] ? sphere["epsilon"].as<double>() : globalEpsilon;
 
     // Generate a unique type for each sphere, starting after the cuboids
-    const int type = static_cast<int>(cuboids.size() + i);
+    int type = static_cast<int>(cuboids.size() + i);
+    if (sphere["type"]) {
+      type = sphere["type"].as<int>();
+    }
 
     generatorRaw.queueDisc(pos, vel, rn, h, m, meanV, type, sigma, epsilon);
     SPDLOG_DEBUG("Loaded sphere (sigma={}, epsilon={}, type={}).", sigma, epsilon, type);
