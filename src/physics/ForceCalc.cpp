@@ -194,7 +194,7 @@ void LennardJonesForceParallel::calculateF() {
 
 void LennardJonesForce::calculateFLinkedCell() {
   for (auto& p : particles) {
-    p.setF({0, gravity, 0});
+    p.setF({0, p.getM() * gravity, 0});
   }
 
   auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
