@@ -17,17 +17,23 @@ double Thermostat::calculateCurrentTemperature() {
     totalKineticEnergyTimesTwo += particle.getM() * ArrayUtils::squaredL2Norm(particle.getV());
   }
 
-  return totalKineticEnergyTimesTwo / (3 * particles.size());  // number of dimensions = 3 in our case
+  return totalKineticEnergyTimesTwo / (dimensions * particles.size());
 }
 
 Thermostat::~Thermostat() = default;
 
-Thermostat::Thermostat(ParticleContainer& particles, int nThermostat, double tempTarget, double tempDelta)
-    : particles(particles), nThermostat(nThermostat), tempTarget(tempTarget), tempDelta(tempDelta) {}
+Thermostat::Thermostat(ParticleContainer& particles, int nThermostat, double tempTarget, double tempDelta,
+                       int dimensions)
+    : particles(particles),
+      nThermostat(nThermostat),
+      tempTarget(tempTarget),
+      tempDelta(tempDelta),
+      dimensions(dimensions) {}
 
 void Thermostat::initializeTemperature(double tempInit) {
   for (auto& particle : particles) {
-    const std::array<double, 3> v = maxwellBoltzmannDistributedVelocity(std::sqrt(tempInit / particle.getM()), 3);
+    const std::array<double, 3> v =
+        maxwellBoltzmannDistributedVelocity(std::sqrt(tempInit / particle.getM()), dimensions);
     particle.setV(v);
   }
 }

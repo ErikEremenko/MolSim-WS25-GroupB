@@ -98,6 +98,7 @@ struct SimulationConfig {
   std::optional<double> sigma = std::nullopt;
   std::optional<double> cutoff = std::nullopt;
   std::optional<double> gravity = std::nullopt;
+  int dimensions = 3;  // Default to 3D
 
   bool useParallelization = false;
 

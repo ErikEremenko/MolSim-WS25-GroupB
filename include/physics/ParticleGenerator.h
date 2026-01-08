@@ -19,6 +19,7 @@ class ParticleGenerator {
     double h;
     double m;
     double temp;
+    int type;
     double sigma;
     double epsilon;
   };
@@ -30,6 +31,7 @@ class ParticleGenerator {
     double h;
     double m;
     double temp;
+    int type;
     double sigma;
     double epsilon;
   };
@@ -79,11 +81,12 @@ class ParticleGenerator {
    * @param h distance between the particles in the cuboid.
    * @param m mass of a single particle in the cuboid.
    * @param t temperature of the cuboid.
+   * @param type type of the particles in the cuboid.
    * @param sigma Lennard-Jones sigma for particles in the cuboid (default: 1.0).
    * @param epsilon Lennard-Jones epsilon for particles in the cuboid (default: 5.0).
    */
   void queueCuboid(std::array<double, 3> cx, std::array<double, 3> cv, std::array<int, 3> n, double h, double m,
-                   double t, double sigma = 1.0, double epsilon = 5.0);
+                   double t, int type = 0, double sigma = 1.0, double epsilon = 5.0);
 
   /**
    * @brief Queues the generation of a disc of particles at the specified position.
@@ -94,10 +97,11 @@ class ParticleGenerator {
    * @param h distance between the particles in the disc.
    * @param m mass of a single particle in the disc.
    * @param t temperature of the disc.
+   * @param type type of the particles in the disc.
    * @param sigma Lennard-Jones sigma for particles in the disc (default: 1.0).
    * @param epsilon Lennard-Jones epsilon for particles in the disc (default: 5.0).
    */
-  void queueDisc(std::array<double, 3> cx, std::array<double, 3> cv, int rn, double h, double m, double t,
+  void queueDisc(std::array<double, 3> cx, std::array<double, 3> cv, int rn, double h, double m, double t, int type = 0,
                  double sigma = 1.0, double epsilon = 5.0);
 
   /**

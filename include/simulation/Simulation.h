@@ -35,7 +35,7 @@ class Simulation {  // TODO: For now, we keep the virtual methods for thermostat
   /**
    * @brief Gravitational acceleration applied to particles.
    */
-  double gravity;
+  // double gravity; // Moved below
 
   double startTime;
   int startIteration;
@@ -44,6 +44,8 @@ class Simulation {  // TODO: For now, we keep the virtual methods for thermostat
   double epsilon;
   double sigma;
   double cutoff;
+  double gravity;
+  int dimensions;
   std::array<double, 3> domainSize;
   std::array<std::string, 6> boundaryTypeStrings;
 
@@ -62,12 +64,12 @@ class Simulation {  // TODO: For now, we keep the virtual methods for thermostat
    */
   int checkpointFrequency;
 
+  std::unique_ptr<ParticleGenerator> particleGenerator;
+
   /**
    * @brief Defines the base name of the simulation output files.
    */
   std::string outputBasename;
-
-  std::unique_ptr<ParticleGenerator> particleGenerator;
 
   /**
    * @brief Strategy defining how particles are stored and accessed.

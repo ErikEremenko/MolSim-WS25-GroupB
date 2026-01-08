@@ -29,19 +29,19 @@ void sigint_handler(int signal) {
 Simulation::Simulation(SimulationConfig& config)
     : endTime(config.tEnd),
       dt(config.deltaT),
-      simulationMode(config.simulationMode),
-      writeFrequency(config.writeFrequency),
-      checkpointFrequency(config.checkpointFrequency),
-      outputBasename(std::move(config.outputBasename)),
-      particleGenerator(std::move(config.particleGenerator)),
-
-      gravity(config.gravity.value_or(0.0)),
       startTime(config.startTime),
       startIteration(config.startIteration),
       epsilon(config.epsilon.value_or(1.0)),
       sigma(config.sigma.value_or(1.0)),
       cutoff(config.cutoff.value_or(3.0)),
-      domainSize(config.domainSize.value_or(std::array<double, 3>{0.0, 0.0, 0.0})) {
+      gravity(config.gravity.value_or(0.0)),
+      dimensions(config.dimensions),
+      domainSize(config.domainSize.value_or(std::array<double, 3>{0.0, 0.0, 0.0})),
+      simulationMode(config.simulationMode),
+      writeFrequency(config.writeFrequency),
+      checkpointFrequency(config.checkpointFrequency),
+      particleGenerator(std::move(config.particleGenerator)),
+      outputBasename(std::move(config.outputBasename)) {
 
   // Initialize boundary strings
   if (config.boundaryTypes) {
@@ -103,7 +103,8 @@ Simulation::Simulation(SimulationConfig& config)
 
     // Create thermostat object
     thermostat = std::make_unique<Thermostat>(*particles, thermoConfig.nThermostat, actualTargetTemp,
-                                              thermoConfig.tempDelta.value_or(std::numeric_limits<double>::infinity()));
+                                              thermoConfig.tempDelta.value_or(std::numeric_limits<double>::infinity()),
+                                              dimensions);
 
     initialTemperature = thermoConfig.tempInit;  // copy optional, used in simulation setup
   } else {

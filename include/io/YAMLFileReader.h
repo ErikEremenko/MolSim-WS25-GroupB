@@ -79,6 +79,12 @@ class YAMLFileReader {
   double getGravity() const;
 
   /**
+   * @brief Gets the number of dimensions for the simulation (2 or 3).
+   * @return The number of dimensions.
+   */
+  int getDimensions() const;
+
+  /**
    * @brief Gets the simulation domain size.
    * @return Array containing domain dimensions [x, y, z].
    */

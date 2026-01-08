@@ -80,6 +80,13 @@ double YAMLFileReader::getGravity() const {
   return 0.0;  // Default to 0 if not specified
 }
 
+int YAMLFileReader::getDimensions() const {
+  if (config["simulation"]["dimensions"]) {
+    return config["simulation"]["dimensions"].as<int>();
+  }
+  return 3;  // Default to 3D
+}
+
 std::array<double, 3> YAMLFileReader::getDomainSize() const {
   return config["domain"]["size"].as<std::array<double, 3>>();
 }
@@ -175,6 +182,7 @@ SimulationConfig YAMLFileReader::getConfig() {
   simConfig.sigma = getSigma();
   simConfig.cutoff = getCutoff();
   simConfig.gravity = getGravity();
+  simConfig.dimensions = getDimensions();
   // simConfig.useParallelization = FALSE - by default (in the struct), overridden by CLI
 
   // Container and Linked Cell parameters
@@ -222,9 +230,9 @@ SimulationConfig YAMLFileReader::getConfig() {
     const double sigma = cuboid["sigma"] ? cuboid["sigma"].as<double>() : globalSigma;
     const double epsilon = cuboid["epsilon"] ? cuboid["epsilon"].as<double>() : globalEpsilon;
 
-    generatorRaw.queueCuboid(pos, vel, dim, h, m, meanV, sigma, epsilon);
-    SPDLOG_DEBUG("Loaded cuboid {} with {} particles (sigma={}, epsilon={}).", i, dim[0] * dim[1] * dim[2], sigma,
-                 epsilon);
+    generatorRaw.queueCuboid(pos, vel, dim, h, m, meanV, static_cast<int>(i), sigma, epsilon);
+    SPDLOG_DEBUG("Loaded cuboid {} with {} particles (sigma={}, epsilon={}, type={}).", i, dim[0] * dim[1] * dim[2],
+                 sigma, epsilon, i);
   }
 
   // Parse spheres
@@ -245,8 +253,11 @@ SimulationConfig YAMLFileReader::getConfig() {
     const double sigma = sphere["sigma"] ? sphere["sigma"].as<double>() : globalSigma;
     const double epsilon = sphere["epsilon"] ? sphere["epsilon"].as<double>() : globalEpsilon;
 
-    generatorRaw.queueDisc(pos, vel, rn, h, m, meanV, sigma, epsilon);
-    SPDLOG_DEBUG("Loaded sphere (sigma={}, epsilon={}).", sigma, epsilon);
+    // Generate a unique type for each sphere, starting after the cuboids
+    const int type = static_cast<int>(cuboids.size() + i);
+
+    generatorRaw.queueDisc(pos, vel, rn, h, m, meanV, type, sigma, epsilon);
+    SPDLOG_DEBUG("Loaded sphere (sigma={}, epsilon={}, type={}).", sigma, epsilon, type);
   }
 
   // Checkpoint loading: if "particles" section exists, load individual particles
