@@ -20,7 +20,8 @@ void ParticleGenerator::generateCuboid(ParticleContainer& container, const Cuboi
         std::array<double, 3> temperatureVel = maxwellBoltzmannDistributedVelocity(std::sqrt(order.temp / order.m), 3);
         std::array<double, 3> particleVelocity = {order.vel[0] + temperatureVel[0], order.vel[1] + temperatureVel[1],
                                                   order.vel[2] + temperatureVel[2]};
-        std::array<double, 3> particlePosition = {order.pos[0] + order.h * nx, order.pos[1] + order.h * ny, order.pos[2] + order.h * nz};
+        std::array<double, 3> particlePosition = {order.pos[0] + order.h * nx, order.pos[1] + order.h * ny,
+                                                  order.pos[2] + order.h * nz};
         container.addParticle(particlePosition, particleVelocity, order.m, order.sigma, order.epsilon);
       }
     }
@@ -37,7 +38,8 @@ void ParticleGenerator::generateDisc(ParticleContainer& container, const DiscOrd
       double py = j * order.h;
       if (px * px + py * py <= radius_sq) {
         std::array<double, 3> temperatureVel = maxwellBoltzmannDistributedVelocity(order.temp, 3);
-        std::array<double, 3> tempv = {order.vel[0] + temperatureVel[0], order.vel[1] + temperatureVel[1], order.vel[2] + temperatureVel[2]};
+        std::array<double, 3> tempv = {order.vel[0] + temperatureVel[0], order.vel[1] + temperatureVel[1],
+                                       order.vel[2] + temperatureVel[2]};
         std::array<double, 3> tempx = {order.center[0] + px, order.center[1] + py, order.center[2]};
         container.addParticle(tempx, tempv, order.m, order.sigma, order.epsilon);
       }
@@ -51,8 +53,8 @@ void ParticleGenerator::queueCuboid(std::array<double, 3> position, std::array<d
   cuboidOrders.push_back({position, velocity, dimensions, mesh_width, mass, temperature, sigma, epsilon});
 }
 
-void ParticleGenerator::queueDisc(std::array<double, 3> cx, std::array<double, 3> cv, int rn, double h, double m, double t,
-                 double sigma, double epsilon) {
+void ParticleGenerator::queueDisc(std::array<double, 3> cx, std::array<double, 3> cv, int rn, double h, double m,
+                                  double t, double sigma, double epsilon) {
   discOrders.push_back({cx, cv, rn, h, m, t, sigma, epsilon});
 }
 

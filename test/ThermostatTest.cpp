@@ -40,10 +40,8 @@ class ThermostatTestingSimulation : public Simulation {
   std::function<void(bool)> temperatureChecker;  // called after updating the temperature
 
  protected:
-  void setupSimulation() override { /* empty override for compilation */
-  }
-  void runFileOutput() override { /* empty as it will not be called */
-  }
+  void setupSimulation() override { /* empty override for compilation */ }
+  void runFileOutput() override { /* empty as it will not be called */ }
   void runBenchmark() override {
     // No benchmarking, just simulate and regularly apply thermostat
     double current_time = 0;
@@ -70,9 +68,7 @@ class ThermostatTestingSimulation : public Simulation {
  public:
   ThermostatTestingSimulation(std::unique_ptr<ParticleContainer> particles, Thermostat& thermostat,
                               std::function<void(bool)> temperatureChecker, SimulationConfig& config)
-      : Simulation(config),
-        thermostat(thermostat),
-        temperatureChecker(std::move(temperatureChecker)) {
+      : Simulation(config), thermostat(thermostat), temperatureChecker(std::move(temperatureChecker)) {
 
     this->particles = std::move(particles);
     forceCalc = std::make_unique<LennardJonesForce>(*this->particles, SIM_FORCE_EPSILON, SIM_FORCE_SIGMA,
@@ -123,13 +119,13 @@ TEST_F(ThermostatTest, CheckGeneratorInitialTemperature) {
   // Initialize cuboid
   // Initialize cuboid
   generator.queueCuboid({0.0, 0.0, 0.0},  // don't care
-                           {0.0, 0.0, 0.0},  // cuboid stationary
-                           {100, 50, 1},     // 5000 particles
-                           1.0,              // don't care
-                           1.0,              // mass is 1 for easier calculations
-                           THERMO_CUBOID_TEMP,
-                           1.0,  // don't care
-                           5.0   // don't care
+                        {0.0, 0.0, 0.0},  // cuboid stationary
+                        {100, 50, 1},     // 5000 particles
+                        1.0,              // don't care
+                        1.0,              // mass is 1 for easier calculations
+                        THERMO_CUBOID_TEMP,
+                        1.0,  // don't care
+                        5.0   // don't care
   );
   generator.generate(*particles);
 
@@ -155,13 +151,15 @@ TEST_F(ThermostatTest, HoldingTemperature) {
   config.tEnd = SIM_END_TIME;
   config.deltaT = SIM_DT;
   config.simulationMode = SimulationMode::BENCHMARK;
-  config.domainSize = std::array<double, 3>{100.0, 100.0, 100.0}; 
+  config.domainSize = std::array<double, 3>{100.0, 100.0, 100.0};
   config.cutoff = SIM_FORCE_CUTOFF_RADIUS;
   config.epsilon = SIM_FORCE_EPSILON;
   config.sigma = SIM_FORCE_SIGMA;
-  config.boundaryTypes = std::array<BoundaryType, 6>{BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
+  config.boundaryTypes =
+      std::array<BoundaryType, 6>{BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
+                                  BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
   /* populate other required fields if needed */
-  
+
   ThermostatTestingSimulation simulation(std::move(particles), thermostat, [](bool) {}, config);
   simulation.run();
 
@@ -199,11 +197,13 @@ TEST_F(ThermostatTest, CoolingDown) {
   config.tEnd = SIM_END_TIME;
   config.deltaT = SIM_DT;
   config.simulationMode = SimulationMode::BENCHMARK;
-  config.domainSize = std::array<double, 3>{100.0, 100.0, 100.0}; 
+  config.domainSize = std::array<double, 3>{100.0, 100.0, 100.0};
   config.cutoff = SIM_FORCE_CUTOFF_RADIUS;
   config.epsilon = SIM_FORCE_EPSILON;
   config.sigma = SIM_FORCE_SIGMA;
-  config.boundaryTypes = std::array<BoundaryType, 6>{BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
+  config.boundaryTypes =
+      std::array<BoundaryType, 6>{BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
+                                  BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
 
   ThermostatTestingSimulation simulation(std::move(particles), thermostat, heatingChecker, config);
   simulation.run();
@@ -240,11 +240,13 @@ TEST_F(ThermostatTest, HeatingUp) {
   config.tEnd = SIM_END_TIME;
   config.deltaT = SIM_DT;
   config.simulationMode = SimulationMode::BENCHMARK;
-  config.domainSize = std::array<double, 3>{100.0, 100.0, 100.0}; 
+  config.domainSize = std::array<double, 3>{100.0, 100.0, 100.0};
   config.cutoff = SIM_FORCE_CUTOFF_RADIUS;
   config.epsilon = SIM_FORCE_EPSILON;
   config.sigma = SIM_FORCE_SIGMA;
-  config.boundaryTypes = std::array<BoundaryType, 6>{BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
+  config.boundaryTypes =
+      std::array<BoundaryType, 6>{BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
+                                  BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
 
   ThermostatTestingSimulation simulation(std::move(particles), thermostat, heatingChecker, config);
   simulation.run();

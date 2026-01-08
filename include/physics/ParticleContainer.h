@@ -40,9 +40,8 @@ class ParticleContainer {
    * @param m mass
    */
   virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v,
-                   double m);  // function called in FileReader
-  virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v,
-                   double m, double sigma, double epsilon);
+                           double m);  // function called in FileReader
+  virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma, double epsilon);
   virtual void addParticle(const Particle* p);
 
   virtual void removeParticle(size_t idx);
@@ -58,9 +57,8 @@ class ParticleContainer {
    * @param sigma Lennard-Jones sigma parameter
    * @param epsilon Lennard-Jones epsilon parameter
    */
-  virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m,
-                           std::array<double, 3> f, std::array<double, 3> oldF,
-                           int type, double sigma, double epsilon);
+  virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, std::array<double, 3> f,
+                           std::array<double, 3> oldF, int type, double sigma, double epsilon);
 
   using iterator = std::vector<Particle>::iterator;
   using const_iterator = std::vector<Particle>::const_iterator;

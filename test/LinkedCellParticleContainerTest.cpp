@@ -6,10 +6,8 @@ class LinkedCellParticleContainerTest : public ::testing::Test {
  protected:
   std::array<double, 3> domainDims = {10.0, 10.0, 10.0};
   double cutoffRadius = 2.5;
-  std::array<BoundaryType, 6> outflowBoundaries = {
-      BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
-      BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
-      BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
+  std::array<BoundaryType, 6> outflowBoundaries = {BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
+                                                   BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
 };
 
 // Test that the container initializes with correct domain dimensions
@@ -116,10 +114,9 @@ TEST_F(LinkedCellParticleContainerTest, ParticleAtBoundary) {
 
 // Test reflective boundaries setup
 TEST_F(LinkedCellParticleContainerTest, ReflectiveBoundaryTypes) {
-  std::array<BoundaryType, 6> reflectiveBoundaries = {
-      BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
-      BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
-      BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE};
+  std::array<BoundaryType, 6> reflectiveBoundaries = {BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
+                                                      BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
+                                                      BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE};
 
   LinkedCellParticleContainer lpc(domainDims, cutoffRadius, reflectiveBoundaries);
 

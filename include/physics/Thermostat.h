@@ -10,7 +10,7 @@
 #include "physics/ParticleContainer.h"
 
 class Thermostat {
-private:
+ private:
   /**
    * @brief Particles controlled by this thermostat.
    */
@@ -28,9 +28,11 @@ private:
    * @brief Maximal absolute temperature change allowed for one application of the thermostat.
    */
   double tempDelta;
-public:
+
+ public:
   ~Thermostat();
-  Thermostat(ParticleContainer& particles, int nThermostat, double tempTarget = 1.0, double tempDelta = std::numeric_limits<double>::infinity());
+  Thermostat(ParticleContainer& particles, int nThermostat, double tempTarget = 1.0,
+             double tempDelta = std::numeric_limits<double>::infinity());
 
   /**
    * @brief Initializes the temperature of the system using Maxwell-Boltzmann velocities in Anderson thermostat style.

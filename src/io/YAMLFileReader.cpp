@@ -179,15 +179,18 @@ SimulationConfig YAMLFileReader::getConfig() {
 
   // Container and Linked Cell parameters
   auto parseBoundary = [](const std::string& s) -> BoundaryType {
-    if (s == "OUTFLOW") return BoundaryType::OUTFLOW;
-    if (s == "REFLECTIVE") return BoundaryType::REFLECTIVE;
-    if (s == "PERIODIC") return BoundaryType::PERIODIC;
+    if (s == "OUTFLOW")
+      return BoundaryType::OUTFLOW;
+    if (s == "REFLECTIVE")
+      return BoundaryType::REFLECTIVE;
+    if (s == "PERIODIC")
+      return BoundaryType::PERIODIC;
     throw std::runtime_error("Unknown boundary type in YAML: " + s);
   };
 
   std::array<std::string, 6> rawBoundaries = getBoundaryTypesRaw();
   std::array<BoundaryType, 6> boundariesEnum;
-  for(int i=0; i<6; ++i) {
+  for (int i = 0; i < 6; ++i) {
     boundariesEnum[i] = parseBoundary(rawBoundaries[i]);
   }
   simConfig.boundaryTypes = boundariesEnum;
@@ -196,7 +199,8 @@ SimulationConfig YAMLFileReader::getConfig() {
   simConfig.thermostatConfig = getThermostatConfig();
 
   // Particle generation
-  ParticleGenerator& generatorRaw = *simConfig.particleGenerator;  // particle generator owned by config at this point, so it's ok to deref ptr
+  ParticleGenerator& generatorRaw =
+      *simConfig.particleGenerator;  // particle generator owned by config at this point, so it's ok to deref ptr
 
   const double globalSigma = *simConfig.sigma;
   const double globalEpsilon = *simConfig.epsilon;

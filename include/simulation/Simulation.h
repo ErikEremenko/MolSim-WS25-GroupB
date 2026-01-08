@@ -3,9 +3,9 @@
 #include "io/CheckpointWriter.h"  // TODO: Re-implement checkpointing
 #include "io/YAMLFileReader.h"
 #include "physics/ForceCalc.h"
+#include "physics/ParticleGenerator.h"
 #include "physics/Thermostat.h"
 #include "simulation/SimulationConfig.h"
-#include "physics/ParticleGenerator.h"
 
 #include <memory>
 #include <string>

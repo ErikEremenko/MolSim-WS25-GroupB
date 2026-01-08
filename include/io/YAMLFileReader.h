@@ -1,8 +1,8 @@
 #pragma once
 #include <yaml-cpp/yaml.h>
 #include <string>
-#include "utils/MaxwellBoltzmannDistribution.h"
 #include "simulation/SimulationConfig.h"
+#include "utils/MaxwellBoltzmannDistribution.h"
 
 /**
  * @class YAMLFileReader

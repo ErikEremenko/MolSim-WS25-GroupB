@@ -1,9 +1,9 @@
 #pragma once
 
 #include <array>
+#include <memory>
 #include <optional>
 #include <string>
-#include <memory>
 
 #include "physics/LinkedCellParticleContainer.h"
 #include "physics/ParticleGenerator.h"
@@ -84,7 +84,8 @@ struct SimulationConfig {
   SimulationMode simulationMode = SimulationMode::FILE_OUTPUT;
 
   // Particle initialization
-  std::unique_ptr<ParticleGenerator> particleGenerator = std::make_unique<ParticleGenerator>();;
+  std::unique_ptr<ParticleGenerator> particleGenerator = std::make_unique<ParticleGenerator>();
+  ;
 
   // File output
   int writeFrequency = 10;  // not used when benchmarking

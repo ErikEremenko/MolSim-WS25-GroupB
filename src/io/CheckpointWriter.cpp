@@ -120,8 +120,8 @@ void CheckpointWriter::writeCheckpoint(const ParticleContainer& particles, const
   fout << out.c_str();
   fout.close();
 
-  SPDLOG_INFO("Checkpoint written: {} ({} particles, iteration {}, time {})", std::filesystem::absolute(fullPath).string(), particles.size(), iteration,
-              currentTime);
+  SPDLOG_INFO("Checkpoint written: {} ({} particles, iteration {}, time {})",
+              std::filesystem::absolute(fullPath).string(), particles.size(), iteration, currentTime);
 }
 
 }  // namespace outputWriter

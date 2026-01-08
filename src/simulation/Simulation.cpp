@@ -47,13 +47,19 @@ Simulation::Simulation(SimulationConfig& config)
   if (config.boundaryTypes) {
     for (size_t i = 0; i < 6; ++i) {
       switch ((*config.boundaryTypes)[i]) {
-        case BoundaryType::OUTFLOW: boundaryTypeStrings[i] = "OUTFLOW"; break;
-        case BoundaryType::REFLECTIVE: boundaryTypeStrings[i] = "REFLECTIVE"; break;
-        case BoundaryType::PERIODIC: boundaryTypeStrings[i] = "PERIODIC"; break;
+        case BoundaryType::OUTFLOW:
+          boundaryTypeStrings[i] = "OUTFLOW";
+          break;
+        case BoundaryType::REFLECTIVE:
+          boundaryTypeStrings[i] = "REFLECTIVE";
+          break;
+        case BoundaryType::PERIODIC:
+          boundaryTypeStrings[i] = "PERIODIC";
+          break;
       }
     }
   } else {
-     boundaryTypeStrings.fill("OUTFLOW");
+    boundaryTypeStrings.fill("OUTFLOW");
   }
   // Initialize particle container and force calculation strategy
   switch (config.containerType) {
@@ -96,9 +102,8 @@ Simulation::Simulation(SimulationConfig& config)
     }
 
     // Create thermostat object
-    thermostat =
-        std::make_unique<Thermostat>(*particles, thermoConfig.nThermostat, actualTargetTemp,
-                                     thermoConfig.tempDelta.value_or(std::numeric_limits<double>::infinity()));
+    thermostat = std::make_unique<Thermostat>(*particles, thermoConfig.nThermostat, actualTargetTemp,
+                                              thermoConfig.tempDelta.value_or(std::numeric_limits<double>::infinity()));
 
     initialTemperature = thermoConfig.tempInit;  // copy optional, used in simulation setup
   } else {
@@ -120,15 +125,10 @@ void Simulation::writeCheckpoint(int iteration, double time) const {
     outputDirectory = "output/checkpoints";
   }
 
-  outputWriter::CheckpointWriter::writeCheckpoint(*particles, 
-      outputBasename + "_checkpoint_" + std::to_string(iteration) + ".yaml",
-      iteration, time, outputBasename, writeFrequency, checkpointFrequency, 
-      endTime, dt, 
-      epsilon, sigma, cutoff, gravity,
-      domainSize,
-      boundaryTypeStrings,
-      outputDirectory
-  ); 
+  outputWriter::CheckpointWriter::writeCheckpoint(
+      *particles, outputBasename + "_checkpoint_" + std::to_string(iteration) + ".yaml", iteration, time,
+      outputBasename, writeFrequency, checkpointFrequency, endTime, dt, epsilon, sigma, cutoff, gravity, domainSize,
+      boundaryTypeStrings, outputDirectory);
 }
 
 void Simulation::run() {

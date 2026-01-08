@@ -2,9 +2,9 @@
 #include <filesystem>
 #include <fstream>
 
-#include "physics/ParticleContainer.h"
 #include "io/CheckpointWriter.h"
 #include "io/YAMLFileReader.h"
+#include "physics/ParticleContainer.h"
 
 class CheckpointWriterTest : public ::testing::Test {
  protected:

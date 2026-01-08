@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "physics/ParticleContainer.h"
 #include "io/YAMLFileReader.h"
+#include "physics/ParticleContainer.h"
 
 class YAMLFileReaderTest : public ::testing::Test {
  protected:

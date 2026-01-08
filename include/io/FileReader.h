@@ -10,12 +10,13 @@
  * a ParticleContainer. Subclasses implement specific file formats or structures.
  */
 class BaseFileReader {
-protected:
+ protected:
   /**
    * @brief Path to the input file.
    */
   std::string filename;
-public:
+
+ public:
   /**
    * @brief Constructor for \ref BaseFileReader.
    * @param filename Path to the file that will be read.
@@ -41,7 +42,7 @@ public:
  * @brief File reader that loads cuboids of particles.
  */
 class CuboidFileReader : BaseFileReader {
-public:
+ public:
   using BaseFileReader::BaseFileReader;
 
   /**

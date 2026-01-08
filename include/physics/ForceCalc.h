@@ -42,7 +42,7 @@ class ForceCalc {
  * @brief Models gravity forces between particles
  */
 class GravityForce final : public ForceCalc {
-public:
+ public:
   using ForceCalc::ForceCalc;
 
   /**
@@ -56,11 +56,11 @@ public:
  * @brief Models the Lennard-Jones potential
  */
 class LennardJonesForce final : public ForceCalc {
-private:
+ private:
   // TODO: Docstring these members
   const double epsilon, sigma, cutoffRadius, repulsionDistance, gravity;
 
-public:
+ public:
   /**
    *
    * @param particles ParticleContainer that stores the particles used by the calculation method
@@ -102,11 +102,11 @@ public:
  * @brief Models the Lennard-Jones potential with parallelization
  */
 class LennardJonesForceParallel final : public ForceCalc {
-private:
+ private:
   // TODO: Either docstring these or inherit from LennardJonesForce
   const double epsilon, sigma, cutoffRadius;
 
-public:
+ public:
   /**
    *
    * @param particles ParticleContainer that stores the particles used by the calculation method
@@ -121,4 +121,3 @@ public:
   */
   void calculateF() override;
 };
-
