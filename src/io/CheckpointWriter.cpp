@@ -11,11 +11,14 @@ namespace outputWriter {
 void CheckpointWriter::writeCheckpoint(const ParticleContainer& particles, const std::string& filename, int iteration,
                                        double currentTime, const std::string& baseName, int writeFrequency,
                                        int checkpointFrequency, double tEnd, double deltaT, double epsilon,
-                                       double sigma, double cutoffRadius, const std::array<double, 3>& domainSize,
-                                       const std::array<std::string, 6>& boundaryTypes) {
+                                       double sigma, double cutoffRadius, double gravity,
+                                       const std::array<double, 3>& domainSize,
+                                       const std::array<std::string, 6>& boundaryTypes,
+                                       const std::string& outputDirectory) {
 
-  // Create output directory if it doesn't exist
-  const std::string output_directory = "output/checkpoints";
+  // Use the passed output directory
+  const std::string& output_directory = outputDirectory;
+
   try {
     std::filesystem::create_directories(output_directory);
   } catch (const std::filesystem::filesystem_error& err) {
@@ -46,6 +49,7 @@ void CheckpointWriter::writeCheckpoint(const ParticleContainer& particles, const
   out << YAML::Key << "epsilon" << YAML::Value << epsilon;
   out << YAML::Key << "sigma" << YAML::Value << sigma;
   out << YAML::Key << "cutoff_radius" << YAML::Value << cutoffRadius;
+  out << YAML::Key << "gravity" << YAML::Value << gravity;
   out << YAML::EndMap;
 
   // Domain configuration
@@ -116,7 +120,7 @@ void CheckpointWriter::writeCheckpoint(const ParticleContainer& particles, const
   fout << out.c_str();
   fout.close();
 
-  SPDLOG_INFO("Checkpoint written: {} ({} particles, iteration {}, time {})", fullPath, particles.size(), iteration,
+  SPDLOG_INFO("Checkpoint written: {} ({} particles, iteration {}, time {})", std::filesystem::absolute(fullPath).string(), particles.size(), iteration,
               currentTime);
 }
 

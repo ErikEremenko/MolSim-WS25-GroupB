@@ -33,6 +33,21 @@ class Simulation {  // TODO: For now, we keep the virtual methods for thermostat
   double dt;
 
   /**
+   * @brief Gravitational acceleration applied to particles.
+   */
+  double gravity;
+
+  double startTime;
+  int startIteration;
+
+  // Simulation parameters needed for checkpointing
+  double epsilon;
+  double sigma;
+  double cutoff;
+  std::array<double, 3> domainSize;
+  std::array<std::string, 6> boundaryTypeStrings;
+
+  /**
    * @brief Chosen simulation execution mode (benchmark/file output).
    */
   SimulationMode simulationMode;
@@ -41,6 +56,11 @@ class Simulation {  // TODO: For now, we keep the virtual methods for thermostat
    * @brief Frequency defines after how many simulation steps the output is written to file.
    */
   int writeFrequency;
+
+  /**
+   * @brief Frequency defines after how many simulation steps a checkpoint is written to file.
+   */
+  int checkpointFrequency;
 
   /**
    * @brief Defines the base name of the simulation output files.
@@ -70,6 +90,13 @@ class Simulation {  // TODO: For now, we keep the virtual methods for thermostat
    * @param outputBaseName Name for the file output
    */
   void plotParticles(int iteration) const;
+
+  /**
+   * @brief Writes a checkpoint file.
+   * @param iteration Current simulation step.
+   * @param time Current simulation time.
+   */
+  void writeCheckpoint(int iteration, double time) const;
 
   /**
    * @brief Creates/loads the particles in the simulation.

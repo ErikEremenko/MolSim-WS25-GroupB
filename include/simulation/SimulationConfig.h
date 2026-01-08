@@ -79,6 +79,8 @@ struct SimulationConfig {
   // Basic simulation parameters
   double tEnd = 0.0;
   double deltaT = 0.0;
+  int startIteration = 0;
+  double startTime = 0.0;
   SimulationMode simulationMode = SimulationMode::FILE_OUTPUT;
 
   // Particle initialization
@@ -86,6 +88,7 @@ struct SimulationConfig {
 
   // File output
   int writeFrequency = 10;  // not used when benchmarking
+  int checkpointFrequency = 0;
   std::string outputBasename = "MD_vtk";
 
   // Force parameters

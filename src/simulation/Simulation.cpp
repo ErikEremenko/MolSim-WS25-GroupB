@@ -10,6 +10,7 @@
 // process signal handling, TODO: Implement signal handling for all simulation types (?)
 #include <atomic>
 #include <csignal>
+#include <filesystem>
 
 #ifndef SPDLOG_ACTIVE_LEVEL
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
@@ -30,8 +31,30 @@ Simulation::Simulation(SimulationConfig& config)
       dt(config.deltaT),
       simulationMode(config.simulationMode),
       writeFrequency(config.writeFrequency),
+      checkpointFrequency(config.checkpointFrequency),
       outputBasename(std::move(config.outputBasename)),
-      particleGenerator(std::move(config.particleGenerator)) {
+      particleGenerator(std::move(config.particleGenerator)),
+
+      gravity(config.gravity.value_or(0.0)),
+      startTime(config.startTime),
+      startIteration(config.startIteration),
+      epsilon(config.epsilon.value_or(1.0)),
+      sigma(config.sigma.value_or(1.0)),
+      cutoff(config.cutoff.value_or(3.0)),
+      domainSize(config.domainSize.value_or(std::array<double, 3>{0.0, 0.0, 0.0})) {
+
+  // Initialize boundary strings
+  if (config.boundaryTypes) {
+    for (size_t i = 0; i < 6; ++i) {
+      switch ((*config.boundaryTypes)[i]) {
+        case BoundaryType::OUTFLOW: boundaryTypeStrings[i] = "OUTFLOW"; break;
+        case BoundaryType::REFLECTIVE: boundaryTypeStrings[i] = "REFLECTIVE"; break;
+        case BoundaryType::PERIODIC: boundaryTypeStrings[i] = "PERIODIC"; break;
+      }
+    }
+  } else {
+     boundaryTypeStrings.fill("OUTFLOW");
+  }
   // Initialize particle container and force calculation strategy
   switch (config.containerType) {
     case ContainerType::DIRECT:
@@ -90,6 +113,24 @@ void Simulation::plotParticles(const int iteration) const {
   SPDLOG_DEBUG("Succesfully wrote particles to file, iteration={}", iteration);
 }
 
+void Simulation::writeCheckpoint(int iteration, double time) const {
+  // Determine output directory based on current working directory
+  std::string outputDirectory = "build/output/checkpoints";
+  if (std::filesystem::exists("CMakeCache.txt")) {
+    outputDirectory = "output/checkpoints";
+  }
+
+  outputWriter::CheckpointWriter::writeCheckpoint(*particles, 
+      outputBasename + "_checkpoint_" + std::to_string(iteration) + ".yaml",
+      iteration, time, outputBasename, writeFrequency, checkpointFrequency, 
+      endTime, dt, 
+      epsilon, sigma, cutoff, gravity,
+      domainSize,
+      boundaryTypeStrings,
+      outputDirectory
+  ); 
+}
+
 void Simulation::run() {
   setupSimulation();  // set up particles and objects
 
@@ -108,8 +149,8 @@ void Simulation::run() {
 void Simulation::runFileOutput() {
   const int thermoFrequency = thermostat ? thermostat->getUpdateFrequency() : 1;
 
-  double currentTime = 0;
-  int iteration = 0;
+  double currentTime = startTime;
+  int iteration = startIteration;
 
   // for this loop, we assume: current x, current f and current v are known
   while (currentTime < endTime) {
@@ -130,6 +171,9 @@ void Simulation::runFileOutput() {
     if (iteration % writeFrequency == 0) {
       plotParticles(iteration);
     }
+    if (checkpointFrequency > 0 && iteration % checkpointFrequency == 0) {
+      writeCheckpoint(iteration, currentTime);
+    }
 
     currentTime += dt;
   }
@@ -147,8 +191,8 @@ void Simulation::runBenchmark() {
 
   const int thermoFrequency = thermostat ? thermostat->getUpdateFrequency() : 1;
 
-  double currentTime = 0;
-  long iteration = 0;
+  double currentTime = startTime;
+  long iteration = startIteration;
 
   // For this loop, we assume current x, current F and current v are known
   while (currentTime < endTime) {

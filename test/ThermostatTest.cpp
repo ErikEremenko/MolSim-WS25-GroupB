@@ -34,7 +34,7 @@ constexpr double THERMO_COOLING_START_TEMP = 150;
 constexpr double THERMO_COOLING_TARGET_TEMP = 50;
 constexpr double THERMO_COOLING_TEMP_DELTA = 10;
 
-class ThermostatTestingSimulation : public BaseSimulation {
+class ThermostatTestingSimulation : public Simulation {
  private:
   Thermostat& thermostat;
   std::function<void(bool)> temperatureChecker;  // called after updating the temperature
@@ -42,14 +42,14 @@ class ThermostatTestingSimulation : public BaseSimulation {
  protected:
   void setupSimulation() override { /* empty override for compilation */
   }
-  void runFileOutput(int frequency, const std::string& outputBaseName) override { /* empty as it will not be called */
+  void runFileOutput() override { /* empty as it will not be called */
   }
   void runBenchmark() override {
     // No benchmarking, just simulate and regularly apply thermostat
     double current_time = 0;
     int iteration = 0;
     const int thermostatFrequency = thermostat.getUpdateFrequency();
-    while (current_time < end_time) {
+    while (current_time < endTime) {
       forceCalc->calculateX(dt);
       for (auto& p : *particles) {
         p.setOldF(p.getF());
@@ -69,12 +69,8 @@ class ThermostatTestingSimulation : public BaseSimulation {
 
  public:
   ThermostatTestingSimulation(std::unique_ptr<ParticleContainer> particles, Thermostat& thermostat,
-                              std::function<void(bool)> temperatureChecker)
-      : BaseSimulation(SIM_END_TIME, SIM_DT,
-                       0,                         // don't care about file output
-                       "",                        // don't care about file output
-                       SimulationMode::BENCHMARK  // we want runBenchmark() to run
-                       ),
+                              std::function<void(bool)> temperatureChecker, SimulationConfig& config)
+      : Simulation(config),
         thermostat(thermostat),
         temperatureChecker(std::move(temperatureChecker)) {
 
@@ -90,7 +86,7 @@ class ThermostatTest : public testing::Test {
   std::unique_ptr<ParticleContainer> particles;  // ownership transferred to simulation later on
   ParticleGenerator generator;
 
-  ThermostatTest() : particles(std::make_unique<ParticleContainer>()), generator(*particles) {}
+  ThermostatTest() : particles(std::make_unique<ParticleContainer>()) {}
   ~ThermostatTest() override = default;
 };
 
@@ -125,7 +121,8 @@ TEST_F(ThermostatTest, CheckThermostatTemperatureCalculation) {
  */
 TEST_F(ThermostatTest, CheckGeneratorInitialTemperature) {
   // Initialize cuboid
-  generator.generateCuboid({0.0, 0.0, 0.0},  // don't care
+  // Initialize cuboid
+  generator.queueCuboid({0.0, 0.0, 0.0},  // don't care
                            {0.0, 0.0, 0.0},  // cuboid stationary
                            {100, 50, 1},     // 5000 particles
                            1.0,              // don't care
@@ -134,6 +131,7 @@ TEST_F(ThermostatTest, CheckGeneratorInitialTemperature) {
                            1.0,  // don't care
                            5.0   // don't care
   );
+  generator.generate(*particles);
 
   // Initialize thermostat for temperature calculation
   Thermostat thermostat(*particles, 1, 1, 1);  // don't care values except 'particles'
@@ -147,11 +145,24 @@ TEST_F(ThermostatTest, HoldingTemperature) {
   Thermostat thermostat(*particles, THERMO_FREQUENCY, THERMO_HOLDING_TEMP);
 
   // Add objects (particles) to simulation
-  generator.generateCuboid(  // cuboid from collision8000.yaml
+  // Add objects (particles) to simulation
+  generator.queueCuboid(  // cuboid from collision8000.yaml
       {10.0, 10.0, 0.0}, {0.0, 0.0, 0.0}, {120, 60, 1}, 1.1225, 1.0, THERMO_HOLDING_TEMP, 1.0, 5.0);
+  generator.generate(*particles);
 
   // Run simulation and check final temperature
-  ThermostatTestingSimulation simulation(std::move(particles), thermostat, [](bool) {});
+  SimulationConfig config;
+  config.tEnd = SIM_END_TIME;
+  config.deltaT = SIM_DT;
+  config.simulationMode = SimulationMode::BENCHMARK;
+  config.domainSize = std::array<double, 3>{100.0, 100.0, 100.0}; 
+  config.cutoff = SIM_FORCE_CUTOFF_RADIUS;
+  config.epsilon = SIM_FORCE_EPSILON;
+  config.sigma = SIM_FORCE_SIGMA;
+  config.boundaryTypes = std::array<BoundaryType, 6>{BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
+  /* populate other required fields if needed */
+  
+  ThermostatTestingSimulation simulation(std::move(particles), thermostat, [](bool) {}, config);
   simulation.run();
 
   ASSERT_NEAR(thermostat.calculateCurrentTemperature(), THERMO_HOLDING_TEMP, THERMO_TEMP_TOLERANCE);
@@ -162,8 +173,10 @@ TEST_F(ThermostatTest, CoolingDown) {
   Thermostat thermostat(*particles, THERMO_FREQUENCY, THERMO_COOLING_TARGET_TEMP, THERMO_COOLING_TEMP_DELTA);
 
   // Add objects (particles) to simulation
-  generator.generateCuboid(  // cuboid from collision8000.yaml
+  // Add objects (particles) to simulation
+  generator.queueCuboid(  // cuboid from collision8000.yaml
       {10.0, 10.0, 0.0}, {0.0, 0.0, 0.0}, {120, 60, 1}, 1.1225, 1.0, THERMO_COOLING_START_TEMP, 1.0, 5.0);
+  generator.generate(*particles);
 
   // Define temperature checking function - check if every temperature jump is in the 'tempDelta' range
   double lastTemp = 0;
@@ -182,7 +195,17 @@ TEST_F(ThermostatTest, CoolingDown) {
   };
 
   // Run simulation with checks every temperature update using the lambda function
-  ThermostatTestingSimulation simulation(std::move(particles), thermostat, heatingChecker);
+  SimulationConfig config;
+  config.tEnd = SIM_END_TIME;
+  config.deltaT = SIM_DT;
+  config.simulationMode = SimulationMode::BENCHMARK;
+  config.domainSize = std::array<double, 3>{100.0, 100.0, 100.0}; 
+  config.cutoff = SIM_FORCE_CUTOFF_RADIUS;
+  config.epsilon = SIM_FORCE_EPSILON;
+  config.sigma = SIM_FORCE_SIGMA;
+  config.boundaryTypes = std::array<BoundaryType, 6>{BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
+
+  ThermostatTestingSimulation simulation(std::move(particles), thermostat, heatingChecker, config);
   simulation.run();
 }
 
@@ -191,8 +214,10 @@ TEST_F(ThermostatTest, HeatingUp) {
   Thermostat thermostat(*particles, THERMO_FREQUENCY, THERMO_HEATING_TARGET_TEMP, THERMO_HEATING_TEMP_DELTA);
 
   // Add objects (particles) to simulation
-  generator.generateCuboid(  // cuboid from collision8000.yaml
+  // Add objects (particles) to simulation
+  generator.queueCuboid(  // cuboid from collision8000.yaml
       {10.0, 10.0, 0.0}, {0.0, 0.0, 0.0}, {120, 60, 1}, 1.1225, 1.0, THERMO_HEATING_START_TEMP, 1.0, 5.0);
+  generator.generate(*particles);
 
   // Define temperature checking function - check if every temperature jump is in the 'tempDelta' range
   double lastTemp = 0;
@@ -211,6 +236,16 @@ TEST_F(ThermostatTest, HeatingUp) {
   };
 
   // Run simulation with checks every temperature update using the lambda function
-  ThermostatTestingSimulation simulation(std::move(particles), thermostat, heatingChecker);
+  SimulationConfig config;
+  config.tEnd = SIM_END_TIME;
+  config.deltaT = SIM_DT;
+  config.simulationMode = SimulationMode::BENCHMARK;
+  config.domainSize = std::array<double, 3>{100.0, 100.0, 100.0}; 
+  config.cutoff = SIM_FORCE_CUTOFF_RADIUS;
+  config.epsilon = SIM_FORCE_EPSILON;
+  config.sigma = SIM_FORCE_SIGMA;
+  config.boundaryTypes = std::array<BoundaryType, 6>{BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
+
+  ThermostatTestingSimulation simulation(std::move(particles), thermostat, heatingChecker, config);
   simulation.run();
 }

@@ -74,7 +74,10 @@ double YAMLFileReader::getCutoff() const {
 }
 
 double YAMLFileReader::getGravity() const {
-  return config["simulation"]["gravity"].as<double>();
+  if (config["simulation"]["gravity"]) {
+    return config["simulation"]["gravity"].as<double>();
+  }
+  return 0.0;  // Default to 0 if not specified
 }
 
 std::array<double, 3> YAMLFileReader::getDomainSize() const {
@@ -161,7 +164,11 @@ SimulationConfig YAMLFileReader::getConfig() {
   // File output parameters
   simConfig.outputBasename = getOutputBaseName();
   simConfig.writeFrequency = getWriteFrequency();
-  // TODO: Add checkpoint frequency here
+  simConfig.checkpointFrequency = getCheckpointFrequency();
+
+  // Checkpoint parameters
+  simConfig.startIteration = getCheckpointIteration();
+  simConfig.startTime = getCheckpointTime();
 
   // Force parameters
   simConfig.epsilon = getEpsilon();

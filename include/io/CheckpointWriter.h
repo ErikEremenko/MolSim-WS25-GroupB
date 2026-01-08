@@ -44,8 +44,10 @@ class CheckpointWriter {
       double epsilon,
       double sigma,
       double cutoffRadius,
+      double gravity,
       const std::array<double, 3>& domainSize,
-      const std::array<std::string, 6>& boundaryTypes);
+      const std::array<std::string, 6>& boundaryTypes,
+      const std::string& outputDirectory = "output/checkpoints");
 };
 
 }  // namespace outputWriter

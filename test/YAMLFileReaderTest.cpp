@@ -19,7 +19,7 @@ TEST_F(YAMLFileReaderTest, LoadValidFile) {
 TEST_F(YAMLFileReaderTest, ReadSimulationParameters) {
   YAMLFileReader reader(inputFilename);
 
-  EXPECT_DOUBLE_EQ(reader.getTend(), 20.0);
+  EXPECT_DOUBLE_EQ(reader.getTEnd(), 20.0);
   EXPECT_DOUBLE_EQ(reader.getDeltaT(), 0.0005);
   EXPECT_DOUBLE_EQ(reader.getEpsilon(), 5.0);
   EXPECT_DOUBLE_EQ(reader.getSigma(), 1.0);
@@ -62,7 +62,8 @@ TEST_F(YAMLFileReaderTest, ReadCuboidParticles) {
   YAMLFileReader reader(inputFilename);
   ParticleContainer pc;
 
-  reader.readFile(pc);
+  auto config = reader.getConfig();
+  config.particleGenerator->generate(pc);
 
   // collision2_reflective.yaml has 20*20 + 100*20 = 2400 particles in total
   EXPECT_EQ(pc.size(), 2400);
@@ -129,7 +130,8 @@ TEST_F(YAMLFileReaderTest, ReadCheckpointParticles) {
   YAMLFileReader reader(checkpointFile);
   ParticleContainer pc;
 
-  reader.readFile(pc);
+  auto config = reader.getConfig();
+  config.particleGenerator->generate(pc);
 
   // The test checkpoint has 3 particles
   EXPECT_EQ(pc.size(), 3);
@@ -141,7 +143,8 @@ TEST_F(YAMLFileReaderTest, CheckpointParticlePosition) {
   YAMLFileReader reader(checkpointFile);
   ParticleContainer pc;
 
-  reader.readFile(pc);
+  auto config = reader.getConfig();
+  config.particleGenerator->generate(pc);
 
   // Check first particle position
   EXPECT_DOUBLE_EQ(pc[0].getX()[0], 10.0);
@@ -160,7 +163,8 @@ TEST_F(YAMLFileReaderTest, CheckpointParticleVelocity) {
   YAMLFileReader reader(checkpointFile);
   ParticleContainer pc;
 
-  reader.readFile(pc);
+  auto config = reader.getConfig();
+  config.particleGenerator->generate(pc);
 
   // Check first particle velocity
   EXPECT_DOUBLE_EQ(pc[0].getV()[0], 1.0);
@@ -174,7 +178,8 @@ TEST_F(YAMLFileReaderTest, CheckpointParticleForces) {
   YAMLFileReader reader(checkpointFile);
   ParticleContainer pc;
 
-  reader.readFile(pc);
+  auto config = reader.getConfig();
+  config.particleGenerator->generate(pc);
 
   // Check first particle current force
   EXPECT_DOUBLE_EQ(pc[0].getF()[0], 0.1);
@@ -193,7 +198,8 @@ TEST_F(YAMLFileReaderTest, CheckpointParticleMassAndType) {
   YAMLFileReader reader(checkpointFile);
   ParticleContainer pc;
 
-  reader.readFile(pc);
+  auto config = reader.getConfig();
+  config.particleGenerator->generate(pc);
 
   // First particle: mass=1.0, type=0
   EXPECT_DOUBLE_EQ(pc[0].getM(), 1.0);
@@ -210,7 +216,8 @@ TEST_F(YAMLFileReaderTest, CheckpointParticleSigmaEpsilon) {
   YAMLFileReader reader(checkpointFile);
   ParticleContainer pc;
 
-  reader.readFile(pc);
+  auto config = reader.getConfig();
+  config.particleGenerator->generate(pc);
 
   // First particle: sigma=1.0, epsilon=5.0
   EXPECT_DOUBLE_EQ(pc[0].getSigma(), 1.0);
@@ -226,7 +233,7 @@ TEST_F(YAMLFileReaderTest, CheckpointSimulationParameters) {
   std::string checkpointFile = project_dir + "/input/test_checkpoint.yaml";
   YAMLFileReader reader(checkpointFile);
 
-  EXPECT_DOUBLE_EQ(reader.getTend(), 1.0);
+  EXPECT_DOUBLE_EQ(reader.getTEnd(), 1.0);
   EXPECT_DOUBLE_EQ(reader.getDeltaT(), 0.0005);
   EXPECT_EQ(reader.getOutputBaseName(), "test_checkpoint");
   EXPECT_EQ(reader.getWriteFrequency(), 50);
