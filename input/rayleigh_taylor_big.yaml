@@ -1,6 +1,6 @@
 output:
   base_name: "rayleigh_taylor_big"
-  write_frequency: 500
+  write_frequency: 100
   checkpoint_frequency: 5000
 
 simulation:
@@ -10,9 +10,10 @@ simulation:
   sigma: 1.0
   cutoff_radius: 3.0
   gravity: -12.44
+  dimensions: 2
 
 domain:
-  size: [300.0, 54.0, 5.0]
+  size: [300.0, 54.0, 1.0]
 
 boundaries:
   x_min: PERIODIC
@@ -27,7 +28,7 @@ thermostat:
   temp_init: 40.0
 
 cuboids:
-  - position: [0.6, 2.0, 2.5]
+  - position: [0.6, 2.0, 0.0]
     velocity: [0.0, 0.0, 0.0]
     dimensions: [250, 20, 1]
     mesh_width: 1.2
@@ -36,7 +37,7 @@ cuboids:
     sigma: 1.2
     epsilon: 1.0
 
-  - position: [0.6, 27.0, 2.5]
+  - position: [0.6, 27.0, 0.0]
     velocity: [0.0, 0.0, 0.0]
     dimensions: [250, 20, 1]
     mesh_width: 1.2
