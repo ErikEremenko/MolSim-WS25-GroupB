@@ -243,7 +243,6 @@ SimulationConfig YAMLFileReader::getConfig() {
   }
 
   // Parse spheres
-  // TODO: Why is this named 'sphere' here and 'disc' in ParticleGenerator?
   const auto& spheres = config["spheres"];
   for (std::size_t i = 0; i < spheres.size(); ++i) {
     const auto& sphere = spheres[i];
