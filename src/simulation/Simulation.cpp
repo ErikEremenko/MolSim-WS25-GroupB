@@ -5,12 +5,14 @@
 #include "physics/LinkedCellParticleContainer.h"
 
 #include <chrono>  // for benchmarking
-#include <memory>
-#include <utility>
-// process signal handling, TODO: Implement signal handling for all simulation types (?)
-#include <atomic>
+#include <cmath>
 #include <csignal>
 #include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <numeric>
+#include <utility>
 
 #ifndef SPDLOG_ACTIVE_LEVEL
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
@@ -39,7 +41,7 @@ Simulation::Simulation(SimulationConfig& config)
       domainSize(config.domainSize.value_or(std::array<double, 3>{0.0, 0.0, 0.0})),
       simulationMode(config.simulationMode),
       writeFrequency(config.writeFrequency),
-      checkpointFrequency(config.checkpointFrequency),
+      checkpointFrequency((config.simulationMode == SimulationMode::BENCHMARK) ? 0 : config.checkpointFrequency),
       particleGenerator(std::move(config.particleGenerator)),
       outputBasename(std::move(config.outputBasename)) {
 
@@ -103,8 +105,7 @@ Simulation::Simulation(SimulationConfig& config)
 
     // Create thermostat object
     thermostat = std::make_unique<Thermostat>(*particles, thermoConfig.nThermostat, actualTargetTemp,
-                                              thermoConfig.tempDelta.value_or(std::numeric_limits<double>::infinity()),
-                                              dimensions);
+                                              thermoConfig.tempDelta.value_or(std::numeric_limits<double>::infinity()));
 
     initialTemperature = thermoConfig.tempInit;  // copy optional, used in simulation setup
   } else {
@@ -229,6 +230,34 @@ void Simulation::runBenchmark() {
   if (iteration > 0) {
     double timePerIteration = elapsed / static_cast<double>(iteration);
     SPDLOG_INFO("Mean time per iteration: {:.6f} s", timePerIteration);
+
+    size_t numParticles = particles->size();
+    double mups = (static_cast<double>(iteration) * numParticles) / elapsed;
+    SPDLOG_INFO("Molecule-Updates per Second (MUPS): {:.2f}", mups);
+
+    // Write benchmark results to file
+    std::string outputDir = "build/output";
+    if (std::filesystem::exists("CMakeCache.txt")) {
+      outputDir = "output";  // Assume we are in build/
+    }
+
+    std::filesystem::create_directories(outputDir);
+
+    std::ofstream benchFile(outputDir + "/benchmark.txt", std::ios_base::app);
+    if (benchFile.is_open()) {
+      benchFile << "--------------------------------------------------" << std::endl;
+      benchFile << "Benchmark Run: " << outputBasename << std::endl;
+      benchFile << "Timestamp: " << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) << std::endl;
+      benchFile << "Particles: " << numParticles << std::endl;
+      benchFile << "Time elapsed: " << elapsed << " s" << std::endl;
+      benchFile << "Total iterations: " << iteration << std::endl;
+      benchFile << "Mean time per iteration: " << timePerIteration << " s" << std::endl;
+      benchFile << "MUPS: " << mups << std::endl;
+      benchFile.close();
+      SPDLOG_INFO("Benchmark results written to {}/benchmark.txt", outputDir);
+    } else {
+      SPDLOG_WARN("Could not open benchmark output file.");
+    }
   }
   spdlog::set_level(spdlog::level::off);
 }

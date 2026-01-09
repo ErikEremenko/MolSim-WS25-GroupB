@@ -5,4 +5,4 @@ sudo cpupower frequency-set -g performance
 # taskset -c binds the process to the specified set of CPU cores
 # Using single-threaded calculation
 sudo taskset -c 0 chrt -r 50 nice -n -10 \
-./MolSim ../input/collision2000.yaml benchmark info direct
+./MolSim ../input/rayleigh_taylor_big_benchmark.yaml benchmark info linked

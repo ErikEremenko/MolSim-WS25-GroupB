@@ -12,6 +12,6 @@ sudo cpupower frequency-set -g performance
 # taskset -c binds the process to the specified set of CPU cores
 # Using single-threaded calculation
 sudo taskset -c 0 chrt -r 50 nice -n -10 \
-  ./MolSim ../input/eingabe-collision.txt 5 0.0002 benchmark off P:OFF
+  ./MolSim ../input/rayleigh_taylor_small.yaml benchmark info linked
 # reset the ownership of all files in build to the current user
 cd .. && sudo chown -R "$USER":"$USER" build/
