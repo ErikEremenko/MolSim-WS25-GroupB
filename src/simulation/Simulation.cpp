@@ -11,6 +11,7 @@
 #include <csignal>
 #include <filesystem>
 #include <fstream>
+#include <atomic>
 #include <iostream>
 #include <memory>
 #include <numeric>
