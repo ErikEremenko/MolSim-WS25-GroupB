@@ -6,12 +6,12 @@
 #endif
 #include "physics/LinkedCellParticleContainer.h"
 
+#include <atomic>
 #include <chrono>  // for benchmarking
 #include <cmath>
 #include <csignal>
 #include <filesystem>
 #include <fstream>
-#include <atomic>
 #include <iostream>
 #include <memory>
 #include <numeric>
