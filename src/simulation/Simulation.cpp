@@ -1,7 +1,9 @@
 #include "simulation/Simulation.h"
 
 #include "io/FileReader.h"
+#ifdef ENABLE_VTK_OUTPUT
 #include "io/VTKWriter.h"
+#endif
 #include "physics/LinkedCellParticleContainer.h"
 
 #include <chrono>  // for benchmarking
@@ -116,8 +118,12 @@ Simulation::Simulation(SimulationConfig& config)
 Simulation::~Simulation() = default;
 
 void Simulation::plotParticles(const int iteration) const {
+#ifdef ENABLE_VTK_OUTPUT
   outputWriter::VTKWriter::plotParticles(*particles, outputBasename, iteration);
   SPDLOG_DEBUG("Succesfully wrote particles to file, iteration={}", iteration);
+#else
+  SPDLOG_WARN("VTK output disabled, skipping plotParticles for iteration {}", iteration);
+#endif
 }
 
 void Simulation::writeCheckpoint(int iteration, double time) const {
