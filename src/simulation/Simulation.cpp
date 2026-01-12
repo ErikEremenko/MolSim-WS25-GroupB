@@ -12,9 +12,7 @@
 #include <csignal>
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <memory>
-#include <numeric>
 #include <utility>
 
 #ifndef SPDLOG_ACTIVE_LEVEL

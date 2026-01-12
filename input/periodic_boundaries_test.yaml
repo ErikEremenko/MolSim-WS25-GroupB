@@ -1,0 +1,31 @@
+output:
+  base_name: "collision2_reflective"
+  write_frequency: 100
+
+simulation:
+  t_end: 18.0
+  delta_t: 0.0005
+  epsilon: 5.0
+  sigma: 1.0
+  cutoff_radius: 3.0
+
+domain:
+  size: [20.0, 20.0, 20.0] # z=1 for 2D
+
+boundaries:
+  x_min: PERIODIC
+  x_max: PERIODIC
+  y_min: PERIODIC
+  y_max: PERIODIC
+  z_min: PERIODIC
+  z_max: PERIODIC
+
+cuboids:
+  - position: [5.0, 5.0, 5.0]
+    velocity: [5.0, 5.0, 5.0]
+    dimensions: [10, 10, 10]
+    mesh_width: 1.1225
+    mass: 1.0
+    mean_velocity: 0.0
+
+spheres: []

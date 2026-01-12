@@ -28,7 +28,7 @@ thermostat:
   temp_init: 40.0
 
 cuboids:
-  - position: [0.6, 2.0, 0.0]
+  - position: [0.6, 2.0, 0.5]
     velocity: [0.0, 0.0, 0.0]
     dimensions: [50, 14, 1]
     mesh_width: 1.2
@@ -37,7 +37,7 @@ cuboids:
     sigma: 1.0
     epsilon: 1.0
 
-  - position: [0.6, 19.0, 0.0]
+  - position: [0.6, 19.0, 0.5]
     velocity: [0.0, 0.0, 0.0]
     dimensions: [50, 14, 1]
     mesh_width: 1.2
