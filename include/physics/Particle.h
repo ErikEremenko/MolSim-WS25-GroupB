@@ -138,6 +138,11 @@ class Particle {
   [[nodiscard]] double getSigma() const;
   /** @brief get Lennard-Jones epsilon parameter */
   [[nodiscard]] double getEpsilon() const;
+
+  /** @brief get the list of direct neighbors */
+  [[nodiscard]] std::vector<Particle*>& getDirectNeighbors();
+  /** @brief get the list of diagonal neighbors */
+  [[nodiscard]] std::vector<Particle*>& getDiagonalNeighbors();
   ///@}
 
   /** @name Setter methods */

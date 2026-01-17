@@ -28,6 +28,54 @@ void ParticleGenerator::generateCuboid(ParticleContainer& container, const Cuboi
   }
 }
 
+void ParticleGenerator::generateMembrane(ParticleContainer& container, const CuboidOrder& order) {
+  // TODO: Maybe write tests for this?
+  // --- Particle generation ---
+  const int xDim = order.dim[0];
+  const int yDim = order.dim[1];
+
+  // Use a separate list to keep track of the newly created particles
+  std::vector<Particle*> pointers;  // 2D-array flattened into 1D
+  pointers.reserve(xDim * yDim);
+  for (int nx = 0; nx < xDim; nx++) {
+    for (int ny = 0; ny < yDim; ny++) {
+      std::array<double, 3> temperatureVel = maxwellBoltzmannDistributedVelocity(std::sqrt(order.temp / order.m), 3);
+      std::array<double, 3> particleVelocity = {order.vel[0] + temperatureVel[0], order.vel[1] + temperatureVel[1],
+                                                order.vel[2] + temperatureVel[2]};
+      std::array<double, 3> particlePosition = {order.pos[0] + order.h * nx, order.pos[1] + order.h * ny, order.pos[2]};
+      Particle* ptr = container.addParticle(particlePosition, particleVelocity, order.m, order.type, order.sigma, order.epsilon);
+      pointers.push_back(ptr);
+    }
+  }
+
+  // --- Neighbor initialization ---
+  const auto& addNeighbor = [xDim, yDim, pointers](std::vector<Particle*>& neighbors, const int x, const int y) {
+    if (x >= 0 && x < xDim && y >= 0 && y < yDim) {  // out of bounds check
+      neighbors.push_back(pointers[x*yDim + y]);
+    }
+  };
+
+  for (int x = 0; x < order.dim[0]; x++) {
+    for (int y = 0; y < order.dim[1]; y++) {
+      Particle& particle = *pointers[x*yDim + y];
+
+      // Direct neighbors
+      auto& directNeighbors = particle.getDirectNeighbors();
+      addNeighbor(directNeighbors, x-1, y);  // LEFT
+      addNeighbor(directNeighbors, x+1, y);  // RIGHT
+      addNeighbor(directNeighbors, x, y-1);  // TOP
+      addNeighbor(directNeighbors, x, y+1);  // BOTTOM
+
+      // Diagonal neighbors
+      auto& diagonalNeighbors = particle.getDiagonalNeighbors();
+      addNeighbor(diagonalNeighbors, x-1, y-1);  // TOP LEFT
+      addNeighbor(diagonalNeighbors, x+1, y-1);  // TOP RIGHT
+      addNeighbor(diagonalNeighbors, x-1, y+1);  // BOTTOM LEFT
+      addNeighbor(diagonalNeighbors, x+1, y+1);  // BOTTOM RIGHT
+    }
+  }
+}
+
 void ParticleGenerator::generateDisc(ParticleContainer& container, const DiscOrder& order) {
 
   double radius_sq = order.r_n * order.r_n * order.h * order.h;
@@ -49,8 +97,8 @@ void ParticleGenerator::generateDisc(ParticleContainer& container, const DiscOrd
 
 void ParticleGenerator::queueCuboid(std::array<double, 3> position, std::array<double, 3> velocity,
                                     std::array<int, 3> dimensions, double mesh_width, double mass, double temperature,
-                                    int type, double sigma, double epsilon) {
-  cuboidOrders.push_back({position, velocity, dimensions, mesh_width, mass, temperature, type, sigma, epsilon});
+                                    int type, double sigma, double epsilon, bool isMembrane) {
+  cuboidOrders.push_back({position, velocity, dimensions, mesh_width, mass, temperature, type, sigma, epsilon, isMembrane});
 }
 
 void ParticleGenerator::queueDisc(std::array<double, 3> cx, std::array<double, 3> cv, int rn, double h, double m,
@@ -69,7 +117,11 @@ void ParticleGenerator::generate(ParticleContainer& container) {
 
   // Generate cuboids
   for (const auto& order : cuboidOrders) {
-    generateCuboid(container, order);
+    if (order.isMembrane) {
+      generateMembrane(container, order);
+    } else {
+      generateCuboid(container, order);
+    }
   }
   cuboidOrders.clear();
   cuboidOrders.shrink_to_fit();

@@ -79,6 +79,14 @@ std::string Particle::toString() const {
   return stream.str();
 }
 
+std::vector<Particle*>& Particle::getDirectNeighbors() {
+  return directNeighbors;
+}
+
+std::vector<Particle*>& Particle::getDiagonalNeighbors() {
+  return diagonalNeighbors;
+}
+
 bool Particle::operator==(const Particle& other) const {
   return (x == other.x) and (v == other.v) and (f == other.f) and (type == other.type) and (m == other.m) and
          (old_f == other.old_f);

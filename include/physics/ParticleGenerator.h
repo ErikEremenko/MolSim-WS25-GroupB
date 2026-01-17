@@ -12,6 +12,7 @@
  */
 class ParticleGenerator {
  private:
+  // TODO: Add docstrings to 'orders'
   struct CuboidOrder {
     std::array<double, 3> pos;
     std::array<double, 3> vel;
@@ -22,6 +23,7 @@ class ParticleGenerator {
     int type;
     double sigma;
     double epsilon;
+    bool isMembrane;
   };
 
   struct DiscOrder {
@@ -49,19 +51,27 @@ class ParticleGenerator {
 
   std::vector<CuboidOrder> cuboidOrders;
   std::vector<DiscOrder> discOrders;
-  std::vector<ExplicitOrder> explicitOrders;
+  std::vector<ExplicitOrder> explicitOrders;  // TODO: Use linked list for this
 
   // Internal helper functions to keep generate() clean
   /**
-   * @brief Generates the specified cuboid and populates the container with it
+   * @brief Generates the specified cuboid and populates the container with its particles
    * @param container Target container to populate
    * @param order Cuboid to generate
    */
   static void generateCuboid(ParticleContainer& container, const CuboidOrder& order);
+
   /**
-   * @brief Generates the specified disc and populates the container with it
+   * @brief Generates the specified 2D-membrane and populates the container with its particles
    * @param container Target container to populate
-   * @param order Cuboid to generate
+   * @param order 2D-Membrane to generate
+   */
+  static void generateMembrane(ParticleContainer& container, const CuboidOrder& order);
+
+  /**
+   * @brief Generates the specified disc and populates the container with its particles
+   * @param container Target container to populate
+   * @param order Disc to generate
    */
   static void generateDisc(ParticleContainer& container, const DiscOrder& order);
 
@@ -86,7 +96,7 @@ class ParticleGenerator {
    * @param epsilon Lennard-Jones epsilon for particles in the cuboid (default: 5.0).
    */
   void queueCuboid(std::array<double, 3> cx, std::array<double, 3> cv, std::array<int, 3> n, double h, double m,
-                   double t, int type = 0, double sigma = 1.0, double epsilon = 5.0);
+                   double t, int type = 0, double sigma = 1.0, double epsilon = 5.0, bool isMembrane = true);
 
   /**
    * @brief Queues the generation of a disc of particles at the specified position.
@@ -113,7 +123,7 @@ class ParticleGenerator {
    * @param mass mass of the particle
    * @param force force acting on the particle in this time step
    * @param old_force force acting on the particle in the previous time step
-   * @param type TODO: No idea
+   * @param type type of the particle
    * @param sigma sigma of the particle's substance
    * @param epsilon epsilon of the particle's substance
    */
@@ -123,7 +133,7 @@ class ParticleGenerator {
 
   /**
    * @brief Executes all queued orders into the provided container.
-   * @addnote Exhausts the order lists (vectors) and shrinks them.
+   * @note Exhausts the order lists (vectors) and shrinks them to ensure minimal memory usage.
    * @param container Target container to populate
    */
   void generate(ParticleContainer& container);

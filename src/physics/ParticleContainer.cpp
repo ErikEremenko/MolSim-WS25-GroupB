@@ -4,30 +4,31 @@ std::size_t ParticleContainer::size() const {
   return particles.size();
 }
 
-void ParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m) {
-  particles.emplace_back(x, v, m);
+Particle* ParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m) {
+  return &particles.emplace_back(x, v, m);
 }
 
-void ParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma,
+Particle* ParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma,
                                     double epsilon) {
-  particles.emplace_back(x, v, m, 0, sigma, epsilon);
+  return &particles.emplace_back(x, v, m, 0, sigma, epsilon);
 }
 
-void ParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type, double sigma,
+Particle* ParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type, double sigma,
                                     double epsilon) {
-  particles.emplace_back(x, v, m, type, sigma, epsilon);
+  return &particles.emplace_back(x, v, m, type, sigma, epsilon);
 }
 
-void ParticleContainer::addParticle(const Particle* p) {
-  particles.emplace_back(*p);
+Particle* ParticleContainer::addParticle(const Particle* p) {
+  return &particles.emplace_back(*p);
 }
 
-void ParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, std::array<double, 3> f,
+Particle* ParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, std::array<double, 3> f,
                                     std::array<double, 3> oldF, int type, double sigma, double epsilon) {
+  // TODO: This code can be made simpler by just adding a constructor that oldF to be f in an initializer list
   Particle p(x, v, m, type, sigma, epsilon);
   p.setF(f);
   p.setOldF(oldF);
-  particles.emplace_back(std::move(p));
+  return &particles.emplace_back(std::move(p));
 }
 
 void ParticleContainer::removeParticle(const size_t idx) {

@@ -19,7 +19,7 @@
  * in an easy and efficient manner.
  *
  */
-class ParticleContainer {
+class ParticleContainer {  // TODO: Add missing docstrings
  private:
   /**
    * @brief A set of particles
@@ -39,14 +39,12 @@ class ParticleContainer {
    * @param v velocity vector as a 3 element array
    * @param m mass
    */
-  virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v,
+  virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v,
                            double m);  // function called in FileReader
-  virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma, double epsilon);
-  virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type, double sigma,
+  virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma, double epsilon);
+  virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type, double sigma,
                            double epsilon);
-  virtual void addParticle(const Particle* p);
-
-  virtual void removeParticle(size_t idx);
+  virtual Particle* addParticle(const Particle* p);
 
   /**
    * @brief Adds a particle from checkpoint with complete state to the container
@@ -59,8 +57,10 @@ class ParticleContainer {
    * @param sigma Lennard-Jones sigma parameter
    * @param epsilon Lennard-Jones epsilon parameter
    */
-  virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, std::array<double, 3> f,
+  virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, std::array<double, 3> f,
                            std::array<double, 3> oldF, int type, double sigma, double epsilon);
+
+  virtual void removeParticle(size_t idx);
 
   using iterator = std::vector<Particle>::iterator;
   using const_iterator = std::vector<Particle>::const_iterator;

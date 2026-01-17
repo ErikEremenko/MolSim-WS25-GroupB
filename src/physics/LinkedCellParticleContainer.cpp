@@ -12,40 +12,45 @@ LinkedCellParticleContainer::LinkedCellParticleContainer(const std::array<double
   initCells();
 }
 
-void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m) {
+// TODO: These addParticle functions could be optimized by using return values of the inherited methods
+Particle* LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m) {
   ParticleContainer::addParticle(x, v, m);
   Particle& p = (*this)[this->size() - 1];  // The newly added particle
   const int cdx = getCellIndex(p.getX());
   cells[cdx].push_back(&p);
+  return &p;
 }
 
-void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma,
+Particle* LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma,
                                               double epsilon) {
   ParticleContainer::addParticle(x, v, m, sigma, epsilon);
   Particle& p = (*this)[this->size() - 1];  // The newly added particle
   const int cdx = getCellIndex(p.getX());
   cells[cdx].push_back(&p);
+  return &p;
 }
 
-void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type,
+Particle* LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type,
                                               double sigma, double epsilon) {
   ParticleContainer::addParticle(x, v, m, type, sigma, epsilon);
   Particle& p = (*this)[this->size() - 1];  // The newly added particle
   const int cdx = getCellIndex(p.getX());
   cells[cdx].push_back(&p);
+  return &p;
 }
 
-void LinkedCellParticleContainer::addParticle(const Particle* p) {
-  addParticle(p->getX(), p->getV(), p->getM(), p->getSigma(), p->getEpsilon());
+Particle* LinkedCellParticleContainer::addParticle(const Particle* p) {
+  return addParticle(p->getX(), p->getV(), p->getM(), p->getSigma(), p->getEpsilon());
 }
 
-void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m,
+Particle* LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m,
                                               std::array<double, 3> f, std::array<double, 3> oldF, int type,
                                               double sigma, double epsilon) {
   ParticleContainer::addParticle(x, v, m, f, oldF, type, sigma, epsilon);
   Particle& p = (*this)[this->size() - 1];
   const int cdx = getCellIndex(p.getX());
   cells[cdx].push_back(&p);
+  return &p;
 }
 
 void LinkedCellParticleContainer::updateCells() {
