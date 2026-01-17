@@ -19,7 +19,10 @@ Particle::Particle(int type_arg)
       m(0.0),
       type(type_arg),
       sigma(1.0),
-      epsilon(5.0) {}
+      epsilon(5.0) {
+  diagonalNeighbors.reserve(4);
+  directNeighbors.reserve(4);
+}
 
 Particle::Particle(const std::array<double, 3>& x_arg, const std::array<double, 3>& v_arg, const double m_arg,
                    const int type_arg, const double sigma_arg, const double epsilon_arg)
@@ -30,7 +33,10 @@ Particle::Particle(const std::array<double, 3>& x_arg, const std::array<double, 
       m(m_arg),
       type(type_arg),
       sigma(sigma_arg),
-      epsilon(epsilon_arg) {}
+      epsilon(epsilon_arg) {
+  diagonalNeighbors.reserve(4);
+  directNeighbors.reserve(4);
+}
 
 const std::array<double, 3>& Particle::getX() const {
   return x;

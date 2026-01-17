@@ -10,11 +10,12 @@
 #include <array>
 #include <ostream>
 #include <string>
+#include <vector>
 
 /**
  *
  *  @class Particle
- *  @brief A class representing a particle in 3 dimensional space with position, velocity,
+ *  @brief A class representing a particle in 3-dimensional space with position, velocity,
  *  mass, type and force.
  *
  *  A user may use this class to perform a particle simulation in discrete time steps by
@@ -29,48 +30,60 @@ class Particle {
    *
    *  A 3 component vector storing the particle's position
    */
-  std::array<double, 3> x;
+  std::array<double, 3> x{};
 
   /**
    * @brief Current velocity of the particle
    *
-   *  A 3 component vector storing the particle's movement direction and speed
+   *  A 3 component vector storing th e particle's movement direction and speed
    */
-  std::array<double, 3> v;
+  std::array<double, 3> v{};
 
   /**
    * @brief Force effective on the particle
    *
    *  A 3 component vector storing the force vector of the force effective on the particle
    */
-  std::array<double, 3> f;
+  std::array<double, 3> f{};
 
   /**
    * @brief Force vector of the force that was effective on the particle in the previous iteration
    */
-  std::array<double, 3> old_f;
+  std::array<double, 3> old_f{};
 
   /**
    * @brief Mass of the particle
    *
    */
-  double m;
+  double m{};
 
   /**
    * @brief Type of the particle
    *
    */
-  int type;
+  int type{};
 
   /**
    * @brief Lennard-Jones sigma parameter for the particle
    */
-  double sigma;
+  double sigma{};
 
   /**
    * @brief Lennard-Jones epsilon parameter for the particle
    */
-  double epsilon;
+  double epsilon{};
+
+  /**
+   * @brief List storing direct neighbors, used in rectangular 2D-membrane simulation.
+   * @note This vector is initialized with reserving space for 4 elements in the constructor.
+   */
+  std::vector<Particle*> directNeighbors;
+
+  /**
+   * @brief List storing diagonal neighbors, used in rectangular 2D-membrane simulation.
+   * @note This vector is initialized with reserving space for 4 elements in the constructor.
+   */
+  std::vector<Particle*> diagonalNeighbors;
   ///@}
  public:
   /**@name Constructors */
