@@ -11,6 +11,8 @@
 
 #include "utils/ArrayUtils.h"
 
+int Particle::idCounter = 0;
+
 Particle::Particle(int type_arg)
     : x{0.0, 0.0, 0.0},
       v{0.0, 0.0, 0.0},
@@ -19,7 +21,8 @@ Particle::Particle(int type_arg)
       m(0.0),
       type(type_arg),
       sigma(1.0),
-      epsilon(5.0) {
+      epsilon(5.0),
+      id(idCounter++) {
   diagonalNeighbors.reserve(4);
   directNeighbors.reserve(4);
 }
@@ -33,7 +36,8 @@ Particle::Particle(const std::array<double, 3>& x_arg, const std::array<double, 
       m(m_arg),
       type(type_arg),
       sigma(sigma_arg),
-      epsilon(epsilon_arg) {
+      epsilon(epsilon_arg),
+      id(idCounter++) {
   diagonalNeighbors.reserve(4);
   directNeighbors.reserve(4);
 }
@@ -73,17 +77,21 @@ double Particle::getEpsilon() const {
   return epsilon;
 }
 
+int Particle::getID() const {
+  return id;
+}
+
 std::string Particle::toString() const {
   std::stringstream stream;
   stream << "Particle: X:" << x << " v: " << v << " f: " << f << " old_f: " << old_f << " type: " << type;
   return stream.str();
 }
 
-std::vector<Particle*>& Particle::getDirectNeighbors() {
+std::vector<int>& Particle::getDirectNeighbors() {
   return directNeighbors;
 }
 
-std::vector<Particle*>& Particle::getDiagonalNeighbors() {
+std::vector<int>& Particle::getDiagonalNeighbors() {
   return diagonalNeighbors;
 }
 

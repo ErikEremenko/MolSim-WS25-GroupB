@@ -35,7 +35,7 @@ class Particle {
   /**
    * @brief Current velocity of the particle
    *
-   *  A 3 component vector storing th e particle's movement direction and speed
+   *  A 3 component vector storing the particle's movement direction and speed
    */
   std::array<double, 3> v{};
 
@@ -74,16 +74,30 @@ class Particle {
   double epsilon{};
 
   /**
-   * @brief List storing direct neighbors, used in rectangular 2D-membrane simulation.
-   * @note This vector is initialized with reserving space for 4 elements in the constructor.
+   * @brief Unique identifier for the particle
+   * The unique ID for the particle will be assigned by default to the class ID counter.
+   * @note The ID will always match the particle's index in the particle container, e.g. first particle will have ID 0
    */
-  std::vector<Particle*> directNeighbors;
+  int id = 0;
 
   /**
-   * @brief List storing diagonal neighbors, used in rectangular 2D-membrane simulation.
+   * @brief Class variable that keeps track of the created particles indices.
+   * @note This is incremented in the particle constructor, so the value of this member will always match the
+   * number of particles in the simulation.
+   */
+  static int idCounter;
+
+  /**
+   * @brief List storing the IDs of direct neighbors, used in rectangular 2D-membrane simulation.
    * @note This vector is initialized with reserving space for 4 elements in the constructor.
    */
-  std::vector<Particle*> diagonalNeighbors;
+  std::vector<int> directNeighbors;
+
+  /**
+   * @brief List storing the IDs of diagonal neighbors, used in rectangular 2D-membrane simulation.
+   * @note This vector is initialized with reserving space for 4 elements in the constructor.
+   */
+  std::vector<int> diagonalNeighbors;
   ///@}
  public:
   /**@name Constructors */
@@ -138,11 +152,13 @@ class Particle {
   [[nodiscard]] double getSigma() const;
   /** @brief get Lennard-Jones epsilon parameter */
   [[nodiscard]] double getEpsilon() const;
+  /** @brief get unique identifier */
+  [[nodiscard]] int getID() const;
 
   /** @brief get the list of direct neighbors */
-  [[nodiscard]] std::vector<Particle*>& getDirectNeighbors();
+  [[nodiscard]] std::vector<int>& getDirectNeighbors();
   /** @brief get the list of diagonal neighbors */
-  [[nodiscard]] std::vector<Particle*>& getDiagonalNeighbors();
+  [[nodiscard]] std::vector<int>& getDiagonalNeighbors();
   ///@}
 
   /** @name Setter methods */
