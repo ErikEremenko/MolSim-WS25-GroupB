@@ -29,35 +29,35 @@ void ParticleGenerator::generateCuboid(ParticleContainer& container, const Cuboi
 }
 
 void ParticleGenerator::generateMembrane(ParticleContainer& container, const CuboidOrder& order) {
-  // TODO: Maybe write tests for this?
+  // TODO: Write tests for this
   // --- Particle generation ---
   const int xDim = order.dim[0];
   const int yDim = order.dim[1];
 
   // Use a separate list to keep track of the newly created particles
-  std::vector<Particle*> pointers;  // 2D-array flattened into 1D
-  pointers.reserve(xDim * yDim);
+  std::vector<int> identifiers;
+  identifiers.reserve(xDim * yDim);
   for (int nx = 0; nx < xDim; nx++) {
     for (int ny = 0; ny < yDim; ny++) {
       std::array<double, 3> temperatureVel = maxwellBoltzmannDistributedVelocity(std::sqrt(order.temp / order.m), 3);
       std::array<double, 3> particleVelocity = {order.vel[0] + temperatureVel[0], order.vel[1] + temperatureVel[1],
                                                 order.vel[2] + temperatureVel[2]};
       std::array<double, 3> particlePosition = {order.pos[0] + order.h * nx, order.pos[1] + order.h * ny, order.pos[2]};
-      Particle* ptr = container.addParticle(particlePosition, particleVelocity, order.m, order.type, order.sigma, order.epsilon);
-      pointers.push_back(ptr);
+      const Particle* ptr = container.addParticle(particlePosition, particleVelocity, order.m, order.type, order.sigma, order.epsilon);
+      identifiers.push_back(ptr->getID());
     }
   }
 
   // --- Neighbor initialization ---
-  const auto& addNeighbor = [xDim, yDim, pointers](std::vector<Particle*>& neighbors, const int x, const int y) {
+  const auto& addNeighbor = [xDim, yDim, identifiers](std::vector<int>& neighbors, const int x, const int y) {
     if (x >= 0 && x < xDim && y >= 0 && y < yDim) {  // out of bounds check
-      neighbors.push_back(pointers[x*yDim + y]);
+      neighbors.push_back(identifiers[x*yDim + y]);
     }
   };
 
   for (int x = 0; x < order.dim[0]; x++) {
     for (int y = 0; y < order.dim[1]; y++) {
-      Particle& particle = *pointers[x*yDim + y];
+      Particle& particle = container[identifiers[x*yDim + y]];
 
       // Direct neighbors
       auto& directNeighbors = particle.getDirectNeighbors();
