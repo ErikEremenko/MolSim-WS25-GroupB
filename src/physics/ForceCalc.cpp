@@ -1,15 +1,15 @@
 #include "physics/ForceCalc.h"
 
-#include <math.h>  // TODO: Replace with <cmath>, never use C headers in C++!
+#include <cmath>
 #include <spdlog/spdlog.h>
 
 #include "physics/LinkedCellParticleContainer.h"
-#include "simulation/SimulationConfig.h"  // For boundary types, TODO: Refactor boundary types into another file
 #include "utils/ArrayUtils.h"
 
+ForceCalc::ForceCalc(ParticleContainer& particles) : particles(particles) {}
 ForceCalc::~ForceCalc() = default;
 
-void ForceCalc::calculateX(const double dt) {
+void ForceCalc::calculateX(ParticleContainer& particles, const double dt) {
   for (auto& p : particles) {
     const auto x_curr = p.getX();
     const double m = p.getM();
@@ -21,7 +21,7 @@ void ForceCalc::calculateX(const double dt) {
   }
 }
 
-void ForceCalc::calculateV(const double dt) {
+void ForceCalc::calculateV(ParticleContainer& particles, const double dt) {
   for (auto& p : particles) {
     const auto v_curr = p.getV();
     const double m_i = p.getM();

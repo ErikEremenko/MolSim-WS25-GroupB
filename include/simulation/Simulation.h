@@ -77,9 +77,9 @@ class Simulation {  // TODO: For now, we keep the virtual methods for thermostat
   std::unique_ptr<ParticleContainer> particles;
 
   /**
-   * @brief Strategy defining how forces are computed between particles.
+   * @brief Forces acting on or between the particles.
    */
-  std::unique_ptr<ForceCalc> forceCalc;
+  std::vector<std::unique_ptr<ForceCalc>> forces;
 
   // Thermostat-related members, TODO: Add docstrings for them
   std::unique_ptr<Thermostat> thermostat;

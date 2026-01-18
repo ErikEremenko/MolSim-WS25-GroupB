@@ -15,24 +15,27 @@ class ForceCalc {
 
  public:
   /**
-  * @brief Constructor
-  * @param particles ParticleContainer that stores the particles used by the calculation method
+  * @brief Constructs a force calculation strategy
+  * @param particles Particles affected by the force
   */
-  explicit ForceCalc(ParticleContainer& particles) : particles(particles) {}
+  explicit ForceCalc(ParticleContainer& particles);
   virtual ~ForceCalc();
 
   /**
-  * @brief Calculates the new x-coordinate of the particle based on the Störmer-Verlet method
-  * @param dt double representing the Velocity-Störmer-Verlet time step (delta t)
+  * @brief Calculates the new position of the particle based on the Störmer-Verlet method
+  * @param particles Particles to move
+  * @param dt Velocity-Störmer-Verlet time step (delta t)
   */
-  virtual void calculateX(double dt);
+  static void calculateX(ParticleContainer& particles, double dt);
   /**
   * @brief Calculates the new velocity of the particle based on the Störmer-Verlet method
-  * @param dt double representing the Velocity-Störmer-Verlet time step (delta t)
+  * @param particles Particles whose velocities are to be calculated
+  * @param dt Velocity-Störmer-Verlet time step (delta t)
   */
-  virtual void calculateV(double dt);
+  static void calculateV(ParticleContainer& particles, double dt);
   /**
   * @brief Calculates the new force that acts on the particles
+  * @note This is a pure virtual method.
   */
   virtual void calculateF() = 0;
 };

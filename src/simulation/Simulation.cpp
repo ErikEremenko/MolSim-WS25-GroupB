@@ -66,26 +66,20 @@ Simulation::Simulation(SimulationConfig& config)
   } else {
     boundaryTypeStrings.fill("OUTFLOW");
   }
-  // Initialize particle container and force calculation strategy
+  // Initialize particle container
+
+  // Initialize particle container
   switch (config.containerType) {
     case ContainerType::DIRECT:
       particles = std::make_unique<ParticleContainer>();
-      if (config.useParallelization) {
-        forceCalc =
-            std::make_unique<LennardJonesForceParallel>(*particles, *config.epsilon, *config.sigma, *config.cutoff);
-      } else {
-        forceCalc = std::make_unique<LennardJonesForce>(*particles, *config.epsilon, *config.sigma, *config.cutoff,
-                                                        config.gravity.value_or(0.0));
-      }
       break;
     case ContainerType::LINKED:
-      particles =
-          std::make_unique<LinkedCellParticleContainer>(*config.domainSize, *config.cutoff, *config.boundaryTypes);
-      forceCalc = std::make_unique<LennardJonesForce>(
-          *particles, *config.epsilon, *config.sigma, *config.cutoff,
-          config.gravity.value_or(0.0));  // TODO: Does parallelization not work with linked cell containers?
+      particles = std::make_unique<LinkedCellParticleContainer>(*config.domainSize, *config.cutoff, *config.boundaryTypes);
       break;
   }
+
+  // Initialize forces, TODO: This refactor is not done yet
+  forces.push_back(std::make_unique<LennardJonesForce>(*particles, *config.epsilon, *config.sigma, *config.cutoff, config.gravity.value_or(0.0)));
 
   // Initialize thermostat
   if (config.thermostatConfig) {
@@ -127,7 +121,7 @@ void Simulation::plotParticles(const int iteration) const {
 #endif
 }
 
-void Simulation::writeCheckpoint(int iteration, double time) const {
+void Simulation::writeCheckpoint(const int iteration, const double time) const {
   // Determine output directory based on current working directory
   std::string outputDirectory = "build/output/checkpoints";
   if (std::filesystem::exists("CMakeCache.txt")) {
@@ -161,25 +155,34 @@ void Simulation::runFileOutput() {
   double currentTime = startTime;
   int iteration = startIteration;
 
-  // for this loop, we assume: current x, current f and current v are known
+  // For this loop, we assume: current positions, forces and velocities are known
   while (currentTime < endTime) {
-    // calculate new x
-    forceCalc->calculateX(dt);
+    // Calculate the new position of the particles
+    ForceCalc::calculateX(*particles, dt);
+
+    // Store the force from the previous time stop for velocity update
     for (auto& p : *particles) {
-      p.setOldF(p.getF());  // store f(t_n) for v update
+      p.setOldF(p.getF());
     }
-    // calculate new f
-    forceCalc->calculateF();
-    // calculate new v
-    forceCalc->calculateV(dt);
+
+    // Calculate the forces acting on the particles
+    for (auto& force : forces) {
+      force->calculateF();
+    };
+
+    // Calculate the velocities of the particles
+    ForceCalc::calculateV(*particles, dt);
 
     iteration++;
+    // Update temperature
     if (thermostat && (iteration % thermoFrequency == 0)) {
       thermostat->updateTemperature();
     }
+    // Write state of particles to VTK
     if (iteration % writeFrequency == 0) {
       plotParticles(iteration);
     }
+    // Write state of particles to checkpoint file
     if (checkpointFrequency > 0 && iteration % checkpointFrequency == 0) {
       writeCheckpoint(iteration, currentTime);
     }
@@ -203,18 +206,26 @@ void Simulation::runBenchmark() {
   double currentTime = startTime;
   long iteration = startIteration;
 
-  // For this loop, we assume current x, current F and current v are known
+  // For this loop, we assume: current positions, forces and velocities are known
   while (currentTime < endTime) {
-    // Calculate the new positions of the particles
-    forceCalc->calculateX(dt);
+    // Calculate the new position of the particles
+    ForceCalc::calculateX(*particles, dt);
+
+    // Store the force from the previous time stop for velocity update
     for (auto& p : *particles) {
-      p.setOldF(p.getF());  // store F(t_n) for v update
+      p.setOldF(p.getF());
     }
-    // Calculate new forces and velocities
-    forceCalc->calculateF();
-    forceCalc->calculateV(dt);
+
+    // Calculate the forces acting on the particles
+    for (auto& force : forces) {
+      force->calculateF();
+    };
+
+    // Calculate the velocities of the particles
+    ForceCalc::calculateV(*particles, dt);
 
     iteration++;
+    // Update temperature
     if (thermostat && (iteration % thermoFrequency == 0)) {
       thermostat->updateTemperature();
     }
