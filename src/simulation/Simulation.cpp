@@ -271,6 +271,8 @@ void Simulation::setupSimulation() {
   // Generate particles
   particleGenerator->generate(*particles);
 
+  forceCalc->precomputeConstants();
+
   // Set up special thermostat situations (if applicable)
   if (thermostat) {
     // Apply T_init

@@ -35,6 +35,8 @@ class ForceCalc {
   * @brief Calculates the new force that acts on the particles
   */
   virtual void calculateF() = 0;
+
+  virtual void precomputeConstants();
 };
 
 /**
@@ -60,6 +62,14 @@ class LennardJonesForce final : public ForceCalc {
   // TODO: Docstring these members
   const double epsilon, sigma, cutoffRadius, repulsionDistance, gravity;
 
+  const double cutoffRadiusSq;
+  /**
+   * @brief A lookup table for every pair of particle types. Used for storing precomputed information about every pair of particle types.
+   */
+  std::vector<double> pairLookupTable1;
+  std::vector<double> pairLookupTable2;
+  int tableWidth;
+
  public:
   /**
    *
@@ -84,6 +94,8 @@ class LennardJonesForce final : public ForceCalc {
    * @brief Calculates the Lennard-Jones forces acting on the particles using the Linked Cell method
    */
   void calculateFLinkedCell();
+
+  void precomputeConstants();
 
  private:
   /**

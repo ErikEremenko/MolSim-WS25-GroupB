@@ -32,6 +32,8 @@ void ForceCalc::calculateV(const double dt) {
   }
 }
 
+void ForceCalc::precomputeConstants() {}
+
 void GravityForce::calculateF() {
   for (auto& p : particles) {
     p.setF({});
@@ -76,7 +78,8 @@ LennardJonesForce::LennardJonesForce(ParticleContainer& particles, const double 
       sigma(sigma),
       cutoffRadius(cutoffRadius),
       repulsionDistance(std::pow(2.0, 1.0 / 6.0) * sigma),
-      gravity(gravity) {}
+      gravity(gravity),
+      cutoffRadiusSq (cutoffRadius * cutoffRadius) {}
 
 void LennardJonesForce::calculateF() {
   if (dynamic_cast<LinkedCellParticleContainer*>(&particles)) {
@@ -206,32 +209,17 @@ void LennardJonesForce::calculateFLinkedCell() {
   // Linked Cells iteration with N3L
   lc->iteratePairs([&](Particle& p_i, Particle& p_j) {
     const auto dist = p_j.getX() - p_i.getX();
-    const double norm = ArrayUtils::L2Norm(dist);
+    double term = dist[0] * dist[0] + dist[1] * dist[1] + dist[2] * dist[2];
 
-    if (norm == 0) {
-      // avoid division by zero
-      SPDLOG_ERROR(
-          "Calculated a zero norm between particles. This is likely caused "
-          "by an incorrect initialization of the Simulation.");
-      throw std::overflow_error(
-          "Calculated a zero norm between particles. This is likely caused "
-          "by an incorrect initialization of the Simulation.");
-    } else if (norm >= cutoffRadius)
+    if (term > cutoffRadiusSq)
       return;
 
-    // Get the particle's sigma/epsilon and apply mixing rule
-    const auto sigma_ij = (p_i.getSigma() + p_j.getSigma()) / 2;
-    const auto epsilon_ij = std::sqrt(p_i.getEpsilon() * p_j.getEpsilon());
+    term = 1 / term;
 
-    const double sigma2 = sigma_ij * sigma_ij;
-    const double sigma6 = sigma2 * sigma2 * sigma2;
-    const double inv_norm2 = 1.0 / (norm * norm);
-    const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
+    const int idx = p_i.getType() * tableWidth + p_j.getType();
+    term = pairLookupTable1[idx] * term * term * term * term * (pairLookupTable2[idx] - term * term * term);
 
-    const double crossing_norm_quot_6 = sigma6 * inv_norm6;
-    const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
-
-    const auto F_vec = (24.0 * epsilon_ij * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * dist;
+    const auto F_vec = term * dist;
     p_i.setF(p_i.getF() + F_vec);
     p_j.setF(p_j.getF() - F_vec);
   });
@@ -608,4 +596,48 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
         p2->setX(p2->getX()[2] - domainDims[2], 2);
       }
   }
+}
+
+void LennardJonesForce::precomputeConstants() {
+
+  //determine highest type number for a particle
+  int maxTypeNr = 0;
+  for (auto& p : particles){
+    if (p.getType() > maxTypeNr)
+      maxTypeNr = p.getType();
+  }
+  tableWidth = maxTypeNr + 1;
+
+  //initialize lookup table
+  for (int i = 0; i < tableWidth * tableWidth; i++){
+    pairLookupTable1.push_back(-1);
+    pairLookupTable2.push_back(-1);
+  }
+
+  // for every pair of types save needed information to lookup table
+  for (auto& p_i : particles)
+  for (auto& p_j : particles){
+
+    int idx = p_i.getType() * tableWidth + p_j.getType();
+    if (pairLookupTable1[idx] == -1){
+
+      const auto sigma_ij = (p_i.getSigma() + p_j.getSigma()) / 2;
+      const auto epsilon_ij = std::sqrt(p_i.getEpsilon() * p_j.getEpsilon());
+
+      const double eps_48_sigma_12 = 48 * epsilon_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij
+        * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij;
+      const double sigma_m6_2 = 1 / (2 * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij);
+
+      pairLookupTable1[idx] = eps_48_sigma_12;
+      pairLookupTable2[idx] = sigma_m6_2;
+
+      //save information to opposite cell ji
+      idx = p_j.getType() * tableWidth + p_i.getType();
+      pairLookupTable1[idx] = eps_48_sigma_12;
+      pairLookupTable2[idx] = sigma_m6_2;
+
+    }
+  }
+
+
 }
