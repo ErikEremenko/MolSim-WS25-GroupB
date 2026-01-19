@@ -3,6 +3,27 @@
 
 #include <spdlog/spdlog.h>
 
+/**
+ * @file YAMLFileReader.cpp
+ * 
+ * @section type_assignment Particle Type Assignment
+ * 
+ * Each cuboid/sphere in the YAML file is assigned a sequential type ID (0, 1, 2, ...).
+ * The type ID is used by LennardJonesForce to look up precomputed interaction parameters
+ * (mixed sigma/epsilon via Lorentz-Berthelot rules) in O(1) time.
+ * 
+ * @warning CRITICAL REQUIREMENT: All particles with the same type MUST have identical
+ * sigma and epsilon values. The force calculation uses lookup tables indexed by particle
+ * type pairs, NOT by individual particle sigma/epsilon values.
+ * 
+ * Since particles are initialized in groups (cuboids, spheres), this is naturally satisfied
+ * when each group has uniform sigma/epsilon. The YAML structure ensures this.
+ * 
+ * If you need particles from different cuboids to share the same type (and thus interact
+ * as if they had identical sigma/epsilon), you can manually specify the type in the YAML.
+ * However, you MUST ensure all particles with that type have the SAME sigma and epsilon.
+ */
+
 YAMLFileReader::YAMLFileReader(std::string filename) : filename(filename) {
   try {
     config = YAML::LoadFile(filename);
@@ -208,13 +229,17 @@ SimulationConfig YAMLFileReader::getConfig() {
   simConfig.thermostatConfig = getThermostatConfig();
 
   // Particle generation
+  // Each cuboid/sphere gets a sequential type ID (0, 1, 2, ...) unless manually overridden in the YAML file
+  // Type determines which precomputed sigma/epsilon values are used in force calculations
   ParticleGenerator& generatorRaw =
       *simConfig.particleGenerator;  // particle generator owned by config at this point, so it's ok to deref ptr
 
   const double globalSigma = *simConfig.sigma;
   const double globalEpsilon = *simConfig.epsilon;
 
-  // Parse cuboids
+  int nextTypeId = 0;  // Sequential type counter for cuboids and spheres
+
+  // Parse cuboids (each cuboid gets its own type ID)
   const auto& cuboids = config["cuboids"];
   for (std::size_t i = 0; i < cuboids.size(); ++i) {
     const auto& cuboid = cuboids[i];
@@ -231,8 +256,9 @@ SimulationConfig YAMLFileReader::getConfig() {
     const double sigma = cuboid["sigma"] ? cuboid["sigma"].as<double>() : globalSigma;
     const double epsilon = cuboid["epsilon"] ? cuboid["epsilon"].as<double>() : globalEpsilon;
 
-    // Type: explicit or auto-incremented
-    int type = static_cast<int>(i);
+    // Type: sequential assignment (0, 1, 2, ...) or manual override
+    // All particles in this cuboid share the same type, sigma, and epsilon.
+    int type = nextTypeId++;
     if (cuboid["type"]) {
       type = cuboid["type"].as<int>();
     }
@@ -242,7 +268,7 @@ SimulationConfig YAMLFileReader::getConfig() {
                  sigma, epsilon, type);
   }
 
-  // Parse spheres
+  // Parse spheres - continue sequential type assignment of cuboids
   const auto& spheres = config["spheres"];
   for (std::size_t i = 0; i < spheres.size(); ++i) {
     const auto& sphere = spheres[i];
@@ -259,8 +285,8 @@ SimulationConfig YAMLFileReader::getConfig() {
     const double sigma = sphere["sigma"] ? sphere["sigma"].as<double>() : globalSigma;
     const double epsilon = sphere["epsilon"] ? sphere["epsilon"].as<double>() : globalEpsilon;
 
-    // Generate a unique type for each sphere, starting after the cuboids
-    int type = static_cast<int>(cuboids.size() + i);
+    // Type: sequential assignment or manual override
+    int type = nextTypeId++;
     if (sphere["type"]) {
       type = sphere["type"].as<int>();
     }
@@ -270,7 +296,7 @@ SimulationConfig YAMLFileReader::getConfig() {
   }
 
   // Checkpoint loading: if "particles" section exists, load individual particles
-  // precedence over cuboid/sphere generation
+  // For checkpoints, type MUST be specified in the YAML (written by CheckpointWriter)
   if (config["particles"] && config["particles"].size() > 0) {
     SPDLOG_INFO("Loading {} particles from checkpoint...", config["particles"].size());
 
@@ -289,15 +315,12 @@ SimulationConfig YAMLFileReader::getConfig() {
         oldF = p["oldF"].as<std::array<double, 3>>();
       }
 
-      // Type defaults to 0
-      int type = 0;
-      if (p["type"]) {
-        type = p["type"].as<int>();
-      }
-
       // Per-particle sigma/epsilon with fallback to global values
       double sigma = p["sigma"] ? p["sigma"].as<double>() : globalSigma;
       double epsilon = p["epsilon"] ? p["epsilon"].as<double>() : globalEpsilon;
+
+      // Type: must be specified in checkpoint, fallback to 0 if missing
+      int type = p["type"] ? p["type"].as<int>() : 0;
 
       generatorRaw.queueParticle(x, v, m, f, oldF, type, sigma, epsilon);
     }

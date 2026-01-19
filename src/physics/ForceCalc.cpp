@@ -48,15 +48,7 @@ void GravityForce::calculateF() {
 
       const auto dist = p_j.getX() - p_i.getX();
       const double norm = ArrayUtils::L2Norm(dist);
-      if (norm == 0.) {
-        // Avoid division by zero
-        SPDLOG_ERROR(
-            "Calculated a zero norm between particles. This is likely caused "
-            "by an incorrect initialization of the Simulation.");
-        throw std::overflow_error(
-            "Calculated a zero norm between particles. This is likely caused "
-            "by an incorrect initialization of the Simulation.");
-      }
+      
       const double norm3 = norm * norm * norm;
 
       const auto F_vector = ((p_i.getM() * p_j.getM()) / norm3) * dist;
@@ -95,6 +87,7 @@ void LennardJonesForce::calculateFDirectSum() {
   }
   const double sigma2 = sigma * sigma;
   const double sigma6 = sigma2 * sigma2 * sigma2;
+  const double cutoffRadiusSqLocal = cutoffRadius * cutoffRadius;
 
   const size_t n_particles = particles.size();
   for (size_t i = 0; i < n_particles; ++i) {
@@ -104,19 +97,15 @@ void LennardJonesForce::calculateFDirectSum() {
       auto& p_j = particles[j];
 
       const auto dist = p_j.getX() - p_i.getX();
-      const double norm = ArrayUtils::L2Norm(dist);
-      if (norm == 0) {
-        // Avoid division by zero
-        SPDLOG_ERROR(
-            "Calculated a zero norm between particles. This is likely caused by an incorrect initialization of the "
-            "Simulation.");
-        throw std::overflow_error(
-            "Calculated a zero norm between particles. This is likely caused by an incorrect initialization of the "
-            "Simulation.");
-      } else if (norm >= cutoffRadius) {
+      // Use squared distance to avoid sqrt (optimization)
+      const double normSq = dist[0] * dist[0] + dist[1] * dist[1] + dist[2] * dist[2];
+      
+      // Skip if beyond cutoff (no zero check for performance - see class documentation)
+      if (normSq >= cutoffRadiusSqLocal) {
         continue;
       }
-      const double inv_norm2 = 1.0 / (norm * norm);
+      
+      const double inv_norm2 = 1.0 / normSq;
       const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
 
       const double crossing_norm_quot_6 = sigma6 * inv_norm6;
@@ -145,6 +134,7 @@ void LennardJonesForceParallel::calculateF() {
   }
   const double sigma2 = sigma * sigma;
   const double sigma6 = sigma2 * sigma2 * sigma2;
+  const double cutoffRadiusSqLocal = cutoffRadius * cutoffRadius;
   const size_t n_particles = particles.size();
 
 #pragma omp parallel for schedule(guided)
@@ -155,19 +145,15 @@ void LennardJonesForceParallel::calculateF() {
       auto& p_j = particles[j];
 
       const auto dist = p_j.getX() - p_i.getX();
-      const double norm = ArrayUtils::L2Norm(dist);
-      if (norm == 0) {
-        // Avoid division by zero
-        SPDLOG_ERROR(
-            "Calculated a zero norm between particles. This is likely caused "
-            "by an incorrect initialization of the Simulation.");
-        throw std::overflow_error(
-            "Calculated a zero norm between particles. This is likely caused "
-            "by an incorrect initialization of the Simulation.");
-      } else if (norm >= cutoffRadius) {
+      // Use squared distance to avoid sqrt (optimization)
+      const double normSq = dist[0] * dist[0] + dist[1] * dist[1] + dist[2] * dist[2];
+      
+      // Skip if beyond cutoff (no zero check for performance - see class documentation)
+      if (normSq >= cutoffRadiusSqLocal) {
         continue;
       }
-      const double inv_norm2 = 1.0 / (norm * norm);
+      
+      const double inv_norm2 = 1.0 / normSq;
       const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
 
       const double crossing_norm_quot_6 = sigma6 * inv_norm6;
@@ -238,12 +224,11 @@ void LennardJonesForce::applyReflectiveBoundaries(const LinkedCellParticleContai
     const auto x = p.getX();
     auto F_total = p.getF();
 
-    // Use particle's own sigma/epsilon
-    const double p_sigma = p.getSigma();
-    const double p_epsilon = p.getEpsilon();
-    const double p_repulsionDistance = std::pow(2.0, 1.0 / 6.0) * p_sigma;
-    const double sigma2 = p_sigma * p_sigma;
-    const double sigma6 = sigma2 * sigma2 * sigma2;
+    // Use precomputed per-type lookup tables instead of computing pow() per particle
+    const int pType = p.getType();
+    const double p_repulsionDistance = repulsionDistanceLookup[pType];
+    const double sigma6 = sigma6Lookup[pType];
+    const double p_epsilon = epsilonLookup[pType];
 
     // Helper computes ghost particle repulsion force for a reflective wall
     auto computeGhostForce = [&](int d, double wallPos) -> std::array<double, 3> {
@@ -251,10 +236,12 @@ void LennardJonesForce::applyReflectiveBoundaries(const LinkedCellParticleContai
       ghostX[d] = 2.0 * wallPos - x[d];  // Ghost particle is mirrored across the wall
 
       const auto ghostDist = ghostX - x;
-      const double norm = ArrayUtils::L2Norm(ghostDist);
+      // Compute squared norm directly to avoid sqrt
+      const double normSq = ghostDist[0] * ghostDist[0] + ghostDist[1] * ghostDist[1] + ghostDist[2] * ghostDist[2];
+      const double repDistSq = p_repulsionDistance * p_repulsionDistance;
 
-      if (norm < p_repulsionDistance && norm > 0.) {  // Avoid division by zero
-        const double inv_norm2 = 1.0 / (norm * norm);
+      if (normSq < repDistSq && normSq > 0.) {
+        const double inv_norm2 = 1.0 / normSq;
         const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
         const double crossing_norm_quot_6 = sigma6 * inv_norm6;
         const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
@@ -285,32 +272,23 @@ void LennardJonesForce::applyReflectiveBoundaries(const LinkedCellParticleContai
 }
 
 void LennardJonesForce::calcFPeriodicBoundary(Particle* p1, Particle* p2) const {
-
-  const double sigma2 = sigma * sigma;
-  const double sigma6 = sigma2 * sigma2 * sigma2;
-
+  // Use optimized lookup tables for mixed sigma/epsilon values
   std::array<double, 3> dist = {p2->getX()[0] - p1->getX()[0], p2->getX()[1] - p1->getX()[1],
                                 p2->getX()[2] - p1->getX()[2]};
-  const double norm = ArrayUtils::L2Norm(dist);
+  
+  // Use squared distance to avoid sqrt
+  double term = dist[0] * dist[0] + dist[1] * dist[1] + dist[2] * dist[2];
 
-  if (norm == 0) {
-    // avoid division by zero
-    SPDLOG_ERROR(
-        "Calculated a zero norm between particles. This is likely caused "
-        "by an incorrect initialization of the Simulation.");
-    throw std::overflow_error(
-        "Calculated a zero norm between particles. This is likely caused "
-        "by an incorrect initialization of the Simulation.");
-  } else if (norm >= cutoffRadius)
+  if (term >= cutoffRadiusSq)
     return;
 
-  const double inv_norm2 = 1.0 / (norm * norm);
-  const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
+  term = 1.0 / term;
 
-  const double crossing_norm_quot_6 = sigma6 * inv_norm6;
-  const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
+  // Use precomputed lookup tables (same as calculateFLinkedCell)
+  const int idx = p1->getType() * tableWidth + p2->getType();
+  term = pairLookupTable1[idx] * term * term * term * term * (pairLookupTable2[idx] - term * term * term);
 
-  const auto F_vec = (24.0 * epsilon * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * dist;
+  const auto F_vec = term * dist;
   p1->setF(p1->getF() + F_vec);
   p2->setF(p2->getF() - F_vec);
 }
@@ -599,45 +577,84 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
 }
 
 void LennardJonesForce::precomputeConstants() {
-
-  //determine highest type number for a particle
+  // Determine the highest type number for a particle
   int maxTypeNr = 0;
-  for (auto& p : particles){
+  for (const auto& p : particles) {
     if (p.getType() > maxTypeNr)
       maxTypeNr = p.getType();
   }
   tableWidth = maxTypeNr + 1;
 
-  //initialize lookup table
-  for (int i = 0; i < tableWidth * tableWidth; i++){
-    pairLookupTable1.push_back(-1);
-    pairLookupTable2.push_back(-1);
-  }
+  // Pre-allocate lookup tables with proper size (avoids repeated push_back)
+  const int tableSize = tableWidth * tableWidth;
+  pairLookupTable1.clear();
+  pairLookupTable2.clear();
+  pairLookupTable1.resize(tableSize, -1.0);
+  pairLookupTable2.resize(tableSize, -1.0);
 
-  // for every pair of types save needed information to lookup table
-  for (auto& p_i : particles)
-  for (auto& p_j : particles){
+  // Pre-acclocate lookup tables for reflective boundaries
+  repulsionDistanceLookup.clear();
+  sigma6Lookup.clear();
+  epsilonLookup.clear();
+  repulsionDistanceLookup.resize(tableWidth, -1.0);
+  sigma6Lookup.resize(tableWidth, -1.0);
+  epsilonLookup.resize(tableWidth, -1.0);
 
-    int idx = p_i.getType() * tableWidth + p_j.getType();
-    if (pairLookupTable1[idx] == -1){
+  // Build a set of unique (type_i, type_j) pairs to avoid O(n^2) iteration
+  // Collect unique types first, then iterate over type pairs
+  std::vector<int> uniqueTypes;
+  std::vector<double> typeSigma(tableWidth, -1.0);
+  std::vector<double> typeEpsilon(tableWidth, -1.0);
 
-      const auto sigma_ij = (p_i.getSigma() + p_j.getSigma()) / 2;
-      const auto epsilon_ij = std::sqrt(p_i.getEpsilon() * p_j.getEpsilon());
+  for (const auto& p : particles) {
+    const int t = p.getType();
+    if (typeSigma[t] < 0) {
+      // First particle of this type -> record its sigma/epsilon
+      uniqueTypes.push_back(t);
+      typeSigma[t] = p.getSigma();
+      typeEpsilon[t] = p.getEpsilon();
 
-      const double eps_48_sigma_12 = 48 * epsilon_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij
-        * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij;
-      const double sigma_m6_2 = 1 / (2 * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij * sigma_ij);
-
-      pairLookupTable1[idx] = eps_48_sigma_12;
-      pairLookupTable2[idx] = sigma_m6_2;
-
-      //save information to opposite cell ji
-      idx = p_j.getType() * tableWidth + p_i.getType();
-      pairLookupTable1[idx] = eps_48_sigma_12;
-      pairLookupTable2[idx] = sigma_m6_2;
-
+      // Precompute per-type constants for reflective boundaries
+      const double sigma = p.getSigma();
+      const double sigma2 = sigma * sigma;
+      const double sigma6 = sigma2 * sigma2 * sigma2;
+      // Precomputed 2^(1/6) 
+      repulsionDistanceLookup[t] = 1.1224620483093729814335330496791795162324111106139867534404095458 * sigma;
+      sigma6Lookup[t] = sigma6;
+      epsilonLookup[t] = p.getEpsilon();
     }
   }
 
+  // For every pair of unique types, compute and store lookup values
+  for (const int ti : uniqueTypes) {
+    for (const int tj : uniqueTypes) {
+      const int idx = ti * tableWidth + tj;
+      if (pairLookupTable1[idx] < 0) {
+        // Apply Lorentz-Berthelot mixing rules
+        const double sigma_ij = (typeSigma[ti] + typeSigma[tj]) / 2.0;
+        const double epsilon_ij = std::sqrt(typeEpsilon[ti] * typeEpsilon[tj]);
 
+        // Precompute: 48 * epsilon_ij * sigma_ij^12
+        const double sigma2 = sigma_ij * sigma_ij;
+        const double sigma4 = sigma2 * sigma2;
+        const double sigma6 = sigma4 * sigma2;
+        const double sigma12 = sigma6 * sigma6;
+        const double eps_48_sigma_12 = 48.0 * epsilon_ij * sigma12;
+
+        // Precompute: 1 / (2 * sigma_ij^6)
+        const double sigma_m6_2 = 1.0 / (2.0 * sigma6);
+
+        pairLookupTable1[idx] = eps_48_sigma_12;
+        pairLookupTable2[idx] = sigma_m6_2;
+
+        // Symmetric: save to (tj, ti) as well
+        const int idxSym = tj * tableWidth + ti;
+        pairLookupTable1[idxSym] = eps_48_sigma_12;
+        pairLookupTable2[idxSym] = sigma_m6_2;
+      }
+    }
+  }
+
+  SPDLOG_DEBUG("Precomputed constants for {} unique particle types ({} pair combinations)",
+               uniqueTypes.size(), uniqueTypes.size() * uniqueTypes.size());
 }
