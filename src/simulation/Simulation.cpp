@@ -5,6 +5,7 @@
 #include "io/VTKWriter.h"
 #endif
 #include "physics/LinkedCellParticleContainer.h"
+#include "io/CheckpointWriter.h"
 
 #include <atomic>
 #include <chrono>  // for benchmarking
@@ -12,13 +13,11 @@
 #include <csignal>
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <memory>
-#include <numeric>
 #include <utility>
 
 #ifndef SPDLOG_ACTIVE_LEVEL
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+  #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #endif  // SPDLOG_ACTIVE_LEVEL
 #include "spdlog/spdlog.h"
 
@@ -36,11 +35,13 @@ Simulation::Simulation(SimulationConfig& config)
       dt(config.deltaT),
       startTime(config.startTime),
       startIteration(config.startIteration),
-      epsilon(config.epsilon.value_or(1.0)),
-      sigma(config.sigma.value_or(1.0)),
-      cutoff(config.cutoff.value_or(3.0)),
-      gravity(config.gravity.value_or(0.0)),
-      dimensions(config.dimensions),
+      // --- TODO: Refactor these variables, look at Simulation.h for more info ---
+      epsilon(1.0),
+      sigma(1.0),
+      cutoff(config.linkedCellCutoff.value_or(3.0)),
+      gravity(0.0),
+      // --------------------------------------------------------------------------
+      dimensions(config.dimensions.value_or(3)),
       domainSize(config.domainSize.value_or(std::array<double, 3>{0.0, 0.0, 0.0})),
       simulationMode(config.simulationMode),
       writeFrequency(config.writeFrequency),
@@ -66,7 +67,6 @@ Simulation::Simulation(SimulationConfig& config)
   } else {
     boundaryTypeStrings.fill("OUTFLOW");
   }
-  // Initialize particle container
 
   // Initialize particle container
   switch (config.containerType) {
@@ -74,12 +74,23 @@ Simulation::Simulation(SimulationConfig& config)
       particles = std::make_unique<ParticleContainer>();
       break;
     case ContainerType::LINKED:
-      particles = std::make_unique<LinkedCellParticleContainer>(*config.domainSize, *config.cutoff, *config.boundaryTypes);
+      particles = std::make_unique<LinkedCellParticleContainer>(*config.domainSize, *config.linkedCellCutoff, *config.boundaryTypes);
       break;
   }
 
-  // Initialize forces, TODO: This refactor is not done yet
-  forces.push_back(std::make_unique<LennardJonesForce>(*particles, *config.epsilon, *config.sigma, *config.cutoff, config.gravity.value_or(0.0)));
+  // Initialize forces
+  for (auto& forceConfig : config.forceConfigs) {
+    switch (forceConfig.forceType) {
+      case ForceType::LENNARD_JONES:
+        // TODO: Remove gravity from the lennard jones constructor here
+        forces.push_back(std::make_unique<LennardJonesForce>(*particles, *forceConfig.epsilon, *forceConfig.sigma, *forceConfig.cutoff, 0.0));
+        break;
+      case ForceType::GRAVITY:
+        // TODO: Implement this
+        break;
+      // TODO: Implement the other force types here
+    }
+  }
 
   // Initialize thermostat
   if (config.thermostatConfig) {
@@ -115,7 +126,7 @@ Simulation::~Simulation() = default;
 void Simulation::plotParticles(const int iteration) const {
 #ifdef ENABLE_VTK_OUTPUT
   outputWriter::VTKWriter::plotParticles(*particles, outputBasename, iteration);
-  SPDLOG_DEBUG("Succesfully wrote particles to file, iteration={}", iteration);
+  SPDLOG_DEBUG("Successfully wrote particles to file, iteration={}", iteration);
 #else
   SPDLOG_WARN("VTK output disabled, skipping plotParticles for iteration {}", iteration);
 #endif
@@ -135,7 +146,7 @@ void Simulation::writeCheckpoint(const int iteration, const double time) const {
 }
 
 void Simulation::run() {
-  setupSimulation();  // set up particles and objects
+  setupSimulation();
 
   switch (simulationMode) {
     case SimulationMode::BENCHMARK:
@@ -163,6 +174,7 @@ void Simulation::runFileOutput() {
     // Store the force from the previous time stop for velocity update
     for (auto& p : *particles) {
       p.setOldF(p.getF());
+      // TODO: Move force resetting here (from Lennard-Jones)
     }
 
     // Calculate the forces acting on the particles
@@ -214,6 +226,7 @@ void Simulation::runBenchmark() {
     // Store the force from the previous time stop for velocity update
     for (auto& p : *particles) {
       p.setOldF(p.getF());
+      // TODO: Move force resetting here (and remove from Lennard-Jones)
     }
 
     // Calculate the forces acting on the particles

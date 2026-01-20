@@ -1,27 +1,41 @@
 #pragma once
+
 #include <yaml-cpp/yaml.h>
+
 #include <string>
+#include <optional>
+
 #include "simulation/SimulationConfig.h"
-#include "utils/MaxwellBoltzmannDistribution.h"
 
 /**
  * @class YAMLFileReader
  * @brief Reads a YAML file and extracts a simulation configuration.
  *
  */
-class YAMLFileReader {
+class YAMLFileReader {  // TODO: Add 'container' key and its parsing
  public:
   /**
-   * @brief Constructor loads the YAML file immediately.
-   * @param filename Path to the YAML input file.
+   * @brief Loads the YAML file immediately.
+   * @param filename Path to the YAML file.
    */
-  explicit YAMLFileReader(std::string filename);
+  explicit YAMLFileReader(const std::string& filename);
 
   /**
    * @brief Parses the simulation configuration from the loaded YAML nodes.
    * @return Simulation configuration
    */
   SimulationConfig getConfig();
+
+ private:
+  /**
+   * @brief Stores loaded YAML structure.
+   */
+  YAML::Node config;
+
+  /**
+   * @brief Validate configuration keys.
+   */
+  void checkRequiredKeys() const;
 
   // Getters for simulation parameters
   /**
@@ -55,34 +69,10 @@ class YAMLFileReader {
   double getDeltaT() const;
 
   /**
-   * @brief Gets the global Lennard-Jones epsilon parameter.
-   * @return The epsilon value for force calculations.
-   */
-  double getEpsilon() const;
-
-  /**
-   * @brief Gets the global Lennard-Jones sigma parameter.
-   * @return The sigma value for force calculations.
-   */
-  double getSigma() const;
-
-  /**
-   * @brief Gets the cutoff radius for force calculations.
-   * @return The cutoff radius in simulation units.
-   */
-  double getCutoff() const;
-
-  /**
-   * @brief Gets the gravity constant applied to particles.
-   * @return The gravity value (typically in negative y-direction).
-   */
-  double getGravity() const;
-
-  /**
    * @brief Gets the number of dimensions for the simulation (2 or 3).
    * @return The number of dimensions.
    */
-  int getDimensions() const;
+  std::optional<int> getDimensions() const;
 
   /**
    * @brief Gets the simulation domain size.
@@ -110,19 +100,9 @@ class YAMLFileReader {
   /** @brief Returns the simulation time from checkpoint (0.0 if not a checkpoint) */
   double getCheckpointTime() const;
 
- private:
   /**
-   * @brief Stores loaded YAML structure.
+   * @brief Reads the force type from the given string.
+   * @return The parsed force type
    */
-  YAML::Node config;
-
-  /**
-   * @brief Path to the YAML file.
-   */
-  std::string filename;
-
-  /**
-   * @brief Validate configuration keys.
-   */
-  void checkRequiredKeys() const;
+  static ForceType getForceType(const std::string& str);
 };

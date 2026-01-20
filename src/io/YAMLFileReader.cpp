@@ -3,7 +3,7 @@
 
 #include <spdlog/spdlog.h>
 
-YAMLFileReader::YAMLFileReader(std::string filename) : filename(filename) {
+YAMLFileReader::YAMLFileReader(const std::string& filename) {
   try {
     config = YAML::LoadFile(filename);
     checkRequiredKeys();
@@ -35,6 +35,10 @@ void YAMLFileReader::checkRequiredKeys() const {
     SPDLOG_ERROR("YAML file missing required key (boundaries)!");
     exit(-1);
   }
+  if (!config["forces"]) {
+    SPDLOG_ERROR("YAML file missing required key (forces)!");
+    exit(-1);
+  }
 }
 
 // Getters for simulation parameters
@@ -61,30 +65,11 @@ double YAMLFileReader::getDeltaT() const {
   return config["simulation"]["delta_t"].as<double>();
 }
 
-double YAMLFileReader::getEpsilon() const {
-  return config["simulation"]["epsilon"].as<double>();
-}
-
-double YAMLFileReader::getSigma() const {
-  return config["simulation"]["sigma"].as<double>();
-}
-
-double YAMLFileReader::getCutoff() const {
-  return config["simulation"]["cutoff_radius"].as<double>();
-}
-
-double YAMLFileReader::getGravity() const {
-  if (config["simulation"]["gravity"]) {
-    return config["simulation"]["gravity"].as<double>();
-  }
-  return 0.0;  // Default to 0 if not specified
-}
-
-int YAMLFileReader::getDimensions() const {
+std::optional<int> YAMLFileReader::getDimensions() const {
   if (config["simulation"]["dimensions"]) {
     return config["simulation"]["dimensions"].as<int>();
   }
-  return 3;  // Default to 3D
+  return std::nullopt;  // Default to 3D
 }
 
 std::array<double, 3> YAMLFileReader::getDomainSize() const {
@@ -130,14 +115,13 @@ std::optional<ThermostatConfig> YAMLFileReader::getThermostatConfig() const {
   }
 
   // delta_T - optional
-  // Maps to tempDelta in your struct
   if (node["temp_delta"]) {
     thermoConfig.tempDelta = node["temp_delta"].as<double>();
   }
 
-  SPDLOG_INFO("Thermostat configured with frequency={}", thermoConfig.nThermostat);
+  SPDLOG_INFO("Thermostat configured with application frequency={}", thermoConfig.nThermostat);
 
-  return thermoConfig;
+  return std::optional{thermoConfig};
 }
 
 // Checkpoint-related getters
@@ -159,6 +143,13 @@ double YAMLFileReader::getCheckpointTime() const {
   return 0.0;
 }
 
+ForceType YAMLFileReader::getForceType(const std::string& str) {
+  if (str == "lennard_jones") return ForceType::LENNARD_JONES;
+  if (str == "gravity") return ForceType::GRAVITY;
+  // TODO: Add the other force types here
+  throw std::runtime_error("Unknown force_type: " + str);  // TODO: Add spdlog logging
+}
+
 SimulationConfig YAMLFileReader::getConfig() {
   // TODO: Some of these parameters are optional but their lack in the YAML file causes errors - fix by using std::optional
   SimulationConfig simConfig;
@@ -166,7 +157,6 @@ SimulationConfig YAMLFileReader::getConfig() {
   // Basic simulation parameters
   simConfig.tEnd = getTEnd();
   simConfig.deltaT = getDeltaT();
-  // simConfig.simulationMode = FILE OUTPUT - by default (in the struct), overridden by CLI
 
   // File output parameters
   simConfig.outputBasename = getOutputBaseName();
@@ -176,14 +166,6 @@ SimulationConfig YAMLFileReader::getConfig() {
   // Checkpoint parameters
   simConfig.startIteration = getCheckpointIteration();
   simConfig.startTime = getCheckpointTime();
-
-  // Force parameters
-  simConfig.epsilon = getEpsilon();
-  simConfig.sigma = getSigma();
-  simConfig.cutoff = getCutoff();
-  simConfig.gravity = getGravity();
-  simConfig.dimensions = getDimensions();
-  // simConfig.useParallelization = FALSE - by default (in the struct), overridden by CLI
 
   // Container and Linked Cell parameters
   simConfig.domainSize = getDomainSize();
@@ -198,11 +180,38 @@ SimulationConfig YAMLFileReader::getConfig() {
   };
 
   std::array<std::string, 6> rawBoundaries = getBoundaryTypesRaw();
-  std::array<BoundaryType, 6> boundariesEnum;
+  std::array<BoundaryType, 6> boundariesEnum{};
   for (int i = 0; i < 6; ++i) {
     boundariesEnum[i] = parseBoundary(rawBoundaries[i]);
   }
   simConfig.boundaryTypes = boundariesEnum;
+
+  // Forces
+  double globalSigma = 3.0;
+  double globalEpsilon = 1.0;
+  for (const auto& node : config["forces"]) {
+    ForceConfig fc;
+    fc.forceType = getForceType(node["force_type"].as<std::string>());
+    switch (fc.forceType) {
+      case ForceType::LENNARD_JONES:
+        fc.epsilon = node["epsilon"].as<double>();
+        fc.sigma = node["sigma"].as<double>();
+        fc.cutoff = node["cutoff_radius"].as<double>();
+
+        // Global sigma and epsilon will use the values defined here
+        globalSigma = *fc.sigma;
+        globalEpsilon = *fc.epsilon;
+        break;
+      case ForceType::GRAVITY:
+        // TODO
+        break;
+      // TODO
+    }
+    simConfig.forceConfigs.push_back(fc);
+  }
+
+  // simConfig.cutoff = getCutoff();  // TODO: Add 'container' key to YAML and its parsing
+  simConfig.dimensions = getDimensions();
 
   // Thermostat
   simConfig.thermostatConfig = getThermostatConfig();
@@ -210,9 +219,6 @@ SimulationConfig YAMLFileReader::getConfig() {
   // Particle generation
   ParticleGenerator& generatorRaw =
       *simConfig.particleGenerator;  // particle generator owned by config at this point, so it's ok to deref ptr
-
-  const double globalSigma = *simConfig.sigma;
-  const double globalEpsilon = *simConfig.epsilon;
 
   // Parse cuboids
   const auto& cuboids = config["cuboids"];
@@ -277,7 +283,7 @@ SimulationConfig YAMLFileReader::getConfig() {
     for (const auto& p : config["particles"]) {
       auto x = p["x"].as<std::array<double, 3>>();
       auto v = p["v"].as<std::array<double, 3>>();
-      double m = p["m"].as<double>();
+      auto m = p["m"].as<double>();
 
       // Force vectors (required for proper restart)
       std::array<double, 3> f = {0.0, 0.0, 0.0};

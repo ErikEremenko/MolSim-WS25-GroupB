@@ -1,6 +1,5 @@
 #pragma once
 
-#include "io/CheckpointWriter.h"  // TODO: Re-implement checkpointing
 #include "io/YAMLFileReader.h"
 #include "physics/ForceCalc.h"
 #include "physics/ParticleGenerator.h"
@@ -20,10 +19,11 @@
  *
  * Other classes can inherit from this class to build more specific simulations, but this is strongly discouraged.
  */
-class Simulation {  // TODO: For now, we keep the virtual methods for thermostat testing - make class final!
+class Simulation {
  protected:
   /**
    * @brief Total simulated time.
+   * @note The simulation ends when the internal time counter passes this value.
    */
   double endTime;
 
@@ -33,14 +33,19 @@ class Simulation {  // TODO: For now, we keep the virtual methods for thermostat
   double dt;
 
   /**
-   * @brief Gravitational acceleration applied to particles.
+   * @brief Start value of the internal time counter, this is usually 0 when starting a new simulation.
+   * @note A checkpoint file will have a starting time greater than 0, e.g. 10.
    */
-  // double gravity; // Moved below
-
   double startTime;
+  /**
+   * @brief Starting iteration number, this is usually 0 when starting a new simulation.
+   * @note A checkpoint file will have a starting iteration greater than 0, e.g. 15000.
+   */
   int startIteration;
 
   // Simulation parameters needed for checkpointing
+  // TODO: Move these to a CheckpointInfo struct, as they are not relevant to this class
+  // TODO: A different idea is to have Simulation own a CheckpointWriter object
   double epsilon;
   double sigma;
   double cutoff;
@@ -89,7 +94,6 @@ class Simulation {  // TODO: For now, we keep the virtual methods for thermostat
   /**
    * @brief Outputs the state of the particles for visualization in ParaView.
    * @param iteration Current simulation step in ticks.
-   * @param outputBaseName Name for the file output
    */
   void plotParticles(int iteration) const;
 

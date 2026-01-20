@@ -35,7 +35,7 @@ enum class SimulationMode {
  *
  * Determines the underlying data structure used to store and access particles.
  */
-enum class ContainerType {  // TODO: Consider moving this to a separate header file
+enum class ContainerType {
   /**
    * @var ContainerType::DIRECT
    * Uses a direct-access container (e.g. array-based storage).
@@ -54,7 +54,6 @@ enum class ContainerType {  // TODO: Consider moving this to a separate header f
  * @brief Controls whether the simulation is executed using multithreading.
  */
 enum class Parallelization {
-
   /**
    * @var Parallelization::OFF
    * Executes the simulation sequentially.
@@ -66,6 +65,30 @@ enum class Parallelization {
    * Executes the simulation in parallel using OpenMP.
    */
   ON
+};
+
+enum class ForceType {
+  LENNARD_JONES,
+  GRAVITY
+  // TODO: Add the other forces here
+};
+
+struct ForceConfig {
+  ForceType forceType = ForceType::LENNARD_JONES; // TODO: This could also be done with a std::type_index
+
+  // Lennard-Jones potential
+  std::optional<double> epsilon = std::nullopt;
+  std::optional<double> sigma = std::nullopt;
+  std::optional<double> cutoff = std::nullopt;  // cutoff for the force calculations
+
+  // Gravity
+  std::optional<double> gravityX = std::nullopt;
+  std::optional<double> gravityY = std::nullopt;
+  std::optional<double> gravityZ = std::nullopt;
+
+  // TODO: Constant force
+
+  // TODO: Membrane bonds
 };
 
 struct ThermostatConfig {
@@ -82,28 +105,24 @@ struct SimulationConfig {
   int startIteration = 0;
   double startTime = 0.0;
   SimulationMode simulationMode = SimulationMode::FILE_OUTPUT;
+  std::optional<int> dimensions = 3;  // Default to 3D
 
   // Particle initialization
   std::unique_ptr<ParticleGenerator> particleGenerator = std::make_unique<ParticleGenerator>();
-  ;
 
   // File output
   int writeFrequency = 10;  // not used when benchmarking
   int checkpointFrequency = 0;
   std::string outputBasename = "MD_vtk";
 
-  // Force parameters
-  // TODO: Are these really all 'optional' parameters?
-  std::optional<double> epsilon = std::nullopt;
-  std::optional<double> sigma = std::nullopt;
-  std::optional<double> cutoff = std::nullopt;
-  std::optional<double> gravity = std::nullopt;
-  int dimensions = 3;  // Default to 3D
+  // Forces
+  std::vector<ForceConfig> forceConfigs{};
 
-  bool useParallelization = false;
+  bool useParallelization = false;  // TODO: Replace this with compiler flag
 
   // Container and Linked Cell parameters
   ContainerType containerType = ContainerType::DIRECT;
+  std::optional<double> linkedCellCutoff = std::nullopt;  // cutoff for linked cell
   std::optional<std::array<double, 3>> domainSize = std::nullopt;
   std::optional<std::array<BoundaryType, 6>> boundaryTypes = std::nullopt;
 
