@@ -145,7 +145,7 @@ double YAMLFileReader::getCheckpointTime() const {
 
 ForceType YAMLFileReader::getForceType(const std::string& str) {
   if (str == "lennard_jones") return ForceType::LENNARD_JONES;
-  if (str == "gravity") return ForceType::GRAVITY;
+  if (str == "acceleration") return ForceType::ACCELERATION;
   // TODO: Add the other force types here
   throw std::runtime_error("Unknown force type: " + str);  // TODO: Add spdlog logging
 }
@@ -211,8 +211,10 @@ SimulationConfig YAMLFileReader::getConfig() {
         globalSigma = *fc.sigma;
         globalEpsilon = *fc.epsilon;
         break;
-      case ForceType::GRAVITY:
-        // TODO: Implement this
+      case ForceType::ACCELERATION:
+        fc.accX = node["acc_x"].as<double>();
+        fc.accY = node["acc_y"].as<double>();
+        fc.accZ = node["acc_z"].as<double>();
         break;
       // TODO: Implement other force types here
     }

@@ -79,14 +79,14 @@ Simulation::Simulation(SimulationConfig& config)
   }
 
   // Initialize forces
-  for (auto& forceConfig : config.forceConfigs) {
-    switch (forceConfig.forceType) {
+  for (auto& fc : config.forceConfigs) {
+    switch (fc.forceType) {
       case ForceType::LENNARD_JONES:
         // TODO: Remove gravity from the lennard jones constructor here
-        forces.push_back(std::make_unique<LennardJonesForce>(*particles, *forceConfig.epsilon, *forceConfig.sigma, *forceConfig.cutoff, 0.0));
+        forces.push_back(std::make_unique<LennardJonesForce>(*particles, *fc.epsilon, *fc.sigma, *fc.cutoff, 0.0));
         break;
-      case ForceType::GRAVITY:
-        // TODO: Implement this
+      case ForceType::ACCELERATION:
+        forces.push_back(std::make_unique<ConstantAccelerationForce>(*particles, *fc.accX, *fc.accY, *fc.accZ));
         break;
       // TODO: Implement the other force types here
     }

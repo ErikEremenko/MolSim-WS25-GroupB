@@ -124,3 +124,35 @@ class LennardJonesForceParallel final : public ForceCalc {
   */
   void calculateF() override;
 };
+
+/**
+ * @class ConstantAccelerationForce
+ * @brief Models a force that provides constant acceleration for every particle.
+ *
+ * This force can be used to model earth's gravity.
+ */
+class ConstantAccelerationForce final : public ForceCalc {
+  private:
+    /** @brief Constant acceleration value in the x-direction. */
+    double accX;
+    /** @brief Constant acceleration value in the y-direction. */
+    double accY;
+    /** @brief Constant acceleration value in the z-direction. */
+    double accZ;
+
+  public:
+    /**
+     * @brief Initializes acceleration values and the particle container.
+     * @param particles
+     * @param accX
+     * @param accY
+     * @param accZ
+     */
+    ConstantAccelerationForce(ParticleContainer& particles, double accX, double accY, double accZ);
+
+    /**
+     * @brief Calculates the applied force according to the particle's acceleration.
+     * This is uses a simple physics formula (called Newton's 2nd Law): F=ma.
+     */
+    void calculateF() override;
+};

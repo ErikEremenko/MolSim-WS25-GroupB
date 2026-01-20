@@ -16,6 +16,10 @@ forces:
     epsilon: 5.0
     sigma: 1.0
     cutoff_radius: 4.0
+  - force_type: acceleration
+    acc_x: 0.0
+    acc_y: 0.0
+    acc_z: -0.001
 
 domain:
   size: [148, 148, 148]

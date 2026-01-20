@@ -598,3 +598,14 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
       }
   }
 }
+
+ConstantAccelerationForce::ConstantAccelerationForce(
+  ParticleContainer& particles, const double accX, const double accY, const double accZ
+  ) : ForceCalc(particles), accX(accX), accY(accY), accZ(accZ) {}
+
+void ConstantAccelerationForce::calculateF() {
+  for (auto& p : particles) {
+    const double m = p.getM();
+    p.setF({m*accX, m*accY, m*accZ});
+  }
+}

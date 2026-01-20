@@ -69,11 +69,12 @@ enum class Parallelization {
 
 enum class ForceType {
   LENNARD_JONES,
-  GRAVITY
+  ACCELERATION
   // TODO: Add the other forces here
 };
 
 struct ForceConfig {
+  // Which force strategy was picked
   ForceType forceType = ForceType::LENNARD_JONES; // TODO: This could also be done with a std::type_index
 
   // Lennard-Jones potential
@@ -81,14 +82,18 @@ struct ForceConfig {
   std::optional<double> sigma = std::nullopt;
   std::optional<double> cutoff = std::nullopt;  // cutoff for the force calculations
 
-  // Gravity
-  std::optional<double> gravityX = std::nullopt;
-  std::optional<double> gravityY = std::nullopt;
-  std::optional<double> gravityZ = std::nullopt;
+  // Acceleration
+  std::optional<double> accX = std::nullopt;
+  std::optional<double> accY = std::nullopt;
+  std::optional<double> accZ = std::nullopt;
 
   // TODO: Constant force
 
   // TODO: Membrane bonds
+
+  // TODO: Lennard-Jones truncated (or just use the truncated cutoff)
+
+  // TODO: Or not to do? We could add inter-particular gravity but it's not used in any of the new simulations
 };
 
 struct ThermostatConfig {
