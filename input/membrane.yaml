@@ -7,6 +7,10 @@ simulation:
   t_end: 500.0
   delta_t: 0.01
 
+container:
+  container_type: linked
+  cutoff: 4.0
+
 forces:
   - force_type: lennard_jones
     epsilon: 5.0

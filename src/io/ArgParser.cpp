@@ -16,6 +16,7 @@ void ArgParser::printUsage() {
 }
 
 LogLevelConfig ArgParser::parseLogLevel(const std::string& logLevelStr) {
+  // TODO: Replace this with compiler flags
   if (logLevelStr == "off")
     return LogLevelConfig::OFF;
   if (logLevelStr == "error")
@@ -40,11 +41,13 @@ SimulationMode ArgParser::parseSimulationMode(const std::string& simModeStr) {
 }
 
 ContainerType ArgParser::parseContainerType(const std::string& containerTypeStr) {
+  // TODO: This function has a duplicate in YAMLFileReader
+  // TODO: This function should be removed anyway, as specifying the container type in YAML is more natural
   if (containerTypeStr == "direct")
     return ContainerType::DIRECT;
   if (containerTypeStr == "linked")
     return ContainerType::LINKED;
-  throw std::invalid_argument("Invalid container kind: " + containerTypeStr);
+  throw std::invalid_argument("Invalid container type: " + containerTypeStr);
 }
 
 bool ArgParser::parseParallelization(const std::string& parallelStr) {
@@ -81,6 +84,10 @@ std::optional<CLIConfig> ArgParser::parse() const {
       if (args.size() > 3)
         config.logLevel = parseLogLevel(args[3]);
 
+      /* TODO: Remove container and parallel options from the CLI
+      * - Parallel should be moved to a compiler flag
+      * - Container should be removed completely and only specified in YAML
+      */
       // Index 4: Container (Optional)
       if (args.size() > 4)
         config.containerType = parseContainerType(args[4]);

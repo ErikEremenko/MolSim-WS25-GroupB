@@ -147,16 +147,25 @@ ForceType YAMLFileReader::getForceType(const std::string& str) {
   if (str == "lennard_jones") return ForceType::LENNARD_JONES;
   if (str == "gravity") return ForceType::GRAVITY;
   // TODO: Add the other force types here
-  throw std::runtime_error("Unknown force_type: " + str);  // TODO: Add spdlog logging
+  throw std::runtime_error("Unknown force type: " + str);  // TODO: Add spdlog logging
+}
+
+ContainerType YAMLFileReader::parseContainerType(const std::string& str) {
+  // TODO: This function has a duplicate in YAMLFileReader
+  if (str == "direct")
+    return ContainerType::DIRECT;
+  if (str == "linked")
+    return ContainerType::LINKED;
+  throw std::invalid_argument("Invalid container type: " + str);  // TODO: Add spdlog logging
 }
 
 SimulationConfig YAMLFileReader::getConfig() {
-  // TODO: Some of these parameters are optional but their lack in the YAML file causes errors - fix by using std::optional
   SimulationConfig simConfig;
 
   // Basic simulation parameters
   simConfig.tEnd = getTEnd();
   simConfig.deltaT = getDeltaT();
+  simConfig.dimensions = getDimensions();
 
   // File output parameters
   simConfig.outputBasename = getOutputBaseName();
@@ -187,8 +196,8 @@ SimulationConfig YAMLFileReader::getConfig() {
   simConfig.boundaryTypes = boundariesEnum;
 
   // Forces
-  double globalSigma = 3.0;
-  double globalEpsilon = 1.0;
+  double globalSigma = 3.0;  // fallback value
+  double globalEpsilon = 1.0;  // fallback value
   for (const auto& node : config["forces"]) {
     ForceConfig fc;
     fc.forceType = getForceType(node["force_type"].as<std::string>());
@@ -203,20 +212,29 @@ SimulationConfig YAMLFileReader::getConfig() {
         globalEpsilon = *fc.epsilon;
         break;
       case ForceType::GRAVITY:
-        // TODO
+        // TODO: Implement this
         break;
-      // TODO
+      // TODO: Implement other force types here
     }
     simConfig.forceConfigs.push_back(fc);
   }
 
-  // simConfig.cutoff = getCutoff();  // TODO: Add 'container' key to YAML and its parsing
-  simConfig.dimensions = getDimensions();
+  // Container parameters
+  // TODO: Refactor container code into a separate function, that also checks if cutoff was passed to a direct container
+  const auto& containerNode = config["container"];
+  if (containerNode) {
+    simConfig.containerType = parseContainerType(containerNode["container_type"].as<std::string>());
+    if (simConfig.containerType == ContainerType::LINKED) {
+      simConfig.linkedCellCutoff = containerNode["cutoff"].as<double>();
+    }
+  } else {  // fallback values
+    simConfig.containerType = ContainerType::DIRECT;
+  }
 
   // Thermostat
   simConfig.thermostatConfig = getThermostatConfig();
 
-  // Particle generation
+  // --- Particle generation ---
   ParticleGenerator& generatorRaw =
       *simConfig.particleGenerator;  // particle generator owned by config at this point, so it's ok to deref ptr
 

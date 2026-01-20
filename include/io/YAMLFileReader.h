@@ -12,7 +12,7 @@
  * @brief Reads a YAML file and extracts a simulation configuration.
  *
  */
-class YAMLFileReader {  // TODO: Add 'container' key and its parsing
+class YAMLFileReader {
  public:
   /**
    * @brief Loads the YAML file immediately.
@@ -102,7 +102,15 @@ class YAMLFileReader {  // TODO: Add 'container' key and its parsing
 
   /**
    * @brief Reads the force type from the given string.
+   * @param str Text from YAML about the type of force
    * @return The parsed force type
    */
   static ForceType getForceType(const std::string& str);
+
+  /**
+   * @brief Reads the container type from the given string.
+   * @param str Text from YAML about the container type
+   * @return Container type to use in the simulation
+   */
+  static ContainerType parseContainerType(const std::string& str);
 };
