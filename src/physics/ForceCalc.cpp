@@ -65,14 +65,13 @@ void GravityForce::calculateF() {
   }
 }
 
-LennardJonesForce::LennardJonesForce(ParticleContainer& particles, const double epsilon, const double sigma,
-                                     const double cutoffRadius, const double gravity)
-    : ForceCalc(particles),
+LennardJonesForce::LennardJonesForce(
+  ParticleContainer& particles, const double epsilon, const double sigma, const double cutoffRadius
+  ) : ForceCalc(particles),
       epsilon(epsilon),
       sigma(sigma),
       cutoffRadius(cutoffRadius),
-      repulsionDistance(std::pow(2.0, 1.0 / 6.0) * sigma),
-      gravity(gravity) {}
+      repulsionDistance(std::pow(2.0, 1.0 / 6.0) * sigma) {}
 
 void LennardJonesForce::calculateF() {
   if (dynamic_cast<LinkedCellParticleContainer*>(&particles)) {

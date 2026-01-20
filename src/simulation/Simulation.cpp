@@ -82,8 +82,7 @@ Simulation::Simulation(SimulationConfig& config)
   for (auto& fc : config.forceConfigs) {
     switch (fc.forceType) {
       case ForceType::LENNARD_JONES:
-        // TODO: Remove gravity from the lennard jones constructor here
-        forces.push_back(std::make_unique<LennardJonesForce>(*particles, *fc.epsilon, *fc.sigma, *fc.cutoff, 0.0));
+        forces.push_back(std::make_unique<LennardJonesForce>(*particles, *fc.epsilon, *fc.sigma, *fc.cutoff));
         break;
       case ForceType::ACCELERATION:
         forces.push_back(std::make_unique<ConstantAccelerationForce>(*particles, *fc.accX, *fc.accY, *fc.accZ));
