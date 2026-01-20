@@ -172,13 +172,16 @@ void Simulation::runFileOutput() {
     ForceCalc::calculateX(*particles, dt);
 
     // Store the force from the previous time stop for velocity update
+    /* TODO: Optimization idea: introduce a 'first force' flag to ForceCalc to avoid
+    * iterating an extra time over the particles, thus eliminating the loop below.
+    */
     for (auto& p : *particles) {
       p.setOldF(p.getF());
-      // TODO: Move force resetting here (from Lennard-Jones)
+      p.setF({});
     }
 
     // Calculate the forces acting on the particles
-    for (auto& force : forces) {
+    for (const auto& force : forces) {
       force->calculateF();
     };
 
@@ -224,9 +227,12 @@ void Simulation::runBenchmark() {
     ForceCalc::calculateX(*particles, dt);
 
     // Store the force from the previous time stop for velocity update
+    /* TODO: Optimization idea: introduce a 'first force' flag to ForceCalc to avoid
+    * iterating an extra time over the particles, thus eliminating the loop below.
+    */
     for (auto& p : *particles) {
       p.setOldF(p.getF());
-      // TODO: Move force resetting here (and remove from Lennard-Jones)
+      p.setF({});
     }
 
     // Calculate the forces acting on the particles

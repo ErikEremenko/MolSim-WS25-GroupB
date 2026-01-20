@@ -33,10 +33,6 @@ void ForceCalc::calculateV(ParticleContainer& particles, const double dt) {
 }
 
 void GravityForce::calculateF() {
-  for (auto& p : particles) {
-    p.setF({});
-  }
-
   const size_t n_particles = particles.size();
   for (size_t i = 0; i < n_particles; ++i) {
     // Index offset for Newton's third law
@@ -87,9 +83,6 @@ void LennardJonesForce::calculateF() {
 }
 
 void LennardJonesForce::calculateFDirectSum() {
-  for (auto& p : particles) {
-    p.setF({});
-  }
   const double sigma2 = sigma * sigma;
   const double sigma6 = sigma2 * sigma2 * sigma2;
 
@@ -193,10 +186,6 @@ void LennardJonesForceParallel::calculateF() {
 }
 
 void LennardJonesForce::calculateFLinkedCell() {
-  for (auto& p : particles) {
-    p.setF({0, p.getM() * gravity, 0});
-  }
-
   auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
   if (!lc) {
     throw std::runtime_error("LennardJonesForce::calculateFLinkedCell requires LinkedCellParticleContainer");
