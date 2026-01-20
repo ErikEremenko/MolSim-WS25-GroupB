@@ -23,12 +23,7 @@ void ForceCalc::calculateX(const double dt) {
 
 void ForceCalc::calculateV(const double dt) {
   for (auto& p : particles) {
-    const auto v_curr = p.getV();
-    const double m_i = p.getM();
-    const auto F = p.getF();
-    const auto F_old = p.getOldF();
-    const auto v_new = v_curr + (dt / (2.0 * m_i)) * (F_old + F);
-    p.setV(v_new);
+    p.setV(p.getV() + (dt / (2.0 * p.getM())) * (p.getOldF() + p.getF()));
   }
 }
 
@@ -48,7 +43,7 @@ void GravityForce::calculateF() {
 
       const auto dist = p_j.getX() - p_i.getX();
       const double norm = ArrayUtils::L2Norm(dist);
-      
+
       const double norm3 = norm * norm * norm;
 
       const auto F_vector = ((p_i.getM() * p_j.getM()) / norm3) * dist;
@@ -99,12 +94,12 @@ void LennardJonesForce::calculateFDirectSum() {
       const auto dist = p_j.getX() - p_i.getX();
       // Use squared distance to avoid sqrt (optimization)
       const double normSq = dist[0] * dist[0] + dist[1] * dist[1] + dist[2] * dist[2];
-      
+
       // Skip if beyond cutoff (no zero check for performance - see class documentation)
       if (normSq >= cutoffRadiusSqLocal) {
         continue;
       }
-      
+
       const double inv_norm2 = 1.0 / normSq;
       const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
 
@@ -147,12 +142,12 @@ void LennardJonesForceParallel::calculateF() {
       const auto dist = p_j.getX() - p_i.getX();
       // Use squared distance to avoid sqrt (optimization)
       const double normSq = dist[0] * dist[0] + dist[1] * dist[1] + dist[2] * dist[2];
-      
+
       // Skip if beyond cutoff (no zero check for performance - see class documentation)
       if (normSq >= cutoffRadiusSqLocal) {
         continue;
       }
-      
+
       const double inv_norm2 = 1.0 / normSq;
       const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
 
@@ -201,9 +196,10 @@ void LennardJonesForce::calculateFLinkedCell() {
       return;
 
     term = 1 / term;
+    const double term2 = term * term;
 
     const int idx = p_i.getType() * tableWidth + p_j.getType();
-    term = pairLookupTable1[idx] * term * term * term * term * (pairLookupTable2[idx] - term * term * term);
+    term = pairLookupTable1[idx] * term2 * term2 * (pairLookupTable2[idx] - term2 * term);
 
     const auto F_vec = term * dist;
     p_i.setF(p_i.getF() + F_vec);
@@ -275,7 +271,7 @@ void LennardJonesForce::calcFPeriodicBoundary(Particle* p1, Particle* p2) const 
   // Use optimized lookup tables for mixed sigma/epsilon values
   std::array<double, 3> dist = {p2->getX()[0] - p1->getX()[0], p2->getX()[1] - p1->getX()[1],
                                 p2->getX()[2] - p1->getX()[2]};
-  
+
   // Use squared distance to avoid sqrt
   double term = dist[0] * dist[0] + dist[1] * dist[1] + dist[2] * dist[2];
 
@@ -618,7 +614,7 @@ void LennardJonesForce::precomputeConstants() {
       const double sigma = p.getSigma();
       const double sigma2 = sigma * sigma;
       const double sigma6 = sigma2 * sigma2 * sigma2;
-      // Precomputed 2^(1/6) 
+      // Precomputed 2^(1/6)
       repulsionDistanceLookup[t] = 1.1224620483093729814335330496791795162324111106139867534404095458 * sigma;
       sigma6Lookup[t] = sigma6;
       epsilonLookup[t] = p.getEpsilon();

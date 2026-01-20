@@ -32,33 +32,6 @@ Particle::Particle(const std::array<double, 3>& x_arg, const std::array<double, 
       sigma(sigma_arg),
       epsilon(epsilon_arg) {}
 
-const std::array<double, 3>& Particle::getX() const {
-  return x;
-}
-
-const std::array<double, 3>& Particle::getV() const {
-  return v;
-}
-
-const std::array<double, 3>& Particle::getF() const {
-  return f;
-}
-std::array<double, 3>& Particle::getF() {
-  return f;
-}
-
-const std::array<double, 3>& Particle::getOldF() const {
-  return old_f;
-}
-
-double Particle::getM() const {
-  return m;
-}
-
-int Particle::getType() const {
-  return type;
-}
-
 double Particle::getSigma() const {
   return sigma;
 }

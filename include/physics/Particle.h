@@ -158,4 +158,18 @@ class Particle {
   std::string toString() const;
 };
 
+inline const std::array<double, 3>& Particle::getX() const { return x; }
+
+inline int Particle::getType() const { return type; }
+
+inline const std::array<double, 3>& Particle::getV() const { return v; }
+
+inline const std::array<double, 3>& Particle::getF() const { return f; }
+
+inline std::array<double, 3>& Particle::getF() { return f; }
+
+inline const std::array<double, 3>& Particle::getOldF() const { return old_f; }
+
+inline double Particle::getM() const { return m; }
+
 std::ostream& operator<<(std::ostream& stream, const Particle& p);
