@@ -634,3 +634,29 @@ void MembraneBondForce::calculateF() {
     }
   }
 }
+
+MembraneConstantForce::MembraneConstantForce(ParticleContainer& particles, const double dt)
+    : ForceCalc(particles), particlesInitialized(false), affectedParticles(), currentTime(0), dt(dt) {}
+
+void MembraneConstantForce::calculateF() {
+  if (currentTime >= forceEndTime) return;
+  if (!particlesInitialized) {
+    /* This has to be done here as we have lazy particle generation and the particle container is empty
+     * when the force calculation strategies are being initialized.
+     */
+    // Get the affected particles - (17/24), (17/25), (18/24) and (18/25)
+    // We use the formula: x*yDim + y for indexing, as that is how ParticleGenerator initializes the particles
+    affectedParticles[0] = &particles[17*yDim + 24];
+    affectedParticles[1] = &particles[17*yDim + 25];
+    affectedParticles[2] = &particles[18*yDim + 24];
+    affectedParticles[3] = &particles[18*yDim + 25];
+
+    particlesInitialized = true;
+  }
+
+  for (auto p : affectedParticles) {
+    p->addF({0, 0, forceValue});
+  }
+
+  currentTime += dt;
+}

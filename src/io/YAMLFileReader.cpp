@@ -147,6 +147,7 @@ ForceType YAMLFileReader::getForceType(const std::string& str) {
   if (str == "lennard_jones") return ForceType::LENNARD_JONES;
   if (str == "acceleration") return ForceType::ACCELERATION;
   if (str == "membrane_bonds") return ForceType::MEMBRANE_BONDS;
+  if (str == "membrane_constant") return ForceType::MEMBRANE_CONSTANT;
   // TODO: Add the other force types here
   throw std::runtime_error("Unknown force type: " + str);  // TODO: Add spdlog logging
 }
@@ -220,6 +221,8 @@ SimulationConfig YAMLFileReader::getConfig() {
       case ForceType::MEMBRANE_BONDS:
         fc.stiffnessConstant = node["stiffness_constant"].as<double>();
         fc.bondLength = node["bond_length"].as<double>();
+        break;
+      default:  // MEMBRANE_CONSTANT
         break;
       // TODO: Implement other force types here
     }

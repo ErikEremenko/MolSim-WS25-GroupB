@@ -70,7 +70,8 @@ enum class Parallelization {
 enum class ForceType {
   LENNARD_JONES,
   ACCELERATION,
-  MEMBRANE_BONDS
+  MEMBRANE_BONDS,
+  MEMBRANE_CONSTANT
   // TODO: Add the other forces here
 };
 

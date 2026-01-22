@@ -187,3 +187,30 @@ class MembraneBondForce final : public ForceCalc {
      */
     void calculateF() override;
 };
+
+/**
+ * @class MembraneConstantForce
+ * @brief Models a constant force value as specified in Task 1 of Assignment 5.
+ * @note The class below could be made more generic (e.g. with parameters). For now, we see no use for it.
+ */
+class MembraneConstantForce final : public ForceCalc {
+  private:
+    static constexpr double forceEndTime = 150;  // force effective until t=150
+    static constexpr int yDim = 50;  // number of particles in each row (y-dim)
+    static constexpr double forceValue = 0.8;
+
+    bool particlesInitialized;
+    std::array<Particle*, 4> affectedParticles;
+    double currentTime;
+    double dt;
+
+  public:
+    MembraneConstantForce(ParticleContainer& particles, double dt);
+
+   /**
+     * @brief In the membrane simulation experiment, the constant force F_(Z-UP) pulls the particle
+     * with x/y-indices (17/24), (17/25), (18/24) and (18/25) upwards along the z-axis. Its value is
+     * 0.8 and the force is only effective until time 150.
+     */
+    void calculateF() override;
+};

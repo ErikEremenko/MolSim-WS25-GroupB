@@ -23,6 +23,7 @@ forces:
   - force_type: membrane_bonds
     stiffness_constant: 300.0
     bond_length: 2.2
+  - force_type: membrane_constant
 
 domain:
   size: [148, 148, 148]
