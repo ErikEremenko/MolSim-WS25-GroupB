@@ -233,6 +233,23 @@ std::enable_if_t<ArrayUtils::is_container<Container>::value, Container> operator
 }
 
 /**
+ * Element wise negation of a container.
+ * @tparam Container
+ * @param container
+ * @return For all i -arg[i].
+ */
+template <class Container>
+std::enable_if_t<ArrayUtils::is_container<Container>::value, Container> operator-(const Container& container) {
+  // We can reuse elementWiseScalarOp by passing a dummy scalar if we wanted,
+  // but a direct implementation or a new UnaryOp helper is cleaner.
+  // Here is a direct implementation using std::transform for efficiency:
+
+  Container ret = container;
+  std::transform(std::cbegin(container), std::cend(container), std::begin(ret), std::negate<>());
+  return ret;
+}
+
+/**
  * Element wise scaling of a container.
  * @tparam Container
  * @param lhs

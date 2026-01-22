@@ -8,7 +8,6 @@
 
 constexpr double sqrtTwo = 1.4142135623730951;  // value of std::sqrt(2)
 
-// TODO: Make every calculateF() cumulative (use addF() instead of setF())
 ForceCalc::ForceCalc(ParticleContainer& particles) : particles(particles) {}
 ForceCalc::~ForceCalc() = default;
 
@@ -59,11 +58,9 @@ void GravityForce::calculateF() {
       const auto F_vector = ((p_i.getM() * p_j.getM()) / norm3) * dist;
 
       // Apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
-      auto F_i = p_i.getF();
-      auto F_j = p_j.getF();
       // Actio est reactio
-      p_i.setF(F_i + F_vector);
-      p_j.setF(F_j - F_vector);
+      p_i.addF(F_vector);
+      p_j.addF(-F_vector);
     }
   }
 }
@@ -118,11 +115,9 @@ void LennardJonesForce::calculateFDirectSum() {
       const auto F_vector = (24.0 * epsilon) * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12) * dist;
 
       // Apply forces using Newton's third law (O(n^2) -> O(((n^2)/2))
-      auto F_i = p_i.getF();
-      auto F_j = p_j.getF();
       // Actio est reactio
-      p_i.setF(F_i + F_vector);
-      p_j.setF(F_j - F_vector);
+      p_i.addF(F_vector);
+      p_j.addF(-F_vector);
     }
   }
 }
@@ -225,8 +220,8 @@ void LennardJonesForce::calculateFLinkedCell() {
     const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
 
     const auto F_vec = (24.0 * epsilon_ij * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * dist;
-    p_i.setF(p_i.getF() + F_vec);
-    p_j.setF(p_j.getF() - F_vec);
+    p_i.addF(F_vec);
+    p_j.addF(-F_vec);
   });
 
   applyReflectiveBoundaries(lc);
@@ -241,7 +236,7 @@ void LennardJonesForce::applyReflectiveBoundaries(const LinkedCellParticleContai
 
   for (auto& p : particles) {
     const auto x = p.getX();
-    auto F_total = p.getF();
+    std::array<double, 3> F_sum = {0.0, 0.0, 0.0};
 
     // Use particle's own sigma/epsilon
     const double p_sigma = p.getSigma();
@@ -276,16 +271,16 @@ void LennardJonesForce::applyReflectiveBoundaries(const LinkedCellParticleContai
       // Handling two opposite boundaries per dimension d -> 6 faces
       if (boundaryTypes[2 * d] == BoundaryType::REFLECTIVE) {
         if (const double distToWall = x[d] - minD; distToWall > 0. && distToWall < cutoffRadius) {
-          F_total = F_total + computeGhostForce(d, minD);
+          F_sum = F_sum + computeGhostForce(d, minD);
         }
       }
       if (boundaryTypes[2 * d + 1] == BoundaryType::REFLECTIVE) {
         if (const double distToWall = maxD - x[d]; distToWall > 0. && distToWall < cutoffRadius) {
-          F_total = F_total + computeGhostForce(d, maxD);
+          F_sum = F_sum + computeGhostForce(d, maxD);
         }
       }
     }
-    p.setF(F_total);
+    p.addF(F_sum);
   }
 }
 
@@ -316,8 +311,8 @@ void LennardJonesForce::calcFPeriodicBoundary(Particle* p1, Particle* p2) const 
   const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
 
   const auto F_vec = (24.0 * epsilon * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * dist;
-  p1->setF(p1->getF() + F_vec);
-  p2->setF(p2->getF() - F_vec);
+  p1->addF(F_vec);
+  p2->addF(-F_vec);
 }
 
 void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc) const {
@@ -610,7 +605,7 @@ ConstantAccelerationForce::ConstantAccelerationForce(
 void ConstantAccelerationForce::calculateF() {
   for (auto& p : particles) {
     const double m = p.getM();
-    p.setF({m*accX, m*accY, m*accZ});
+    p.addF({m*accX, m*accY, m*accZ});
   }
 }
 
