@@ -20,6 +20,9 @@ forces:
     acc_x: 0.0
     acc_y: 0.0
     acc_z: -0.001
+  - force_type: membrane_bonds
+    stiffness_constant: 300.0
+    bond_length: 2.2
 
 domain:
   size: [148, 148, 148]

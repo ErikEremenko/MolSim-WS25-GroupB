@@ -87,6 +87,9 @@ Simulation::Simulation(SimulationConfig& config)
       case ForceType::ACCELERATION:
         forces.push_back(std::make_unique<ConstantAccelerationForce>(*particles, *fc.accX, *fc.accY, *fc.accZ));
         break;
+      case ForceType::MEMBRANE_BONDS:
+        forces.push_back(std::make_unique<MembraneBondForce>(*particles, *fc.stiffnessConstant, *fc.bondLength));
+        break;
       // TODO: Implement the other force types here
     }
   }

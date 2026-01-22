@@ -6,6 +6,9 @@
 #include "physics/LinkedCellParticleContainer.h"
 #include "utils/ArrayUtils.h"
 
+constexpr double sqrtTwo = 1.4142135623730951;  // value of std::sqrt(2)
+
+// TODO: Make every calculateF() cumulative (use addF() instead of setF())
 ForceCalc::ForceCalc(ParticleContainer& particles) : particles(particles) {}
 ForceCalc::~ForceCalc() = default;
 
@@ -606,5 +609,28 @@ void ConstantAccelerationForce::calculateF() {
   for (auto& p : particles) {
     const double m = p.getM();
     p.setF({m*accX, m*accY, m*accZ});
+  }
+}
+
+MembraneBondForce::MembraneBondForce(ParticleContainer& particles, const double stiffnessConstant, const double bondLength)
+  : ForceCalc(particles), stiffnessConstant(stiffnessConstant), bondLength(bondLength) {}
+
+void MembraneBondForce::calculateF() {
+  for (auto& p : particles) {
+    for (const int neighborId : p.getDirectNeighbors()) {
+      Particle& neighbor = particles[neighborId];
+      const auto dist = p.getX() - neighbor.getX();
+      const double norm = ArrayUtils::L2Norm(dist);
+      const auto force = stiffnessConstant * (norm - bondLength) / norm * dist;
+      p.addF(force);
+    }
+
+    for (const int neighborId : p.getDiagonalNeighbors()) {
+      Particle& neighbor = particles[neighborId];
+      const auto dist = p.getX() - neighbor.getX();
+      const double norm = ArrayUtils::L2Norm(dist);
+      const auto force = stiffnessConstant * (norm - sqrtTwo*bondLength) / norm * dist;
+      p.addF(force);
+    }
   }
 }

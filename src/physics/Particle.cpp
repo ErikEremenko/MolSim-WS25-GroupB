@@ -87,6 +87,10 @@ std::string Particle::toString() const {
   return stream.str();
 }
 
+void Particle::addF(const std::array<double, 3>& force) {
+  f = f + force;
+}
+
 std::vector<int>& Particle::getDirectNeighbors() {
   return directNeighbors;
 }

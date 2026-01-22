@@ -146,6 +146,7 @@ double YAMLFileReader::getCheckpointTime() const {
 ForceType YAMLFileReader::getForceType(const std::string& str) {
   if (str == "lennard_jones") return ForceType::LENNARD_JONES;
   if (str == "acceleration") return ForceType::ACCELERATION;
+  if (str == "membrane_bonds") return ForceType::MEMBRANE_BONDS;
   // TODO: Add the other force types here
   throw std::runtime_error("Unknown force type: " + str);  // TODO: Add spdlog logging
 }
@@ -215,6 +216,10 @@ SimulationConfig YAMLFileReader::getConfig() {
         fc.accX = node["acc_x"].as<double>();
         fc.accY = node["acc_y"].as<double>();
         fc.accZ = node["acc_z"].as<double>();
+        break;
+      case ForceType::MEMBRANE_BONDS:
+        fc.stiffnessConstant = node["stiffness_constant"].as<double>();
+        fc.bondLength = node["bond_length"].as<double>();
         break;
       // TODO: Implement other force types here
     }

@@ -190,6 +190,8 @@ class Particle {
   bool operator==(const Particle& other) const;
 
   std::string toString() const;
+
+  void addF(const std::array<double, 3>& force);
 };
 
 std::ostream& operator<<(std::ostream& stream, const Particle& p);

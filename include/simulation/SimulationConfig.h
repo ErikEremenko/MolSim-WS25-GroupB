@@ -69,7 +69,8 @@ enum class Parallelization {
 
 enum class ForceType {
   LENNARD_JONES,
-  ACCELERATION
+  ACCELERATION,
+  MEMBRANE_BONDS
   // TODO: Add the other forces here
 };
 
@@ -87,9 +88,11 @@ struct ForceConfig {
   std::optional<double> accY = std::nullopt;
   std::optional<double> accZ = std::nullopt;
 
-  // TODO: Constant force
+  // Membrane bonds
+  std::optional<double> stiffnessConstant = std::nullopt;
+  std::optional<double> bondLength = std::nullopt;
 
-  // TODO: Membrane bonds
+  // TODO: Constant force
 
   // TODO: Lennard-Jones truncated (or just use the truncated cutoff)
 

@@ -135,25 +135,55 @@ class LennardJonesForceParallel final : public ForceCalc {
 class ConstantAccelerationForce final : public ForceCalc {
   private:
     /** @brief Constant acceleration value in the x-direction. */
-    double accX;
+    const double accX;
     /** @brief Constant acceleration value in the y-direction. */
-    double accY;
+    const double accY;
     /** @brief Constant acceleration value in the z-direction. */
-    double accZ;
+    const double accZ;
 
   public:
     /**
      * @brief Initializes acceleration values and the particle container.
-     * @param particles
-     * @param accX
-     * @param accY
-     * @param accZ
+     * @param particles Particle container
+     * @param accX Acceleration in the x-direction
+     * @param accY Acceleration in the x-direction
+     * @param accZ Acceleration in the x-direction
      */
     ConstantAccelerationForce(ParticleContainer& particles, double accX, double accY, double accZ);
 
     /**
      * @brief Calculates the applied force according to the particle's acceleration.
      * This is uses a simple physics formula (called Newton's 2nd Law): F=ma.
+     */
+    void calculateF() override;
+};
+
+/**
+ * @class MembraneBondForce
+ * @brief Models a membrane and the bond forces that hold the molecules together.
+ * @note This force should only be used when simulating a membrane.
+ */
+class MembraneBondForce final : public ForceCalc {
+  private:
+    /** @brief Stiffness constant of the bonds (k in the formula). */
+    const double stiffnessConstant;
+
+    /** @brief Average bond length of a molecule pair (r_0 in the formula). */
+    const double bondLength;
+
+  public:
+    /**
+     * @brief Initializes the stiffness constant and the particle container.
+     * @param particles Particle container
+     * @param stiffnessConstant Stiffness constant
+     */
+    MembraneBondForce(ParticleContainer& particles, double stiffnessConstant, double bondLength);
+
+   /**
+     * @brief Calculates the bond forces acting on every particle of the membrane.
+     * @note When calculating the forces on each particle, the list of diagonal and direct neighbors are iterated
+     * to calculate the total force on that single particle. Currently, this force calculation is not optimized
+     * to use Newton's 3rd Law, Actio est reactio.
      */
     void calculateF() override;
 };
