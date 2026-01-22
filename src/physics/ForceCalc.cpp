@@ -69,12 +69,13 @@ void GravityForce::calculateF() {
 }
 
 LennardJonesForce::LennardJonesForce(
-  ParticleContainer& particles, const double epsilon, const double sigma, const double cutoffRadius
+  ParticleContainer& particles, const double epsilon, const double sigma, const double cutoffRadius, const bool isTruncated = false
   ) : ForceCalc(particles),
       epsilon(epsilon),
       sigma(sigma),
       cutoffRadius(cutoffRadius),
-      repulsionDistance(std::pow(2.0, 1.0 / 6.0) * sigma) {}
+      repulsionDistance(std::pow(2.0, 1.0 / 6.0) * sigma),
+      isTruncated(isTruncated) {}
 
 void LennardJonesForce::calculateF() {
   if (dynamic_cast<LinkedCellParticleContainer*>(&particles)) {
@@ -105,7 +106,7 @@ void LennardJonesForce::calculateFDirectSum() {
         throw std::overflow_error(
             "Calculated a zero norm between particles. This is likely caused by an incorrect initialization of the "
             "Simulation.");
-      } else if (norm >= cutoffRadius) {
+      } else if (norm >= cutoffRadius || (isTruncated && norm >= repulsionDistance)) {
         continue;
       }
       const double inv_norm2 = 1.0 / (norm * norm);
@@ -207,8 +208,9 @@ void LennardJonesForce::calculateFLinkedCell() {
       throw std::overflow_error(
           "Calculated a zero norm between particles. This is likely caused "
           "by an incorrect initialization of the Simulation.");
-    } else if (norm >= cutoffRadius)
+    } else if (norm >= cutoffRadius || (isTruncated && norm >= repulsionDistance)) {
       return;
+    }
 
     // Get the particle's sigma/epsilon and apply mixing rule
     const auto sigma_ij = (p_i.getSigma() + p_j.getSigma()) / 2;

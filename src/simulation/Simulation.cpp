@@ -82,7 +82,7 @@ Simulation::Simulation(SimulationConfig& config)
   for (auto& fc : config.forceConfigs) {
     switch (fc.forceType) {
       case ForceType::LENNARD_JONES:
-        forces.push_back(std::make_unique<LennardJonesForce>(*particles, *fc.epsilon, *fc.sigma, *fc.cutoff));
+        forces.push_back(std::make_unique<LennardJonesForce>(*particles, *fc.epsilon, *fc.sigma, *fc.cutoff, *fc.isTruncated));
         break;
       case ForceType::ACCELERATION:
         forces.push_back(std::make_unique<ConstantAccelerationForce>(*particles, *fc.accX, *fc.accY, *fc.accZ));

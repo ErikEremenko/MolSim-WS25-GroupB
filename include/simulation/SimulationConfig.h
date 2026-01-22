@@ -83,6 +83,7 @@ struct ForceConfig {
   std::optional<double> epsilon = std::nullopt;
   std::optional<double> sigma = std::nullopt;
   std::optional<double> cutoff = std::nullopt;  // cutoff for the force calculations
+  std::optional<bool> isTruncated = false;  // cannot be nullopt as it will be deref'd in Simulation constructor
 
   // Acceleration
   std::optional<double> accX = std::nullopt;
@@ -92,10 +93,6 @@ struct ForceConfig {
   // Membrane bonds
   std::optional<double> stiffnessConstant = std::nullopt;
   std::optional<double> bondLength = std::nullopt;
-
-  // TODO: Constant force
-
-  // TODO: Lennard-Jones truncated (or just use the truncated cutoff)
 
   // TODO: Or not to do? We could add inter-particular gravity but it's not used in any of the new simulations
 };

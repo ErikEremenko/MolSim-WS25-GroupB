@@ -209,6 +209,10 @@ SimulationConfig YAMLFileReader::getConfig() {
         fc.sigma = node["sigma"].as<double>();
         fc.cutoff = node["cutoff_radius"].as<double>();
 
+        if (node["is_truncated"]) {  // this is optional
+          fc.isTruncated = node["is_truncated"].as<bool>();
+        }  // else case covered by default initial value (false)
+
         // Global sigma and epsilon will use the values defined here
         globalSigma = *fc.sigma;
         globalEpsilon = *fc.epsilon;
