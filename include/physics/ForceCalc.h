@@ -81,7 +81,7 @@ class LennardJonesForce final : public ForceCalc {
  private:
   /// Global Lennard-Jones epsilon parameter
   const double epsilon;
-  /// Global Lennard-Jones sigma parameter  
+  /// Global Lennard-Jones sigma parameter
   const double sigma;
   /// Cutoff radius beyond which particle interactions are ignored
   const double cutoffRadius;
@@ -92,7 +92,7 @@ class LennardJonesForce final : public ForceCalc {
 
   /// Squared cutoff radius for optimized distance comparisons
   const double cutoffRadiusSq;
-  
+
   /**
    * @brief A lookup table for every pair of particle types. Used for storing precomputed information about every pair of particle types.
    */
@@ -102,18 +102,19 @@ class LennardJonesForce final : public ForceCalc {
    */
   std::vector<double> pairLookupTable2;
   /**
-   * @brief Lookup table for precomputed repulsion distances per type: 2^(1/6) * sigma
+   * @brief Lookup table for precomputed sqaured repulsion distances per type: (2^(1/6) * sigma)^2
+   * Used for optimized distance comparisons without sqrt
    */
-  std::vector<double> repulsionDistanceLookup;
+  std::vector<double> repulsionDistanceSqLookup;
   /**
    * @brief Lookup table for precomputed sigma^6 per type (for reflective boundaries)
    */
   std::vector<double> sigma6Lookup;
   /**
-   * @brief Lookup table for epsilon per type (for reflective boundaries)
+   * @brief Lookup table for 24 * epsilon per type (precomputed multiplier for reflective boundaries)
    */
-  std::vector<double> epsilonLookup;
-  
+  std::vector<double> epsilon24Lookup;
+
   /// Width of the lookup table (max type + 1)
   int tableWidth;
 

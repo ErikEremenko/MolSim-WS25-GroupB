@@ -1,10 +1,9 @@
 #include "physics/ForceCalc.h"
 
-#include <math.h>  // TODO: Replace with <cmath>, never use C headers in C++!
 #include <spdlog/spdlog.h>
+#include <cmath>
 
 #include "physics/LinkedCellParticleContainer.h"
-#include "simulation/SimulationConfig.h"  // For boundary types, TODO: Refactor boundary types into another file
 #include "utils/ArrayUtils.h"
 
 ForceCalc::~ForceCalc() = default;
@@ -48,7 +47,7 @@ void GravityForce::calculateF() {
 
       const auto dist = p_j.getX() - p_i.getX();
       const double norm = ArrayUtils::L2Norm(dist);
-      
+
       const double norm3 = norm * norm * norm;
 
       const auto F_vector = ((p_i.getM() * p_j.getM()) / norm3) * dist;
@@ -71,7 +70,7 @@ LennardJonesForce::LennardJonesForce(ParticleContainer& particles, const double 
       cutoffRadius(cutoffRadius),
       repulsionDistance(std::pow(2.0, 1.0 / 6.0) * sigma),
       gravity(gravity),
-      cutoffRadiusSq (cutoffRadius * cutoffRadius) {}
+      cutoffRadiusSq(cutoffRadius * cutoffRadius) {}
 
 void LennardJonesForce::calculateF() {
   if (dynamic_cast<LinkedCellParticleContainer*>(&particles)) {
@@ -99,12 +98,12 @@ void LennardJonesForce::calculateFDirectSum() {
       const auto dist = p_j.getX() - p_i.getX();
       // Use squared distance to avoid sqrt (optimization)
       const double normSq = dist[0] * dist[0] + dist[1] * dist[1] + dist[2] * dist[2];
-      
+
       // Skip if beyond cutoff (no zero check for performance - see class documentation)
       if (normSq >= cutoffRadiusSqLocal) {
         continue;
       }
-      
+
       const double inv_norm2 = 1.0 / normSq;
       const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
 
@@ -147,12 +146,12 @@ void LennardJonesForceParallel::calculateF() {
       const auto dist = p_j.getX() - p_i.getX();
       // Use squared distance to avoid sqrt (optimization)
       const double normSq = dist[0] * dist[0] + dist[1] * dist[1] + dist[2] * dist[2];
-      
+
       // Skip if beyond cutoff (no zero check for performance - see class documentation)
       if (normSq >= cutoffRadiusSqLocal) {
         continue;
       }
-      
+
       const double inv_norm2 = 1.0 / normSq;
       const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
 
@@ -215,67 +214,89 @@ void LennardJonesForce::calculateFLinkedCell() {
 }
 
 void LennardJonesForce::applyReflectiveBoundaries(const LinkedCellParticleContainer* lc) const {
+  // Ghost particle mirrored across wall at dimension d has ghostDist with only
+  // one non-zero component: ghostDist[d] = 2*(wallPos - x[d])
+  //   normSq = ghostDist[d]^2 = 4 * (wallPos - x[d])^2 = 4 * distToWall^2
+  // -> simpler norm calculation
 
-  const auto domainOrigin = lc->domain_origin();
-  const auto domainDims = lc->domain_dims();
-  const auto boundaryTypes = lc->boundary_types();
+  const auto& domainOrigin = lc->domain_origin();
+  const auto& domainDims = lc->domain_dims();
+  const auto& boundaryTypes = lc->boundary_types();
+
+  // Precompute boundary position
+  const double minX = domainOrigin[0], maxX = domainOrigin[0] + domainDims[0];
+  const double minY = domainOrigin[1], maxY = domainOrigin[1] + domainDims[1];
+  const double minZ = domainOrigin[2], maxZ = domainOrigin[2] + domainDims[2];
+
+  // Cache which boundaries are reflective
+  const bool refXMin = boundaryTypes[0] == BoundaryType::REFLECTIVE;
+  const bool refXMax = boundaryTypes[1] == BoundaryType::REFLECTIVE;
+  const bool refYMin = boundaryTypes[2] == BoundaryType::REFLECTIVE;
+  const bool refYMax = boundaryTypes[3] == BoundaryType::REFLECTIVE;
+  const bool refZMin = boundaryTypes[4] == BoundaryType::REFLECTIVE;
+  const bool refZMax = boundaryTypes[5] == BoundaryType::REFLECTIVE;
 
   for (auto& p : particles) {
-    const auto x = p.getX();
+    const auto& x = p.getX();
     auto F_total = p.getF();
 
-    // Use precomputed per-type lookup tables instead of computing pow() per particle
+    // Use precomputed per-type lookup tables
     const int pType = p.getType();
-    const double p_repulsionDistance = repulsionDistanceLookup[pType];
+    const double repDistSq = repulsionDistanceSqLookup[pType];  // (2^(1/6) * sigma)^2
     const double sigma6 = sigma6Lookup[pType];
-    const double p_epsilon = epsilonLookup[pType];
+    const double epsilon24 = epsilon24Lookup[pType];  // 24 * epsilon
 
-    // Helper computes ghost particle repulsion force for a reflective wall
-    auto computeGhostForce = [&](int d, double wallPos) -> std::array<double, 3> {
-      auto ghostX = x;
-      ghostX[d] = 2.0 * wallPos - x[d];  // Ghost particle is mirrored across the wall
-
-      const auto ghostDist = ghostX - x;
-      // Compute squared norm directly to avoid sqrt
-      const double normSq = ghostDist[0] * ghostDist[0] + ghostDist[1] * ghostDist[1] + ghostDist[2] * ghostDist[2];
-      const double repDistSq = p_repulsionDistance * p_repulsionDistance;
-
-      if (normSq < repDistSq && normSq > 0.) {
+    // Lambda for computing 1D ghost force contribution (inlined by compiler)
+    // normSq = 4 * distToWall^2, ghostDistD = ±2 * distToWall
+    auto applyGhostForce1D = [&](const int d, const double distToWall, const double sign) {
+      const double normSq = 4.0 * distToWall * distToWall;
+      if (normSq < repDistSq && normSq > 0.0) {
         const double inv_norm2 = 1.0 / normSq;
         const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
-        const double crossing_norm_quot_6 = sigma6 * inv_norm6;
-        const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
-
-        return (24.0 * p_epsilon * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * ghostDist;
+        const double s6_inv6 = sigma6 * inv_norm6;
+        const double s12_inv12 = s6_inv6 * s6_inv6;
+        // ghostDist[d] = sign * 2.0 * distToWall (negative for min wall, pos for max wall)
+        const double ghostDistD = sign * 2.0 * distToWall;
+        F_total[d] += epsilon24 * inv_norm2 * (s6_inv6 - 2.0 * s12_inv12) * ghostDistD;
       }
-      return {0., 0., 0.};
     };
 
-    for (int d = 0; d < 3; ++d) {
-      const double minD = domainOrigin[d];
-      const double maxD = domainOrigin[d] + domainDims[d];
-
-      // Handling two opposite boundaries per dimension d -> 6 faces
-      if (boundaryTypes[2 * d] == BoundaryType::REFLECTIVE) {
-        if (const double distToWall = x[d] - minD; distToWall > 0. && distToWall < cutoffRadius) {
-          F_total = F_total + computeGhostForce(d, minD);
-        }
-      }
-      if (boundaryTypes[2 * d + 1] == BoundaryType::REFLECTIVE) {
-        if (const double distToWall = maxD - x[d]; distToWall > 0. && distToWall < cutoffRadius) {
-          F_total = F_total + computeGhostForce(d, maxD);
-        }
-      }
+    if (refXMin) {
+      if (const double distToWall = x[0] - minX; distToWall > 0.0 && distToWall < cutoffRadius)
+        applyGhostForce1D(0, distToWall, -1.0);
     }
+    if (refXMax) {
+      if (const double distToWall = maxX - x[0]; distToWall > 0.0 && distToWall < cutoffRadius)
+        applyGhostForce1D(0, distToWall, 1.0);
+    }
+
+    if (refYMin) {
+      if (const double distToWall = x[1] - minY; distToWall > 0.0 && distToWall < cutoffRadius)
+        applyGhostForce1D(1, distToWall, -1.0);
+    }
+    if (refYMax) {
+      if (const double distToWall = maxY - x[1]; distToWall > 0.0 && distToWall < cutoffRadius)
+        applyGhostForce1D(1, distToWall, 1.0);
+    }
+
+    if (refZMin) {
+      if (const double distToWall = x[2] - minZ; distToWall > 0.0 && distToWall < cutoffRadius)
+        applyGhostForce1D(2, distToWall, -1.0);
+    }
+    if (refZMax) {
+      if (const double distToWall = maxZ - x[2]; distToWall > 0.0 && distToWall < cutoffRadius)
+        applyGhostForce1D(2, distToWall, 1.0);
+    }
+
     p.setF(F_total);
   }
 }
 
 void LennardJonesForce::calcFPeriodicBoundary(Particle* p1, Particle* p2) const {
   // Use optimized lookup tables for mixed sigma/epsilon values
-  std::array<double, 3> dist = {p2->getX()[0] - p1->getX()[0], p2->getX()[1] - p1->getX()[1],
+  const std::array<double, 3> dist = {p2->getX()[0] - p1->getX()[0], p2->getX()[1] - p1->getX()[1],
                                 p2->getX()[2] - p1->getX()[2]};
-  
+
   // Use squared distance to avoid sqrt
   double term = dist[0] * dist[0] + dist[1] * dist[1] + dist[2] * dist[2];
 
@@ -592,13 +613,13 @@ void LennardJonesForce::precomputeConstants() {
   pairLookupTable1.resize(tableSize, -1.0);
   pairLookupTable2.resize(tableSize, -1.0);
 
-  // Pre-acclocate lookup tables for reflective boundaries
-  repulsionDistanceLookup.clear();
+  // Pre-allocate lookup tables for reflective boundaries
+  repulsionDistanceSqLookup.clear();
   sigma6Lookup.clear();
-  epsilonLookup.clear();
-  repulsionDistanceLookup.resize(tableWidth, -1.0);
+  epsilon24Lookup.clear();
+  repulsionDistanceSqLookup.resize(tableWidth, -1.0);
   sigma6Lookup.resize(tableWidth, -1.0);
-  epsilonLookup.resize(tableWidth, -1.0);
+  epsilon24Lookup.resize(tableWidth, -1.0);
 
   // Build a set of unique (type_i, type_j) pairs to avoid O(n^2) iteration
   // Collect unique types first, then iterate over type pairs
@@ -615,13 +636,15 @@ void LennardJonesForce::precomputeConstants() {
       typeEpsilon[t] = p.getEpsilon();
 
       // Precompute per-type constants for reflective boundaries
-      const double sigma = p.getSigma();
-      const double sigma2 = sigma * sigma;
+      const double pSigma = p.getSigma();
+      const double pEpsilon = p.getEpsilon();
+      const double sigma2 = pSigma * pSigma;
       const double sigma6 = sigma2 * sigma2 * sigma2;
-      // Precomputed 2^(1/6) 
-      repulsionDistanceLookup[t] = 1.1224620483093729814335330496791795162324111106139867534404095458 * sigma;
+      // Precomputed (2^(1/6) * sigma)^2 = 2^(1/3) * sigma^2
+      constexpr double TWO_POW_1_3 = 1.2599210498948731647672106072782283505702514647015079800819751121;
+      repulsionDistanceSqLookup[t] = TWO_POW_1_3 * sigma2;
       sigma6Lookup[t] = sigma6;
-      epsilonLookup[t] = p.getEpsilon();
+      epsilon24Lookup[t] = 24.0 * pEpsilon;
     }
   }
 
@@ -655,6 +678,6 @@ void LennardJonesForce::precomputeConstants() {
     }
   }
 
-  SPDLOG_DEBUG("Precomputed constants for {} unique particle types ({} pair combinations)",
-               uniqueTypes.size(), uniqueTypes.size() * uniqueTypes.size());
+  SPDLOG_DEBUG("Precomputed constants for {} unique particle types ({} pair combinations)", uniqueTypes.size(),
+               uniqueTypes.size() * uniqueTypes.size());
 }
