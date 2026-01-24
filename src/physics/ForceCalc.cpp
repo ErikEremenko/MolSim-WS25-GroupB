@@ -200,8 +200,12 @@ void LennardJonesForceParallel::calculateF() {
 }
 
 void LennardJonesForce::calculateFLinkedCell() {
-  for (auto& p : particles) {
-    p.setF({0, p.getM() * gravity, 0});
+  // Initialize forces with gravity in y-direction
+  const size_t n = particles.size();
+  const double grav = gravity;  // Local copy for potential vectorization
+  for (size_t i = 0; i < n; ++i) {
+    auto& p = particles[i];
+    p.setF({0.0, p.getM() * grav, 0.0});
   }
 
   auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
@@ -210,22 +214,46 @@ void LennardJonesForce::calculateFLinkedCell() {
   }
   lc->handleOutflowBoundaries();
 
-  // Linked Cells iteration with N3L
-  lc->iteratePairs([&](Particle& p_i, Particle& p_j) {
-    const auto dist = p_j.getX() - p_i.getX();
-    double term = dist[0] * dist[0] + dist[1] * dist[1] + dist[2] * dist[2];
+  // Use template version to eliminate std::function overhead (~85% overheas on VTune)
+  // Cache lookup table pointers for better optimization
+  const double* __restrict__ lut1 = pairLookupTable1.data();
+  const double* __restrict__ lut2 = pairLookupTable2.data();
+  const int tw = tableWidth;
+  const double cutoffSq = cutoffRadiusSq;
 
-    if (term > cutoffRadiusSq)
+  lc->iteratePairsTemplate([lut1, lut2, tw, cutoffSq](Particle& p_i, Particle& p_j) {
+    // Get positions (getX() now force-inlined)
+    const auto& xi = p_i.getX();
+    const auto& xj = p_j.getX();
+
+    // Compute distance vector and squared distance
+    const double dx = xj[0] - xi[0];
+    const double dy = xj[1] - xi[1];
+    const double dz = xj[2] - xi[2];
+    const double distSq = dx * dx + dy * dy + dz * dz;
+
+    if (distSq > cutoffSq)
       return;
 
-    term = 1 / term;
+    // Compute force using lookup tables
+    const double inv_distSq = 1.0 / distSq;
+    const int idx = p_i.getType() * tw + p_j.getType();
+    const double inv_distSq3 = inv_distSq * inv_distSq * inv_distSq;
+    const double term = lut1[idx] * inv_distSq * inv_distSq3 * (lut2[idx] - inv_distSq3);
 
-    const int idx = p_i.getType() * tableWidth + p_j.getType();
-    term = pairLookupTable1[idx] * term * term * term * term * (pairLookupTable2[idx] - term * term * term);
+    const double fx = term * dx;
+    const double fy = term * dy;
+    const double fz = term * dz;
 
-    const auto F_vec = term * dist;
-    p_i.setF(p_i.getF() + F_vec);
-    p_j.setF(p_j.getF() - F_vec);
+    // Update forces (getF() now force-inlined)
+    auto& fi = p_i.getF();
+    auto& fj = p_j.getF();
+    fi[0] += fx;
+    fi[1] += fy;
+    fi[2] += fz;
+    fj[0] -= fx;
+    fj[1] -= fy;
+    fj[2] -= fz;
   });
 
   applyReflectiveBoundaries(lc);

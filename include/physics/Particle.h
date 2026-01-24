@@ -11,6 +11,15 @@
 #include <ostream>
 #include <string>
 
+// Force inlining macro for performance-critical getters
+#if defined(__GNUC__) || defined(__clang__)
+#define MOLSIM_FORCE_INLINE __attribute__((always_inline)) inline
+#elif defined(_MSC_VER)
+#define MOLSIM_FORCE_INLINE __forceinline
+#else
+#define MOLSIM_FORCE_INLINE inline
+#endif
+
 /**
  *
  *  @class Particle
@@ -19,6 +28,8 @@
  *
  *  A user may use this class to perform a particle simulation in discrete time steps by
  *  updating the particles' position and speed based on their relative positions.
+ *
+ *  @note All getters are force-inlined for performance.
  */
 class Particle {
  private:
@@ -104,27 +115,26 @@ class Particle {
   Particle& operator=(Particle&& other) noexcept = default;
   ~Particle() = default;
 
-  /** @name Getter methods */
+  /** @name Getter methods (force-inlined for performance) */
   ///@{
   /** @brief get position of particle */
-  [[nodiscard]] const std::array<double, 3>& getX() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE const std::array<double, 3>& getX() const noexcept { return x; }
   /** @brief get velocity of particle */
-  [[nodiscard]] const std::array<double, 3>& getV() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE const std::array<double, 3>& getV() const noexcept { return v; }
   /** @brief get force effective on particle (const) */
-  [[nodiscard]] const std::array<double, 3>& getF() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE const std::array<double, 3>& getF() const noexcept { return f; }
   /** @brief get force effective on particle */
-  [[nodiscard]] std::array<double, 3>& getF();
+  [[nodiscard]] MOLSIM_FORCE_INLINE std::array<double, 3>& getF() noexcept { return f; }
   /** @brief get old force effective on particle */
-  [[nodiscard]] const std::array<double, 3>& getOldF() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE const std::array<double, 3>& getOldF() const noexcept { return old_f; }
   /** @brief get mass of particle */
-
-  [[nodiscard]] double getM() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE double getM() const noexcept { return m; }
   /** @brief get type of particle */
-  [[nodiscard]] int getType() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE int getType() const noexcept { return type; }
   /** @brief get Lennard-Jones sigma parameter */
-  [[nodiscard]] double getSigma() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE double getSigma() const noexcept { return sigma; }
   /** @brief get Lennard-Jones epsilon parameter */
-  [[nodiscard]] double getEpsilon() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE double getEpsilon() const noexcept { return epsilon; }
   ///@}
 
   /** @name Setter methods */
@@ -155,7 +165,7 @@ class Particle {
   /** @name Operators + Utilities */
   bool operator==(const Particle& other) const;
 
-  std::string toString() const;
+  [[nodiscard]] std::string toString() const;
 };
 
 std::ostream& operator<<(std::ostream& stream, const Particle& p);
