@@ -1,7 +1,8 @@
 #include "physics/ForceCalc.h"
 
-#include <spdlog/spdlog.h>
 #include <cmath>
+#include <omp.h>
+#include <spdlog/spdlog.h>
 
 #include "physics/LinkedCellParticleContainer.h"
 #include "utils/ArrayUtils.h"
@@ -9,24 +10,42 @@
 ForceCalc::~ForceCalc() = default;
 
 void ForceCalc::calculateX(const double dt) {
-  for (auto& p : particles) {
-    const auto x_curr = p.getX();
-    const double m = p.getM();
-    const auto F = p.getF();
-    const auto v = p.getV();
-    const auto a = (1.0 / m) * F;
-    const auto x_new = x_curr + dt * v + 0.5 * (dt * dt) * a;
+  const double dt_sq_half = 0.5 * dt * dt;
+  const size_t n = particles.size();
+  
+  // Manual loop (better SIMD optimization potential)
+  for (size_t i = 0; i < n; ++i) {
+    auto& p = particles[i];
+    const auto& x_curr = p.getX();
+    const auto& v = p.getV();
+    const auto& F = p.getF();
+    const double inv_m = 1.0 / p.getM();
+    
+    // compute all 3 components (SIMD friendly)
+    std::array<double, 3> x_new;
+    #pragma omp simd
+    for (int d = 0; d < 3; ++d) {
+      x_new[d] = x_curr[d] + dt * v[d] + dt_sq_half * inv_m * F[d];
+    }
     p.setX(x_new);
   }
 }
 
 void ForceCalc::calculateV(const double dt) {
-  for (auto& p : particles) {
-    const auto v_curr = p.getV();
-    const double m_i = p.getM();
-    const auto F = p.getF();
-    const auto F_old = p.getOldF();
-    const auto v_new = v_curr + (dt / (2.0 * m_i)) * (F_old + F);
+  const size_t n = particles.size();
+  
+  for (size_t i = 0; i < n; ++i) {
+    auto& p = particles[i];
+    const auto& v_curr = p.getV();
+    const auto& F = p.getF();
+    const auto& F_old = p.getOldF();
+    const double dt_half_inv_m = dt / (2.0 * p.getM());
+    
+    std::array<double, 3> v_new;
+    #pragma omp simd
+    for (int d = 0; d < 3; ++d) {
+      v_new[d] = v_curr[d] + dt_half_inv_m * (F_old[d] + F[d]);
+    }
     p.setV(v_new);
   }
 }

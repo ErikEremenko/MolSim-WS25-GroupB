@@ -31,11 +31,23 @@ target_include_directories(molsim_core
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+# -march=native enables the best SIMD instructions for the current CPU (AVX2 locally, AVX-512 on cluster)
+option(ENABLE_NATIVE_ARCH "Enable -march=native for SIMD optimization" ON)
 
 target_compile_options(molsim_core PRIVATE
         $<$<CXX_COMPILER_ID:GNU>:-Wall>
         $<$<CXX_COMPILER_ID:Intel>:-w3 -wd383,981,1418,1572,2259>
 )
+# Add SIMD flags for Release builds
+# -ffast-math for aggressive floating-point optimization
+if(ENABLE_NATIVE_ARCH)
+    target_compile_options(molsim_core PRIVATE
+        $<$<AND:$<CXX_COMPILER_ID:GNU>,$<CONFIG:Release>>:-march=native -mtune=native -ffast-math>
+        $<$<AND:$<CXX_COMPILER_ID:Clang>,$<CONFIG:Release>>:-march=native -mtune=native -ffast-math>
+        $<$<AND:$<CXX_COMPILER_ID:Intel>,$<CONFIG:Release>>:-xHost -fp-model fast=2>
+    )
+    message(STATUS "SIMD: Using native architecture optimization (-march=native). Fast math enabled.")
+endif()
 
 # Apply dependencies to the core library
 molsim_enable_vtk(molsim_core)
