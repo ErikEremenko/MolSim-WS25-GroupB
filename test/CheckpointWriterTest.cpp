@@ -270,4 +270,14 @@ TEST_F(CheckpointWriterTest, RoundTripPreservesData) {
   EXPECT_DOUBLE_EQ(loadedPc[0].getV()[0], 0.1);
   EXPECT_DOUBLE_EQ(loadedPc[0].getF()[0], 0.01);
   EXPECT_DOUBLE_EQ(loadedPc[0].getOldF()[0], 0.005);
+  EXPECT_EQ(loadedPc[0].getType(), 0);
+  EXPECT_DOUBLE_EQ(loadedPc[0].getSigma(), 1.0);
+  EXPECT_DOUBLE_EQ(loadedPc[0].getEpsilon(), 5.0);
+
+  // Verify second particle data matches (different type, sigma, epsilon)
+  EXPECT_DOUBLE_EQ(loadedPc[1].getX()[0], 4.0);
+  EXPECT_DOUBLE_EQ(loadedPc[1].getV()[0], 0.4);
+  EXPECT_EQ(loadedPc[1].getType(), 1);
+  EXPECT_DOUBLE_EQ(loadedPc[1].getSigma(), 1.2);
+  EXPECT_DOUBLE_EQ(loadedPc[1].getEpsilon(), 4.0);
 }

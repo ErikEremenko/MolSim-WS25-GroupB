@@ -345,6 +345,11 @@ void Simulation::setupSimulation() {
   // Generate particles
   particleGenerator->generate(*particles);
 
+  // Precompute constants for all forces that support it (e.g., LennardJonesForce lookup tables)
+  for (const auto& force : forces) {
+    force->precomputeConstants();
+  }
+
   // Set up special thermostat situations (if applicable)
   if (thermostat) {
     // Apply T_init

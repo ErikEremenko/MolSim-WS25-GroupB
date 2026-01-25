@@ -2,9 +2,9 @@ name: CMake on a single platform
 
 on:
   push:
-    branches: [ "master", "Assignment2", "Assignment3", "Assignment4"]
+    branches: [ "master", "Assignment2", "Assignment3", "Assignment4", "Assignment5"]
   pull_request:
-    branches: [ "master", "Assignment2", "Assignment3", "Assignment4"]
+    branches: [ "master", "Assignment2", "Assignment3", "Assignment4", "Assignment5"]
 
 env:
   BUILD_TYPE: Release
