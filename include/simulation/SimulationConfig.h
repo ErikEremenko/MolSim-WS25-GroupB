@@ -68,27 +68,35 @@ enum class Parallelization {
 };
 
 enum class ForceType {
-  LENNARD_JONES,
-  GRAVITY
-  // TODO: Add the other forces here
+  LENNARD_JONES,       ///< Full Lennard-Jones potential
+  TRUNCATED_LJ,        ///< Repulsive-only LJ (truncated at 2^(1/6)·sigma)
+  GLOBAL_GRAVITY,      ///< Constant gravitational acceleration on all particles
+  HARMONIC_MEMBRANE,   ///< Harmonic bonds between membrane neighbors
+  CONSTANT_FORCE       ///< Constant force on specific particles (e.g., pulling)
 };
 
 struct ForceConfig {
-  ForceType forceType = ForceType::LENNARD_JONES; // TODO: This could also be done with a std::type_index
+  ForceType forceType = ForceType::LENNARD_JONES;
 
-  // Lennard-Jones potential
+  // Lennard-Jones potential (full or truncated)
   std::optional<double> epsilon = std::nullopt;
   std::optional<double> sigma = std::nullopt;
   std::optional<double> cutoff = std::nullopt;  // cutoff for the force calculations
 
-  // Gravity
-  std::optional<double> gravityX = std::nullopt;
-  std::optional<double> gravityY = std::nullopt;
-  std::optional<double> gravityZ = std::nullopt;
+  // Global gravity (constant acceleration along specified axis)
+  std::optional<double> gravity = std::nullopt;  ///< Gravity acceleration value
+  std::optional<int> gravityAxis = std::nullopt; ///< Axis: 0=x, 1=y (default), 2=z
 
-  // TODO: Constant force
+  // Harmonic membrane bonds
+  std::optional<double> stiffness = std::nullopt;      ///< Stiffness constant k
+  std::optional<double> avgBondLength = std::nullopt;  ///< Average bond length r0
 
-  // TODO: Membrane bonds
+  // Constant force on specific particles
+  std::optional<double> forceX = std::nullopt;
+  std::optional<double> forceY = std::nullopt;
+  std::optional<double> forceZ = std::nullopt;
+  std::optional<double> endTime = std::nullopt;  ///< Time after which force stops
+  std::vector<std::pair<int, int>> targetIndices;  ///< x/y indices of particles to apply force to
 };
 
 struct ThermostatConfig {
@@ -121,11 +129,14 @@ struct SimulationConfig {
   bool useParallelization = false;  // TODO: Replace this with compiler flag
 
   // Container and Linked Cell parameters
-  ContainerType containerType = ContainerType::DIRECT;
+  ContainerType containerType = ContainerType::LINKED;
   std::optional<double> linkedCellCutoff = std::nullopt;  // cutoff for linked cell
   std::optional<std::array<double, 3>> domainSize = std::nullopt;
   std::optional<std::array<BoundaryType, 6>> boundaryTypes = std::nullopt;
 
   // Thermostat
   std::optional<ThermostatConfig> thermostatConfig = std::nullopt;
+
+  // Membrane parameters (for ConstantForce target index calculation)
+  std::optional<int> membraneDimY = std::nullopt;  ///< Y-dimension of membrane grid
 };

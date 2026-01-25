@@ -40,10 +40,11 @@ class ParticleContainer {  // TODO: Add missing docstrings
    * @param m mass
    */
   virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v,
-                           double m);  // function called in FileReader
-  virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma, double epsilon);
+                                double m);  // function called in FileReader
+  virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma,
+                                double epsilon);
   virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type, double sigma,
-                           double epsilon);
+                                double epsilon);
   virtual Particle* addParticle(const Particle* p);
 
   /**
@@ -58,7 +59,7 @@ class ParticleContainer {  // TODO: Add missing docstrings
    * @param epsilon Lennard-Jones epsilon parameter
    */
   virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, std::array<double, 3> f,
-                           std::array<double, 3> oldF, int type, double sigma, double epsilon);
+                                std::array<double, 3> oldF, int type, double sigma, double epsilon);
 
   virtual void removeParticle(size_t idx);
 

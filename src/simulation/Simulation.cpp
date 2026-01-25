@@ -4,8 +4,8 @@
 #ifdef ENABLE_VTK_OUTPUT
 #include "io/VTKWriter.h"
 #endif
-#include "physics/LinkedCellParticleContainer.h"
 #include "io/CheckpointWriter.h"
+#include "physics/LinkedCellParticleContainer.h"
 
 #include <atomic>
 #include <chrono>  // for benchmarking
@@ -17,7 +17,7 @@
 #include <utility>
 
 #ifndef SPDLOG_ACTIVE_LEVEL
-  #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #endif  // SPDLOG_ACTIVE_LEVEL
 #include "spdlog/spdlog.h"
 
@@ -33,6 +33,7 @@ void sigint_handler(int signal) {
 Simulation::Simulation(SimulationConfig& config)
     : endTime(config.tEnd),
       dt(config.deltaT),
+      currentTime(config.startTime),
       startTime(config.startTime),
       startIteration(config.startIteration),
       // --- TODO: Refactor these variables, look at Simulation.h for more info ---
@@ -43,6 +44,7 @@ Simulation::Simulation(SimulationConfig& config)
       // --------------------------------------------------------------------------
       dimensions(config.dimensions.value_or(3)),
       domainSize(config.domainSize.value_or(std::array<double, 3>{0.0, 0.0, 0.0})),
+      membraneDimY(config.membraneDimY.value_or(0)),
       simulationMode(config.simulationMode),
       writeFrequency(config.writeFrequency),
       checkpointFrequency((config.simulationMode == SimulationMode::BENCHMARK) ? 0 : config.checkpointFrequency),
@@ -72,9 +74,16 @@ Simulation::Simulation(SimulationConfig& config)
   switch (config.containerType) {
     case ContainerType::DIRECT:
       particles = std::make_unique<ParticleContainer>();
+      SPDLOG_INFO("Using DIRECT particle container (O(n^2) force calculation)");
       break;
     case ContainerType::LINKED:
-      particles = std::make_unique<LinkedCellParticleContainer>(*config.domainSize, *config.linkedCellCutoff, *config.boundaryTypes);
+      if (!config.domainSize || !config.linkedCellCutoff || !config.boundaryTypes) {
+        SPDLOG_ERROR("LINKED container requires domainSize, linkedCellCutoff, and boundaryTypes to be set!");
+        throw std::runtime_error("Missing required parameters for LINKED container");
+      }
+      particles = std::make_unique<LinkedCellParticleContainer>(*config.domainSize, *config.linkedCellCutoff,
+                                                                *config.boundaryTypes);
+      SPDLOG_INFO("Using LINKED cell particle container (cutoff={})", *config.linkedCellCutoff);
       break;
   }
 
@@ -82,13 +91,46 @@ Simulation::Simulation(SimulationConfig& config)
   for (auto& forceConfig : config.forceConfigs) {
     switch (forceConfig.forceType) {
       case ForceType::LENNARD_JONES:
-        // TODO: Remove gravity from the lennard jones constructor here
-        forces.push_back(std::make_unique<LennardJonesForce>(*particles, *forceConfig.epsilon, *forceConfig.sigma, *forceConfig.cutoff, 0.0));
+        forces.push_back(std::make_unique<LennardJonesForce>(*particles, *forceConfig.epsilon, *forceConfig.sigma,
+                                                             *forceConfig.cutoff));
+        SPDLOG_INFO("Initialized LennardJonesForce (epsilon={}, sigma={}, cutoff={})",
+                    *forceConfig.epsilon, *forceConfig.sigma, *forceConfig.cutoff);
         break;
-      case ForceType::GRAVITY:
-        // TODO: Implement this
+
+      case ForceType::TRUNCATED_LJ:
+        forces.push_back(std::make_unique<TruncatedLJForce>(*particles));
+        SPDLOG_INFO("Initialized TruncatedLJForce (repulsive-only, uses per-particle sigma/epsilon)");
         break;
-      // TODO: Implement the other force types here
+
+      case ForceType::GLOBAL_GRAVITY: {
+        int axis = forceConfig.gravityAxis.value_or(1);  // Default to y-axis
+        forces.push_back(std::make_unique<GlobalGravityForce>(*particles, *forceConfig.gravity, axis));
+        const char* axisName = (axis == 0) ? "x" : (axis == 1) ? "y" : "z";
+        SPDLOG_INFO("Initialized GlobalGravityForce (g={}, axis={})", *forceConfig.gravity, axisName);
+        break;
+      }
+
+      case ForceType::HARMONIC_MEMBRANE:
+        forces.push_back(std::make_unique<HarmonicMembraneForce>(*particles,
+                                                                  *forceConfig.stiffness,
+                                                                  *forceConfig.avgBondLength));
+        SPDLOG_INFO("Initialized HarmonicMembraneForce (k={}, r0={})",
+                    *forceConfig.stiffness, *forceConfig.avgBondLength);
+        break;
+
+      case ForceType::CONSTANT_FORCE:
+        forces.push_back(std::make_unique<ConstantForce>(*particles,
+                                                         forceConfig.forceX.value_or(0.0),
+                                                         forceConfig.forceY.value_or(0.0),
+                                                         forceConfig.forceZ.value_or(0.0),
+                                                         *forceConfig.endTime,
+                                                         currentTime,
+                                                         forceConfig.targetIndices,
+                                                         membraneDimY));
+        SPDLOG_INFO("Initialized ConstantForce (F=({}, {}, {}), end_time={}, targets={})",
+                    forceConfig.forceX.value_or(0.0), forceConfig.forceY.value_or(0.0),
+                    forceConfig.forceZ.value_or(0.0), *forceConfig.endTime, forceConfig.targetIndices.size());
+        break;
     }
   }
 
@@ -163,7 +205,7 @@ void Simulation::run() {
 void Simulation::runFileOutput() {
   const int thermoFrequency = thermostat ? thermostat->getUpdateFrequency() : 1;
 
-  double currentTime = startTime;
+  // Use member currentTime instead of local variable
   int iteration = startIteration;
 
   // For this loop, we assume: current positions, forces and velocities are known
@@ -218,7 +260,7 @@ void Simulation::runBenchmark() {
 
   const int thermoFrequency = thermostat ? thermostat->getUpdateFrequency() : 1;
 
-  double currentTime = startTime;
+  // Use member currentTime instead of local variable
   long iteration = startIteration;
 
   // For this loop, we assume: current positions, forces and velocities are known

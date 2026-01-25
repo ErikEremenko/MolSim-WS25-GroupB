@@ -1,7 +1,7 @@
 #include "physics/ForceCalc.h"
 
-#include <cmath>
 #include <spdlog/spdlog.h>
+#include <cmath>
 
 #include "physics/LinkedCellParticleContainer.h"
 #include "utils/ArrayUtils.h"
@@ -65,14 +65,30 @@ void GravityForce::calculateF() {
   }
 }
 
+GlobalGravityForce::GlobalGravityForce(ParticleContainer& particles, double g, int axis)
+    : ForceCalc(particles), gravity(g), axis(axis) {
+  if (axis < 0 || axis > 2) {
+    SPDLOG_WARN("Invalid gravity axis {}, defaulting to y-axis (1)", axis);
+    this->axis = 1;
+  }
+}
+
+void GlobalGravityForce::calculateF() {
+  for (auto& p : particles) {
+    auto F = p.getF();
+    F[axis] += p.getM() * gravity;
+    p.setF(F);
+  }
+}
+
+
 LennardJonesForce::LennardJonesForce(ParticleContainer& particles, const double epsilon, const double sigma,
-                                     const double cutoffRadius, const double gravity)
+                                     const double cutoffRadius)
     : ForceCalc(particles),
       epsilon(epsilon),
       sigma(sigma),
       cutoffRadius(cutoffRadius),
-      repulsionDistance(std::pow(2.0, 1.0 / 6.0) * sigma),
-      gravity(gravity) {}
+      repulsionDistance(std::pow(2.0, 1.0 / 6.0) * sigma) {}
 
 void LennardJonesForce::calculateF() {
   if (dynamic_cast<LinkedCellParticleContainer*>(&particles)) {
@@ -286,8 +302,11 @@ void LennardJonesForce::applyReflectiveBoundaries(const LinkedCellParticleContai
 }
 
 void LennardJonesForce::calcFPeriodicBoundary(Particle* p1, Particle* p2) const {
+  // Use mixing rules for per-particle sigma/epsilon
+  const auto sigma_ij = (p1->getSigma() + p2->getSigma()) / 2;
+  const auto epsilon_ij = std::sqrt(p1->getEpsilon() * p2->getEpsilon());
 
-  const double sigma2 = sigma * sigma;
+  const double sigma2 = sigma_ij * sigma_ij;
   const double sigma6 = sigma2 * sigma2 * sigma2;
 
   std::array<double, 3> dist = {p2->getX()[0] - p1->getX()[0], p2->getX()[1] - p1->getX()[1],
@@ -311,7 +330,7 @@ void LennardJonesForce::calcFPeriodicBoundary(Particle* p1, Particle* p2) const 
   const double crossing_norm_quot_6 = sigma6 * inv_norm6;
   const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
 
-  const auto F_vec = (24.0 * epsilon * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * dist;
+  const auto F_vec = (24.0 * epsilon_ij * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * dist;
   p1->setF(p1->getF() + F_vec);
   p2->setF(p2->getF() - F_vec);
 }
@@ -596,5 +615,121 @@ void LennardJonesForce::applyPeriodicBoundaries(LinkedCellParticleContainer* lc)
         p2->setX(p2->getX()[1] + domainDims[1], 1);
         p2->setX(p2->getX()[2] - domainDims[2], 2);
       }
+  }
+}
+
+TruncatedLJForce::TruncatedLJForce(ParticleContainer& particles) : ForceCalc(particles) {}
+
+void TruncatedLJForce::calculateF() {
+  // Truncated (repulsive-only) Lennard-Jones: only applies when r < 2^(1/6) * sigma
+  constexpr double sqrt2_6 = 1.1224620483093729814335330496791795162324111106139867534404095458;  // 2^(1/6)
+  auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
+  
+  auto applyTruncatedLJ = [](Particle& p_i, Particle& p_j) {
+    const auto dist = p_j.getX() - p_i.getX();
+    const double norm = ArrayUtils::L2Norm(dist);
+
+    // Get mixed sigma/epsilon
+    const auto sigma_ij = (p_i.getSigma() + p_j.getSigma()) / 2;
+    const auto epsilon_ij = std::sqrt(p_i.getEpsilon() * p_j.getEpsilon());
+    const double repulsionDist = sqrt2_6 * sigma_ij;
+
+    // Only apply force if within repulsion distance (and non-zero)
+    if (norm > 0 && norm < repulsionDist) {
+      const double sigma2 = sigma_ij * sigma_ij;
+      const double sigma6 = sigma2 * sigma2 * sigma2;
+      const double inv_norm2 = 1.0 / (norm * norm);
+      const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
+
+      const double crossing_norm_quot_6 = sigma6 * inv_norm6;
+      const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
+
+      const auto F_vec = (24.0 * epsilon_ij * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * dist;
+      p_i.setF(p_i.getF() + F_vec);
+      p_j.setF(p_j.getF() - F_vec);
+    }
+  };
+
+  if (lc) {
+    // Update cell assignments and handle boundaries before iterating
+    lc->handleOutflowBoundaries();
+    lc->iteratePairs(applyTruncatedLJ);
+  } else {
+    // Direct sum fallback
+    const size_t n_particles = particles.size();
+    for (size_t i = 0; i < n_particles; ++i) {
+      for (size_t j = i + 1; j < n_particles; ++j) {
+        applyTruncatedLJ(particles[i], particles[j]);
+      }
+    }
+  }
+}
+
+HarmonicMembraneForce::HarmonicMembraneForce(ParticleContainer& particles, double k, double r0)
+    : ForceCalc(particles), stiffness(k), avgBondLength(r0) {}
+
+void HarmonicMembraneForce::calculateF() {
+  constexpr double sqrt2 = 1.4142135623730950488016887242096980785696718753769480731766797379;  // sqrt(2)
+  const double diagonalBondLength = sqrt2 * avgBondLength;
+
+  for (auto& p : particles) {
+    // Process direct neighbors (bond length = r0)
+    for (int neighborID : p.getDirectNeighbors()) {
+      if (neighborID < 0 || neighborID >= static_cast<int>(particles.size())) continue;
+      Particle& neighbor = particles[neighborID];
+
+      const auto dist = neighbor.getX() - p.getX();
+      const double norm = ArrayUtils::L2Norm(dist);
+
+      if (norm > 0) {
+        const double deviation = norm - avgBondLength;
+        const auto F_vec = (stiffness * deviation / norm) * dist;
+        p.setF(p.getF() + F_vec);
+      }
+    }
+
+    // Process diagonal neighbors (bond length = sqrt(2) * r0)
+    for (int neighborID : p.getDiagonalNeighbors()) {
+      if (neighborID < 0 || neighborID >= static_cast<int>(particles.size())) continue;
+      Particle& neighbor = particles[neighborID];
+
+      const auto dist = neighbor.getX() - p.getX();
+      const double norm = ArrayUtils::L2Norm(dist);
+
+      if (norm > 0) {
+        const double deviation = norm - diagonalBondLength;
+        const auto F_vec = (stiffness * deviation / norm) * dist;
+        p.setF(p.getF() + F_vec);
+      }
+    }
+  }
+}
+
+ConstantForce::ConstantForce(ParticleContainer& particles, double fx, double fy, double fz,
+                             double endTime, double& currentTime,
+                             std::vector<std::pair<int, int>> targetIndices, int membraneDimY)
+    : ForceCalc(particles),
+      force({fx, fy, fz}),
+      endTime(endTime),
+      currentTime(currentTime),
+      targetIndices(std::move(targetIndices)),
+      membraneDimY(membraneDimY) {}
+
+void ConstantForce::calculateF() {
+  // Only apply force before endTime
+  if (currentTime >= endTime) {
+    return;
+  }
+
+  // Apply constant force to target particles identified by their membrane grid indices
+  for (const auto& [gridX, gridY] : targetIndices) {
+    // Calculate particle index from grid coordinates (matching generateMembrane layout)
+    // The particle at (gridX, gridY) has index gridX * yDim + gridY
+    const int particleIdx = gridX * membraneDimY + gridY;
+
+    if (particleIdx >= 0 && particleIdx < static_cast<int>(particles.size())) {
+      Particle& p = particles[particleIdx];
+      p.setF(p.getF() + force);
+    }
   }
 }

@@ -20,6 +20,16 @@ boundaries:
   z_min: OUTFLOW
   z_max: OUTFLOW
 
+forces:
+  - force_type: lennard_jones
+    epsilon: 5.0
+    sigma: 1.0
+    cutoff_radius: 3.0
+
+container:
+  container_type: linked
+  cutoff: 3.0
+
 
 cuboids:
   - position: [10.0, 10.0, 0.0]

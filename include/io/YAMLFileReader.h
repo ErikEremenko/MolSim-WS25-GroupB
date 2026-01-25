@@ -2,8 +2,8 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include <string>
 #include <optional>
+#include <string>
 
 #include "simulation/SimulationConfig.h"
 

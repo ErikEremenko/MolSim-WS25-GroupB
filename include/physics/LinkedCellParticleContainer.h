@@ -54,12 +54,13 @@ class LinkedCellParticleContainer : public ParticleContainer {
   using ParticleContainer::addParticle;
   // Override addParticle to place particle in correct cell
   Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m) override;
-  Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma, double epsilon) override;
+  Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma,
+                        double epsilon) override;
   Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type, double sigma,
-                   double epsilon) override;
+                        double epsilon) override;
   Particle* addParticle(const Particle* p) override;
   Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, std::array<double, 3> f,
-                   std::array<double, 3> oldF, int type, double sigma, double epsilon) override;
+                        std::array<double, 3> oldF, int type, double sigma, double epsilon) override;
 
   /**
    * @brief Update cell assignments after particle positions change

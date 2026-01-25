@@ -96,7 +96,7 @@ class ParticleGenerator {
    * @param epsilon Lennard-Jones epsilon for particles in the cuboid (default: 5.0).
    */
   void queueCuboid(std::array<double, 3> cx, std::array<double, 3> cv, std::array<int, 3> n, double h, double m,
-                   double t, int type = 0, double sigma = 1.0, double epsilon = 5.0, bool isMembrane = true);
+                   double t, int type = 0, double sigma = 1.0, double epsilon = 5.0, bool isMembrane = false);
 
   /**
    * @brief Queues the generation of a disc of particles at the specified position.

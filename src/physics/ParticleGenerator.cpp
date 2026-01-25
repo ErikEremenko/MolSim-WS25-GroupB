@@ -43,7 +43,8 @@ void ParticleGenerator::generateMembrane(ParticleContainer& container, const Cub
       std::array<double, 3> particleVelocity = {order.vel[0] + temperatureVel[0], order.vel[1] + temperatureVel[1],
                                                 order.vel[2] + temperatureVel[2]};
       std::array<double, 3> particlePosition = {order.pos[0] + order.h * nx, order.pos[1] + order.h * ny, order.pos[2]};
-      const Particle* ptr = container.addParticle(particlePosition, particleVelocity, order.m, order.type, order.sigma, order.epsilon);
+      const Particle* ptr =
+          container.addParticle(particlePosition, particleVelocity, order.m, order.type, order.sigma, order.epsilon);
       identifiers.push_back(ptr->getID());
     }
   }
@@ -51,27 +52,27 @@ void ParticleGenerator::generateMembrane(ParticleContainer& container, const Cub
   // --- Neighbor initialization ---
   const auto& addNeighbor = [xDim, yDim, identifiers](std::vector<int>& neighbors, const int x, const int y) {
     if (x >= 0 && x < xDim && y >= 0 && y < yDim) {  // out of bounds check
-      neighbors.push_back(identifiers[x*yDim + y]);
+      neighbors.push_back(identifiers[x * yDim + y]);
     }
   };
 
   for (int x = 0; x < order.dim[0]; x++) {
     for (int y = 0; y < order.dim[1]; y++) {
-      Particle& particle = container[identifiers[x*yDim + y]];
+      Particle& particle = container[identifiers[x * yDim + y]];
 
       // Direct neighbors
       auto& directNeighbors = particle.getDirectNeighbors();
-      addNeighbor(directNeighbors, x-1, y);  // LEFT
-      addNeighbor(directNeighbors, x+1, y);  // RIGHT
-      addNeighbor(directNeighbors, x, y-1);  // TOP
-      addNeighbor(directNeighbors, x, y+1);  // BOTTOM
+      addNeighbor(directNeighbors, x - 1, y);  // LEFT
+      addNeighbor(directNeighbors, x + 1, y);  // RIGHT
+      addNeighbor(directNeighbors, x, y - 1);  // TOP
+      addNeighbor(directNeighbors, x, y + 1);  // BOTTOM
 
       // Diagonal neighbors
       auto& diagonalNeighbors = particle.getDiagonalNeighbors();
-      addNeighbor(diagonalNeighbors, x-1, y-1);  // TOP LEFT
-      addNeighbor(diagonalNeighbors, x+1, y-1);  // TOP RIGHT
-      addNeighbor(diagonalNeighbors, x-1, y+1);  // BOTTOM LEFT
-      addNeighbor(diagonalNeighbors, x+1, y+1);  // BOTTOM RIGHT
+      addNeighbor(diagonalNeighbors, x - 1, y - 1);  // TOP LEFT
+      addNeighbor(diagonalNeighbors, x + 1, y - 1);  // TOP RIGHT
+      addNeighbor(diagonalNeighbors, x - 1, y + 1);  // BOTTOM LEFT
+      addNeighbor(diagonalNeighbors, x + 1, y + 1);  // BOTTOM RIGHT
     }
   }
 }
@@ -98,7 +99,8 @@ void ParticleGenerator::generateDisc(ParticleContainer& container, const DiscOrd
 void ParticleGenerator::queueCuboid(std::array<double, 3> position, std::array<double, 3> velocity,
                                     std::array<int, 3> dimensions, double mesh_width, double mass, double temperature,
                                     int type, double sigma, double epsilon, bool isMembrane) {
-  cuboidOrders.push_back({position, velocity, dimensions, mesh_width, mass, temperature, type, sigma, epsilon, isMembrane});
+  cuboidOrders.push_back(
+      {position, velocity, dimensions, mesh_width, mass, temperature, type, sigma, epsilon, isMembrane});
 }
 
 void ParticleGenerator::queueDisc(std::array<double, 3> cx, std::array<double, 3> cv, int rn, double h, double m,

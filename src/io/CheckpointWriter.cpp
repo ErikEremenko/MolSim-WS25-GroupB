@@ -68,6 +68,22 @@ void CheckpointWriter::writeCheckpoint(const ParticleContainer& particles, const
   out << YAML::Key << "z_max" << YAML::Value << boundaryTypes[5];
   out << YAML::EndMap;
 
+  // Forces configuration (required by YAMLFileReader)
+  out << YAML::Key << "forces" << YAML::Value << YAML::BeginSeq;
+  out << YAML::BeginMap;
+  out << YAML::Key << "force_type" << YAML::Value << "lennard_jones";
+  out << YAML::Key << "epsilon" << YAML::Value << epsilon;
+  out << YAML::Key << "sigma" << YAML::Value << sigma;
+  out << YAML::Key << "cutoff_radius" << YAML::Value << cutoffRadius;
+  out << YAML::EndMap;
+  out << YAML::EndSeq;
+
+  // Container configuration (required by YAMLFileReader for linked cell)
+  out << YAML::Key << "container" << YAML::Value << YAML::BeginMap;
+  out << YAML::Key << "container_type" << YAML::Value << "linked";
+  out << YAML::Key << "cutoff" << YAML::Value << cutoffRadius;
+  out << YAML::EndMap;
+
   // Empty cuboids and spheres (not needed for checkpoint, but required by format)
   out << YAML::Key << "cuboids" << YAML::Value << YAML::BeginSeq << YAML::EndSeq;
   out << YAML::Key << "spheres" << YAML::Value << YAML::BeginSeq << YAML::EndSeq;

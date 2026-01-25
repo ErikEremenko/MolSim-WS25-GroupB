@@ -60,8 +60,8 @@ int main(const int argc, char* argv[]) {
     // Parallelization
     simConfig.useParallelization = cli.useParallelization.value();
 
-    // Container Type, legacy mode defaults to DIRECT
-    simConfig.containerType = ContainerType::DIRECT;
+    // Container Type, legacy mode defaults to LINKED
+    simConfig.containerType = ContainerType::LINKED;
 
     // Load particles (cuboids from file) - TODO: This is not implemented yet
     SPDLOG_WARN("Legacy mode particle loading not yet implemented in refactor.");

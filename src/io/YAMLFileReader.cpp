@@ -144,10 +144,17 @@ double YAMLFileReader::getCheckpointTime() const {
 }
 
 ForceType YAMLFileReader::getForceType(const std::string& str) {
-  if (str == "lennard_jones") return ForceType::LENNARD_JONES;
-  if (str == "gravity") return ForceType::GRAVITY;
-  // TODO: Add the other force types here
-  throw std::runtime_error("Unknown force type: " + str);  // TODO: Add spdlog logging
+  if (str == "lennard_jones")
+    return ForceType::LENNARD_JONES;
+  if (str == "truncated_lj")
+    return ForceType::TRUNCATED_LJ;
+  if (str == "global_gravity")
+    return ForceType::GLOBAL_GRAVITY;
+  if (str == "harmonic_membrane")
+    return ForceType::HARMONIC_MEMBRANE;
+  if (str == "constant_force")
+    return ForceType::CONSTANT_FORCE;
+  throw std::runtime_error("Unknown force type: " + str);
 }
 
 ContainerType YAMLFileReader::parseContainerType(const std::string& str) {
@@ -196,7 +203,7 @@ SimulationConfig YAMLFileReader::getConfig() {
   simConfig.boundaryTypes = boundariesEnum;
 
   // Forces
-  double globalSigma = 3.0;  // fallback value
+  double globalSigma = 1.0;    // fallback value
   double globalEpsilon = 1.0;  // fallback value
   for (const auto& node : config["forces"]) {
     ForceConfig fc;
@@ -206,29 +213,74 @@ SimulationConfig YAMLFileReader::getConfig() {
         fc.epsilon = node["epsilon"].as<double>();
         fc.sigma = node["sigma"].as<double>();
         fc.cutoff = node["cutoff_radius"].as<double>();
-
         // Global sigma and epsilon will use the values defined here
         globalSigma = *fc.sigma;
         globalEpsilon = *fc.epsilon;
         break;
-      case ForceType::GRAVITY:
-        // TODO: Implement this
+
+      case ForceType::TRUNCATED_LJ:
+        // Truncated LJ uses per-particle sigma/epsilon (using mixing rules)
+        SPDLOG_INFO("Truncated LJ force configured (repulsive-only)");
         break;
-      // TODO: Implement other force types here
+
+      case ForceType::GLOBAL_GRAVITY:
+        fc.gravity = node["g"].as<double>();
+        fc.gravityAxis = node["axis"] ? node["axis"].as<int>() : 1;  // Default to y-axis
+        SPDLOG_INFO("Global gravity configured: g={} (axis={})", *fc.gravity, *fc.gravityAxis);
+        break;
+
+      case ForceType::HARMONIC_MEMBRANE:
+        fc.stiffness = node["stiffness"].as<double>();
+        fc.avgBondLength = node["avg_bond_length"].as<double>();
+        SPDLOG_INFO("Harmonic membrane force configured: k={}, r0={}", *fc.stiffness, *fc.avgBondLength);
+        break;
+
+      case ForceType::CONSTANT_FORCE:
+        fc.forceX = node["fx"] ? node["fx"].as<double>() : 0.0;
+        fc.forceY = node["fy"] ? node["fy"].as<double>() : 0.0;
+        fc.forceZ = node["fz"] ? node["fz"].as<double>() : 0.0;
+        fc.endTime = node["end_time"].as<double>();
+        // Parse target indices (list of [x, y] pairs)
+        if (node["target_indices"]) {
+          for (const auto& idx : node["target_indices"]) {
+            int x = idx[0].as<int>();
+            int y = idx[1].as<int>();
+            fc.targetIndices.emplace_back(x, y);
+          }
+        }
+        SPDLOG_INFO("Constant force configured: F=({}, {}, {}), end_time={}, targets={}",
+                    *fc.forceX, *fc.forceY, *fc.forceZ, *fc.endTime, fc.targetIndices.size());
+        break;
     }
     simConfig.forceConfigs.push_back(fc);
   }
 
   // Container parameters
-  // TODO: Refactor container code into a separate function, that also checks if cutoff was passed to a direct container
+  // Auto-infer cutoff from Lennard-Jones force if not specified in container section
+  double inferredCutoff = 3.0;  // fallback value
+  for (const auto& fc : simConfig.forceConfigs) {
+    if (fc.forceType == ForceType::LENNARD_JONES && fc.cutoff.has_value()) {
+      inferredCutoff = *fc.cutoff;
+      break;
+    }
+  }
+
   const auto& containerNode = config["container"];
   if (containerNode) {
     simConfig.containerType = parseContainerType(containerNode["container_type"].as<std::string>());
     if (simConfig.containerType == ContainerType::LINKED) {
-      simConfig.linkedCellCutoff = containerNode["cutoff"].as<double>();
+      if (containerNode["cutoff"]) {
+        simConfig.linkedCellCutoff = containerNode["cutoff"].as<double>();
+      } else {
+        simConfig.linkedCellCutoff = inferredCutoff;
+        SPDLOG_INFO("Container cutoff not specified, using Lennard-Jones cutoff: {}", inferredCutoff);
+      }
     }
-  } else {  // fallback values
-    simConfig.containerType = ContainerType::DIRECT;
+  } else {
+    // Default: LINKED container with inferred cutoff
+    simConfig.containerType = ContainerType::LINKED;
+    simConfig.linkedCellCutoff = inferredCutoff;
+    SPDLOG_INFO("No container section found, defaulting to LINKED with cutoff={}", inferredCutoff);
   }
 
   // Thermostat
@@ -261,9 +313,19 @@ SimulationConfig YAMLFileReader::getConfig() {
       type = cuboid["type"].as<int>();
     }
 
-    generatorRaw.queueCuboid(pos, vel, dim, h, m, meanV, type, sigma, epsilon);
-    SPDLOG_DEBUG("Loaded cuboid {} with {} particles (sigma={}, epsilon={}, type={}).", i, dim[0] * dim[1] * dim[2],
-                 sigma, epsilon, type);
+    // Check if this is a membrane cuboid
+    bool isMembrane = cuboid["is_membrane"] && cuboid["is_membrane"].as<bool>();
+
+    generatorRaw.queueCuboid(pos, vel, dim, h, m, meanV, type, sigma, epsilon, isMembrane);
+    
+    // Store membrane dimensions if this is a membrane
+    if (isMembrane) {
+      simConfig.membraneDimY = dim[1];
+      SPDLOG_INFO("Loaded membrane with dimensions ({}, {}, {}), membraneDimY={}", dim[0], dim[1], dim[2], dim[1]);
+    } else {
+      SPDLOG_DEBUG("Loaded cuboid {} with {} particles (sigma={}, epsilon={}, type={}).", i, dim[0] * dim[1] * dim[2],
+                   sigma, epsilon, type);
+    }
   }
 
   // Parse spheres

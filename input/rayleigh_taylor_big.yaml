@@ -6,10 +6,6 @@ output:
 simulation:
   t_end: 50.0
   delta_t: 0.0005
-  epsilon: 1.0
-  sigma: 1.0
-  cutoff_radius: 3.0
-  gravity: -12.44
   dimensions: 2
 
 domain:
@@ -23,12 +19,25 @@ boundaries:
   z_min: REFLECTIVE
   z_max: REFLECTIVE
 
+forces:
+  - force_type: lennard_jones
+    epsilon: 1.0
+    sigma: 1.0
+    cutoff_radius: 3.0
+
+  - force_type: global_gravity
+    g: -12.44
+
+container:
+  container_type: linked
+  cutoff: 3.0
+
 thermostat:
   n_thermostat: 1000
   temp_init: 40.0
 
 cuboids:
-  - position: [0.6, 2.0, 0.0]
+  - position: [0.6, 2.0, 0.5]
     velocity: [0.0, 0.0, 0.0]
     dimensions: [250, 20, 1]
     mesh_width: 1.2
@@ -37,7 +46,7 @@ cuboids:
     sigma: 1.2
     epsilon: 1.0
 
-  - position: [0.6, 27.0, 0.0]
+  - position: [0.6, 27.0, 0.5]
     velocity: [0.0, 0.0, 0.0]
     dimensions: [250, 20, 1]
     mesh_width: 1.2

@@ -1,6 +1,10 @@
 #pragma once
 
 #include "physics/ParticleContainer.h"
+#include "simulation/SimulationConfig.h"
+
+#include <utility>
+#include <vector>
 
 /**
  * @class ForceCalc
@@ -55,49 +59,116 @@ class GravityForce final : public ForceCalc {
 };
 
 /**
+ * @class GlobalGravityForce
+ * @brief Applies a constant gravitational acceleration to all particles along a specified axis
+ */
+class GlobalGravityForce final : public ForceCalc {
+ private:
+  double gravity;  ///< Gravitational acceleration magnitude
+  int axis;        ///< Axis: 0=x, 1=y, 2=z
+
+ public:
+  /**
+   * @param particles ParticleContainer that stores the particles
+   * @param g Gravity acceleration value (e.g., -9.81 for downward gravity)
+   * @param axis Axis direction: 0=x, 1=y (default), 2=z
+   */
+  GlobalGravityForce(ParticleContainer& particles, double g, int axis = 1);
+
+  void calculateF() override;
+};
+
+/**
  * @class LennardJonesForce
  * @brief Models the Lennard-Jones potential
  */
 class LennardJonesForce final : public ForceCalc {
  private:
-  // TODO: Docstring these members
-  const double epsilon, sigma, cutoffRadius, repulsionDistance, gravity;
+  const double epsilon, sigma, cutoffRadius, repulsionDistance;
 
  public:
   /**
-   *
    * @param particles ParticleContainer that stores the particles used by the calculation method
    * @param epsilon Epsilon in the Lennard-Jones potential formula
    * @param sigma Sigma in the Lennard-Jones potential formula
    * @param cutoffRadius Distance beyond which interactions between the particles are not calculated (ignored)
    */
-  LennardJonesForce(ParticleContainer& particles, double epsilon, double sigma, double cutoffRadius, double gravity);
+  LennardJonesForce(ParticleContainer& particles, double epsilon, double sigma, double cutoffRadius);
 
-  /**
-  * @brief Calculates the Lennard-Jones forces acting on the particles
-  */
   void calculateF() override;
-
-  /**
-   * @brief Calculates the Lennard-Jones forces using the direct sum O(n^2) algorithm
-   */
   void calculateFDirectSum();
-
-  /**
-   * @brief Calculates the Lennard-Jones forces acting on the particles using the Linked Cell method
-   */
   void calculateFLinkedCell();
 
  private:
-  /**
-   * @brief Applies reflective boundary forces using ghost particles
-   * @param lc Pointer to the LinkedCellParticleContainer
-   */
   void applyReflectiveBoundaries(const class LinkedCellParticleContainer* lc) const;
-
-  // TODO: Docstring these methods
   void calcFPeriodicBoundary(Particle* p1, Particle* p2) const;
   void applyPeriodicBoundaries(LinkedCellParticleContainer* lc) const;
+};
+
+/**
+ * @class TruncatedLJForce
+ * @brief Repulsive-only Lennard-Jones potential, truncated at 2^(1/6)·sigma
+ * 
+ * Used for membrane simulations to prevent self-penetration without attraction.
+ */
+class TruncatedLJForce final : public ForceCalc {
+ public:
+  TruncatedLJForce(ParticleContainer& particles);
+
+  void calculateF() override;
+};
+
+/**
+ * @class HarmonicMembraneForce
+ * @brief Harmonic potential for membrane bonds between neighboring particles
+ * Models springs between direct and diagonal neighbors in a 2D membrane.
+ */
+class HarmonicMembraneForce final : public ForceCalc {
+ private:
+  double stiffness;     ///< Spring constant k
+  double avgBondLength; ///< Average bond length r0
+
+ public:
+  /**
+   * @param particles ParticleContainer with membrane particles (must have neighbor info set)
+   * @param k Stiffness constant
+   * @param r0 Average bond length for direct neighbors
+   */
+  HarmonicMembraneForce(ParticleContainer& particles, double k, double r0);
+
+  void calculateF() override;
+};
+
+/**
+ * @class ConstantForce
+ * @brief Applies a constant force to specific particles (identified by membrane x/y indices)
+ * 
+ * The force is only applied until a specified end time ("pulling" membrane particles)
+ */
+class ConstantForce final : public ForceCalc {
+ private:
+  std::array<double, 3> force;
+  double endTime;
+  double& currentTime;  ///< Reference to simulation's current time
+  std::vector<std::pair<int, int>> targetIndices;  ///< x/y indices of target particles
+  int membraneDimY;  ///< Y-dimension of membrane grid for index calculation
+
+ public:
+  /**
+   * @param particles ParticleContainer
+   * @param fx Force in x direction
+   * @param fy Force in y direction
+   * @param fz Force in z direction
+   * @param endTime Time after which force stops being applied
+   * @param currentTime Reference to the simulation's current time variable
+   * @param targetIndices Vector of (x, y) index pairs identifying which particles to pull
+   * @param membraneDimY Y-dimension of the membrane for calculating particle indices
+   */
+  ConstantForce(ParticleContainer& particles, double fx, double fy, double fz, 
+                double endTime, double& currentTime, 
+                std::vector<std::pair<int, int>> targetIndices, int membraneDimY);
+
+  void calculateF() override;
 };
 
 /**
@@ -106,21 +177,9 @@ class LennardJonesForce final : public ForceCalc {
  */
 class LennardJonesForceParallel final : public ForceCalc {
  private:
-  // TODO: Either docstring these or inherit from LennardJonesForce
   const double epsilon, sigma, cutoffRadius;
 
  public:
-  /**
-   *
-   * @param particles ParticleContainer that stores the particles used by the calculation method
-   * @param epsilon Epsilon in the Lennard-Jones potential formula
-   * @param sigma Sigma in the Lennard-Jones potential formula
-   * @param cutoffRadius Distance beyond which interactions between the particles are not calculated (ignored)
-   */
   LennardJonesForceParallel(ParticleContainer& particles, double epsilon, double sigma, double cutoffRadius);
-
-  /**
-  * @brief Calculates the Lennard-Jones forces acting on the particles using OpenMP
-  */
   void calculateF() override;
 };

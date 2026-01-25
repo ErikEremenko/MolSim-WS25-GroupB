@@ -33,6 +33,12 @@ class Simulation {
   double dt;
 
   /**
+   * @brief Current simulation time (updated each iteration).
+   * Used by time-dependent forces (e.g., ConstantForce that stops after a certain time).
+   */
+  double currentTime;
+
+  /**
    * @brief Start value of the internal time counter, this is usually 0 when starting a new simulation.
    * @note A checkpoint file will have a starting time greater than 0, e.g. 10.
    */
@@ -53,6 +59,11 @@ class Simulation {
   int dimensions;
   std::array<double, 3> domainSize;
   std::array<std::string, 6> boundaryTypeStrings;
+
+  /**
+   * @brief Membrane Y dimension for force target index calculation.
+   */
+  int membraneDimY;
 
   /**
    * @brief Chosen simulation execution mode (benchmark/file output).
