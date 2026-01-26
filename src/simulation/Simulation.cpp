@@ -93,8 +93,8 @@ Simulation::Simulation(SimulationConfig& config)
       case ForceType::LENNARD_JONES:
         forces.push_back(std::make_unique<LennardJonesForce>(*particles, *forceConfig.epsilon, *forceConfig.sigma,
                                                              *forceConfig.cutoff));
-        SPDLOG_INFO("Initialized LennardJonesForce (epsilon={}, sigma={}, cutoff={})",
-                    *forceConfig.epsilon, *forceConfig.sigma, *forceConfig.cutoff);
+        SPDLOG_INFO("Initialized LennardJonesForce (epsilon={}, sigma={}, cutoff={})", *forceConfig.epsilon,
+                    *forceConfig.sigma, *forceConfig.cutoff);
         break;
 
       case ForceType::TRUNCATED_LJ:
@@ -111,22 +111,17 @@ Simulation::Simulation(SimulationConfig& config)
       }
 
       case ForceType::HARMONIC_MEMBRANE:
-        forces.push_back(std::make_unique<HarmonicMembraneForce>(*particles,
-                                                                  *forceConfig.stiffness,
-                                                                  *forceConfig.avgBondLength));
-        SPDLOG_INFO("Initialized HarmonicMembraneForce (k={}, r0={})",
-                    *forceConfig.stiffness, *forceConfig.avgBondLength);
+        forces.push_back(
+            std::make_unique<HarmonicMembraneForce>(*particles, *forceConfig.stiffness, *forceConfig.avgBondLength));
+        SPDLOG_INFO("Initialized HarmonicMembraneForce (k={}, r0={})", *forceConfig.stiffness,
+                    *forceConfig.avgBondLength);
         break;
 
       case ForceType::CONSTANT_FORCE:
-        forces.push_back(std::make_unique<ConstantForce>(*particles,
-                                                         forceConfig.forceX.value_or(0.0),
+        forces.push_back(std::make_unique<ConstantForce>(*particles, forceConfig.forceX.value_or(0.0),
                                                          forceConfig.forceY.value_or(0.0),
-                                                         forceConfig.forceZ.value_or(0.0),
-                                                         *forceConfig.endTime,
-                                                         currentTime,
-                                                         forceConfig.targetIndices,
-                                                         membraneDimY));
+                                                         forceConfig.forceZ.value_or(0.0), *forceConfig.endTime,
+                                                         currentTime, forceConfig.targetIndices, membraneDimY));
         SPDLOG_INFO("Initialized ConstantForce (F=({}, {}, {}), end_time={}, targets={})",
                     forceConfig.forceX.value_or(0.0), forceConfig.forceY.value_or(0.0),
                     forceConfig.forceZ.value_or(0.0), *forceConfig.endTime, forceConfig.targetIndices.size());

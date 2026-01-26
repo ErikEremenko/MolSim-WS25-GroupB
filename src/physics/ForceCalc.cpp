@@ -1,8 +1,8 @@
 #include "physics/ForceCalc.h"
 
-#include <cmath>
 #include <omp.h>
 #include <spdlog/spdlog.h>
+#include <cmath>
 
 #include "physics/LinkedCellParticleContainer.h"
 #include "utils/ArrayUtils.h"
@@ -13,7 +13,7 @@ ForceCalc::~ForceCalc() = default;
 void ForceCalc::calculateX(ParticleContainer& particles, const double dt) {
   const double dt_sq_half = 0.5 * dt * dt;
   const size_t n = particles.size();
-  
+
   // Manual loop (better SIMD optimization potential)
   for (size_t i = 0; i < n; ++i) {
     auto& p = particles[i];
@@ -21,10 +21,10 @@ void ForceCalc::calculateX(ParticleContainer& particles, const double dt) {
     const auto& v = p.getV();
     const auto& F = p.getF();
     const double inv_m = 1.0 / p.getM();
-    
+
     // compute all 3 components (SIMD friendly)
     std::array<double, 3> x_new;
-    #pragma omp simd
+#pragma omp simd
     for (int d = 0; d < 3; ++d) {
       x_new[d] = x_curr[d] + dt * v[d] + dt_sq_half * inv_m * F[d];
     }
@@ -34,16 +34,16 @@ void ForceCalc::calculateX(ParticleContainer& particles, const double dt) {
 
 void ForceCalc::calculateV(ParticleContainer& particles, const double dt) {
   const size_t n = particles.size();
-  
+
   for (size_t i = 0; i < n; ++i) {
     auto& p = particles[i];
     const auto& v_curr = p.getV();
     const auto& F = p.getF();
     const auto& F_old = p.getOldF();
     const double dt_half_inv_m = dt / (2.0 * p.getM());
-    
+
     std::array<double, 3> v_new;
-    #pragma omp simd
+#pragma omp simd
     for (int d = 0; d < 3; ++d) {
       v_new[d] = v_curr[d] + dt_half_inv_m * (F_old[d] + F[d]);
     }
@@ -346,7 +346,7 @@ void LennardJonesForce::applyReflectiveBoundaries(const LinkedCellParticleContai
 void LennardJonesForce::calcFPeriodicBoundary(Particle* p1, Particle* p2) const {
   // Use optimized lookup tables for mixed sigma/epsilon values
   const std::array<double, 3> dist = {p2->getX()[0] - p1->getX()[0], p2->getX()[1] - p1->getX()[1],
-                                p2->getX()[2] - p1->getX()[2]};
+                                      p2->getX()[2] - p1->getX()[2]};
 
   // Use squared distance to avoid sqrt
   double term = dist[0] * dist[0] + dist[1] * dist[1] + dist[2] * dist[2];
@@ -739,7 +739,7 @@ void TruncatedLJForce::calculateF() {
   // Truncated (repulsive-only) Lennard-Jones: only applies when r < 2^(1/6) * sigma
   constexpr double sqrt2_6 = 1.1224620483093729814335330496791795162324111106139867534404095458;  // 2^(1/6)
   auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
-  
+
   auto applyTruncatedLJ = [](Particle& p_i, Particle& p_j) {
     const auto dist = p_j.getX() - p_i.getX();
     const double norm = ArrayUtils::L2Norm(dist);
@@ -790,7 +790,8 @@ void HarmonicMembraneForce::calculateF() {
   for (auto& p : particles) {
     // Process direct neighbors (bond length = r0)
     for (int neighborID : p.getDirectNeighbors()) {
-      if (neighborID < 0 || neighborID >= static_cast<int>(particles.size())) continue;
+      if (neighborID < 0 || neighborID >= static_cast<int>(particles.size()))
+        continue;
       Particle& neighbor = particles[neighborID];
 
       const auto dist = neighbor.getX() - p.getX();
@@ -805,7 +806,8 @@ void HarmonicMembraneForce::calculateF() {
 
     // Process diagonal neighbors (bond length = sqrt(2) * r0)
     for (int neighborID : p.getDiagonalNeighbors()) {
-      if (neighborID < 0 || neighborID >= static_cast<int>(particles.size())) continue;
+      if (neighborID < 0 || neighborID >= static_cast<int>(particles.size()))
+        continue;
       Particle& neighbor = particles[neighborID];
 
       const auto dist = neighbor.getX() - p.getX();
@@ -820,9 +822,8 @@ void HarmonicMembraneForce::calculateF() {
   }
 }
 
-ConstantForce::ConstantForce(ParticleContainer& particles, double fx, double fy, double fz,
-                             double endTime, double& currentTime,
-                             std::vector<std::pair<int, int>> targetIndices, int membraneDimY)
+ConstantForce::ConstantForce(ParticleContainer& particles, double fx, double fy, double fz, double endTime,
+                             double& currentTime, std::vector<std::pair<int, int>> targetIndices, int membraneDimY)
     : ForceCalc(particles),
       force({fx, fy, fz}),
       endTime(endTime),

@@ -89,23 +89,23 @@ class LinkedCellParticleContainer : public ParticleContainer {
     const int nx = numCells[0];
     const int ny = numCells[1];
     const int nz = numCells[2];
-  
+
     const int layerSize = nx * ny;
 
     // offsets for 13 forward neighbors
     static constexpr std::array<std::array<int, 3>, 13> neighborOffsets = {{{1, 0, 0},
-                                                                          {1, 1, 0},
-                                                                          {0, 1, 0},
-                                                                          {-1, 1, 0},
-                                                                          {-1, -1, 1},
-                                                                          {0, -1, 1},
-                                                                          {1, -1, 1},
-                                                                          {-1, 0, 1},
-                                                                          {0, 0, 1},
-                                                                          {1, 0, 1},
-                                                                          {-1, 1, 1},
-                                                                          {0, 1, 1},
-                                                                          {1, 1, 1}}};
+                                                                            {1, 1, 0},
+                                                                            {0, 1, 0},
+                                                                            {-1, 1, 0},
+                                                                            {-1, -1, 1},
+                                                                            {0, -1, 1},
+                                                                            {1, -1, 1},
+                                                                            {-1, 0, 1},
+                                                                            {0, 0, 1},
+                                                                            {1, 0, 1},
+                                                                            {-1, 1, 1},
+                                                                            {0, 1, 1},
+                                                                            {1, 1, 1}}};
 
     // Compute interactions between particles in the same cell, ignoring halo cells
     for (size_t cdx = 0; cdx < cells.size(); ++cdx) {
