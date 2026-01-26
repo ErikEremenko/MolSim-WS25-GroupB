@@ -11,13 +11,8 @@ class ForceCalcTest : public ::testing::Test {
   ParticleContainer pc;
 };
 
-// Test if overflow error is thrown when the calculations are run on particles with the same coords.
-TEST_F(ForceCalcTest, ExpectNormError) {
-  pc.addParticle(std::array<double, 3>{0.}, std::array<double, 3>{0.}, 0.);
-  pc.addParticle(std::array<double, 3>{0.}, std::array<double, 3>{1.}, 0.);
-  EXPECT_THROW(GravityForce(pc).calculateF(), std::overflow_error);
-  EXPECT_THROW(LennardJonesForce(pc, 1., 1., INFINITY).calculateF(), std::overflow_error);
-}
+// Note: Zero-distance error checks were removed for performance optimization.
+// See class documentation for details.
 
 // Test the gravitational force between two particles if one particle has zero mass
 TEST_F(ForceCalcTest, GravityF_ZeroMass) {
@@ -139,6 +134,7 @@ TEST_F(BoundaryConditionTest, ReflectiveAppliesForce) {
   lpc.addParticle({0.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
 
   LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.precomputeConstants();
   forceCalc.calculateF();
 
   // Particle close to wall should experience repulsive force pushing it away from wall -> positive force in x-direction (away from wall)
@@ -178,6 +174,7 @@ TEST_F(BoundaryConditionTest, ReflectiveNoForceWhenFar) {
   lpc.addParticle({5.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
 
   LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.precomputeConstants();
   forceCalc.calculateF();
 
   // Single particle in center should have zero force
@@ -291,6 +288,7 @@ TEST_F(PeriodicBoundaryTest, CrossBoundaryForceInteraction) {
   lpc.addParticle({9.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
 
   LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.precomputeConstants();
   forceCalc.calculateF();
 
   // Both particles should experience non-zero forces (periodic interaction)
@@ -352,6 +350,7 @@ TEST_F(PeriodicBoundaryTest, SingleParticleNoForce) {
   lpc.addParticle({5.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
 
   LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.precomputeConstants();
   forceCalc.calculateF();
 
   // Particle should have zero force
@@ -371,6 +370,7 @@ TEST_F(PeriodicBoundaryTest, ParticlesBeyondCutoffNoInteraction) {
   lpc.addParticle({6.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
 
   LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.precomputeConstants();
   forceCalc.calculateF();
 
   // Particles should experience zero force (beyond cutoff in all directions)
