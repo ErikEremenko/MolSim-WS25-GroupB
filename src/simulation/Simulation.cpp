@@ -254,6 +254,7 @@ void Simulation::runBenchmark() {
   const auto chronoStart = steady_clock::now();
 
   const int thermoFrequency = thermostat ? thermostat->getUpdateFrequency() : 1;
+  const int statisticsFrequency = thermodynamicsStatistics ? thermodynamicsStatistics->getUpdateFrequency() : 1;
 
   // Use member currentTime instead of local variable
   long iteration = startIteration;
@@ -284,6 +285,11 @@ void Simulation::runBenchmark() {
     // Update temperature
     if (thermostat && (iteration % thermoFrequency == 0)) {
       thermostat->updateTemperature();
+    }
+
+    // Update thermodynamics statistics
+    if (thermodynamicsStatistics && (iteration % statisticsFrequency)) {
+
     }
 
     currentTime += dt;

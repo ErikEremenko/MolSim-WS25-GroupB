@@ -1,9 +1,9 @@
 #pragma once
 
-#include "io/YAMLFileReader.h"
+#include "physics/thermodynamics/Thermostat.h"
+#include "physics/thermodynamics/ThermodynamicsStatistics.h"
 #include "physics/ForceCalc.h"
 #include "physics/ParticleGenerator.h"
-#include "physics/Thermostat.h"
 #include "simulation/SimulationConfig.h"
 
 #include <memory>
@@ -101,6 +101,8 @@ class Simulation {
   std::unique_ptr<Thermostat> thermostat;
   bool needToAutoSetTargetTemperature = false;
   std::optional<double> initialTemperature = std::nullopt;
+
+  std::unique_ptr<ThermodynamicsStatistics> thermodynamicsStatistics;
 
   /**
    * @brief Outputs the state of the particles for visualization in ParaView.
