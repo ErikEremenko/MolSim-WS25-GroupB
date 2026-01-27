@@ -68,11 +68,11 @@ enum class Parallelization {
 };
 
 enum class ForceType {
-  LENNARD_JONES,       ///< Full Lennard-Jones potential
-  TRUNCATED_LJ,        ///< Repulsive-only LJ (truncated at 2^(1/6)·sigma)
-  GLOBAL_GRAVITY,      ///< Constant gravitational acceleration on all particles
-  HARMONIC_MEMBRANE,   ///< Harmonic bonds between membrane neighbors
-  CONSTANT_FORCE       ///< Constant force on specific particles (e.g., pulling)
+  LENNARD_JONES,      ///< Full Lennard-Jones potential
+  TRUNCATED_LJ,       ///< Repulsive-only LJ (truncated at 2^(1/6)*sigma)
+  GLOBAL_GRAVITY,     ///< Constant gravitational acceleration on all particles
+  HARMONIC_MEMBRANE,  ///< Harmonic bonds between membrane neighbors
+  CONSTANT_FORCE      ///< Constant force on specific particles (e.g., pulling)
 };
 
 struct ForceConfig {
@@ -84,8 +84,8 @@ struct ForceConfig {
   std::optional<double> cutoff = std::nullopt;  // cutoff for the force calculations
 
   // Global gravity (constant acceleration along specified axis)
-  std::optional<double> gravity = std::nullopt;  ///< Gravity acceleration value
-  std::optional<int> gravityAxis = std::nullopt; ///< Axis: 0=x, 1=y (default), 2=z
+  std::optional<double> gravity = std::nullopt;   ///< Gravity acceleration value
+  std::optional<int> gravityAxis = std::nullopt;  ///< Axis: 0=x, 1=y (default), 2=z
 
   // Harmonic membrane bonds
   std::optional<double> stiffness = std::nullopt;      ///< Stiffness constant k
@@ -95,7 +95,7 @@ struct ForceConfig {
   std::optional<double> forceX = std::nullopt;
   std::optional<double> forceY = std::nullopt;
   std::optional<double> forceZ = std::nullopt;
-  std::optional<double> endTime = std::nullopt;  ///< Time after which force stops
+  std::optional<double> endTime = std::nullopt;    ///< Time after which force stops
   std::vector<std::pair<int, int>> targetIndices;  ///< x/y indices of particles to apply force to
 };
 

@@ -1,11 +1,14 @@
 #include "physics/ForceCalc.h"
 
-#include <cmath>
 #include <omp.h>
 #include <spdlog/spdlog.h>
+#include <cmath>
 
 #include "physics/LinkedCellParticleContainer.h"
 #include "utils/ArrayUtils.h"
+#include "utils/PhysicsConstants.h"
+
+using namespace PhysicsConstants;
 
 ForceCalc::ForceCalc(ParticleContainer& particles) : particles(particles) {}
 ForceCalc::~ForceCalc() = default;
@@ -13,7 +16,7 @@ ForceCalc::~ForceCalc() = default;
 void ForceCalc::calculateX(ParticleContainer& particles, const double dt) {
   const double dt_sq_half = 0.5 * dt * dt;
   const size_t n = particles.size();
-  
+
   // Manual loop (better SIMD optimization potential)
   for (size_t i = 0; i < n; ++i) {
     auto& p = particles[i];
@@ -21,10 +24,10 @@ void ForceCalc::calculateX(ParticleContainer& particles, const double dt) {
     const auto& v = p.getV();
     const auto& F = p.getF();
     const double inv_m = 1.0 / p.getM();
-    
+
     // compute all 3 components (SIMD friendly)
-    std::array<double, 3> x_new;
-    #pragma omp simd
+    std::array<double, 3> x_new{};
+#pragma omp simd
     for (int d = 0; d < 3; ++d) {
       x_new[d] = x_curr[d] + dt * v[d] + dt_sq_half * inv_m * F[d];
     }
@@ -34,16 +37,16 @@ void ForceCalc::calculateX(ParticleContainer& particles, const double dt) {
 
 void ForceCalc::calculateV(ParticleContainer& particles, const double dt) {
   const size_t n = particles.size();
-  
+
   for (size_t i = 0; i < n; ++i) {
     auto& p = particles[i];
     const auto& v_curr = p.getV();
     const auto& F = p.getF();
     const auto& F_old = p.getOldF();
     const double dt_half_inv_m = dt / (2.0 * p.getM());
-    
+
     std::array<double, 3> v_new;
-    #pragma omp simd
+#pragma omp simd
     for (int d = 0; d < 3; ++d) {
       v_new[d] = v_curr[d] + dt_half_inv_m * (F_old[d] + F[d]);
     }
@@ -87,10 +90,14 @@ GlobalGravityForce::GlobalGravityForce(ParticleContainer& particles, double g, i
 }
 
 void GlobalGravityForce::calculateF() {
-  for (auto& p : particles) {
-    auto F = p.getF();
-    F[axis] += p.getM() * gravity;
-    p.setF(F);
+  const size_t n = particles.size();
+  const double g = gravity;
+  const int ax = axis;
+
+  for (size_t i = 0; i < n; ++i) {
+    Particle& p = particles[i];
+    auto& F = p.getF();
+    F[ax] += p.getM() * g;
   }
 }
 
@@ -100,7 +107,7 @@ LennardJonesForce::LennardJonesForce(ParticleContainer& particles, const double 
       epsilon(epsilon),
       sigma(sigma),
       cutoffRadius(cutoffRadius),
-      repulsionDistance(std::pow(2.0, 1.0 / 6.0) * sigma),
+      repulsionDistance(TWO_POW_1_6 * sigma),
       cutoffRadiusSq(cutoffRadius * cutoffRadius) {}
 
 void LennardJonesForce::calculateF() {
@@ -346,7 +353,7 @@ void LennardJonesForce::applyReflectiveBoundaries(const LinkedCellParticleContai
 void LennardJonesForce::calcFPeriodicBoundary(Particle* p1, Particle* p2) const {
   // Use optimized lookup tables for mixed sigma/epsilon values
   const std::array<double, 3> dist = {p2->getX()[0] - p1->getX()[0], p2->getX()[1] - p1->getX()[1],
-                                p2->getX()[2] - p1->getX()[2]};
+                                      p2->getX()[2] - p1->getX()[2]};
 
   // Use squared distance to avoid sqrt
   double term = dist[0] * dist[0] + dist[1] * dist[1] + dist[2] * dist[2];
@@ -691,8 +698,7 @@ void LennardJonesForce::precomputeConstants() {
       const double pEpsilon = p.getEpsilon();
       const double sigma2 = pSigma * pSigma;
       const double sigma6 = sigma2 * sigma2 * sigma2;
-      // Precomputed (2^(1/6) * sigma)^2 = 2^(1/3) * sigma^2
-      constexpr double TWO_POW_1_3 = 1.2599210498948731647672106072782283505702514647015079800819751121;
+
       repulsionDistanceSqLookup[t] = TWO_POW_1_3 * sigma2;
       sigma6Lookup[t] = sigma6;
       epsilon24Lookup[t] = 24.0 * pEpsilon;
@@ -705,7 +711,7 @@ void LennardJonesForce::precomputeConstants() {
       const int idx = ti * tableWidth + tj;
       if (pairLookupTable1[idx] < 0) {
         // Apply Lorentz-Berthelot mixing rules
-        const double sigma_ij = (typeSigma[ti] + typeSigma[tj]) / 2.0;
+        const double sigma_ij = (typeSigma[ti] + typeSigma[tj]) * 0.5;
         const double epsilon_ij = std::sqrt(typeEpsilon[ti] * typeEpsilon[tj]);
 
         // Precompute: 48 * epsilon_ij * sigma_ij^12
@@ -716,7 +722,7 @@ void LennardJonesForce::precomputeConstants() {
         const double eps_48_sigma_12 = 48.0 * epsilon_ij * sigma12;
 
         // Precompute: 1 / (2 * sigma_ij^6)
-        const double sigma_m6_2 = 1.0 / (2.0 * sigma6);
+        const double sigma_m6_2 = 0.5 / sigma6;
 
         pairLookupTable1[idx] = eps_48_sigma_12;
         pairLookupTable2[idx] = sigma_m6_2;
@@ -736,41 +742,50 @@ void LennardJonesForce::precomputeConstants() {
 TruncatedLJForce::TruncatedLJForce(ParticleContainer& particles) : ForceCalc(particles) {}
 
 void TruncatedLJForce::calculateF() {
-  // Truncated (repulsive-only) Lennard-Jones: only applies when r < 2^(1/6) * sigma
-  constexpr double sqrt2_6 = 1.1224620483093729814335330496791795162324111106139867534404095458;  // 2^(1/6)
   auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
-  
+
   auto applyTruncatedLJ = [](Particle& p_i, Particle& p_j) {
-    const auto dist = p_j.getX() - p_i.getX();
-    const double norm = ArrayUtils::L2Norm(dist);
+    const auto& xi = p_i.getX();
+    const auto& xj = p_j.getX();
 
-    // Get mixed sigma/epsilon
-    const auto sigma_ij = (p_i.getSigma() + p_j.getSigma()) / 2;
-    const auto epsilon_ij = std::sqrt(p_i.getEpsilon() * p_j.getEpsilon());
-    const double repulsionDist = sqrt2_6 * sigma_ij;
+    const double dx = xj[0] - xi[0];
+    const double dy = xj[1] - xi[1];
+    const double dz = xj[2] - xi[2];
+    const double distSq = dx * dx + dy * dy + dz * dz;
 
-    // Only apply force if within repulsion distance (and non-zero)
-    if (norm > 0 && norm < repulsionDist) {
-      const double sigma2 = sigma_ij * sigma_ij;
+    // Lorentz-Berthelot mixing rules
+    const double sigma_ij = (p_i.getSigma() + p_j.getSigma()) * 0.5;
+    const double sigma2 = sigma_ij * sigma_ij;
+    // Cutoff at 2^(1/6) * sigma (repulsion only): cutoffSq = 2^(1/3) * sigma^2
+
+    if (const double cutoffSq = TWO_POW_1_3 * sigma2; distSq > 0.0 && distSq < cutoffSq) {
+      const double epsilon_ij = std::sqrt(p_i.getEpsilon() * p_j.getEpsilon());
       const double sigma6 = sigma2 * sigma2 * sigma2;
-      const double inv_norm2 = 1.0 / (norm * norm);
-      const double inv_norm6 = inv_norm2 * inv_norm2 * inv_norm2;
+      const double sigma12 = sigma6 * sigma6;
 
-      const double crossing_norm_quot_6 = sigma6 * inv_norm6;
-      const double crossing_norm_quot_12 = crossing_norm_quot_6 * crossing_norm_quot_6;
+      const double inv_distSq = 1.0 / distSq;
+      const double inv_distSq3 = inv_distSq * inv_distSq * inv_distSq;
+      const double term = 48.0 * epsilon_ij * sigma12 * inv_distSq * inv_distSq3 * (0.5 / sigma6 - inv_distSq3);
 
-      const auto F_vec = (24.0 * epsilon_ij * inv_norm2 * (crossing_norm_quot_6 - 2.0 * crossing_norm_quot_12)) * dist;
-      p_i.setF(p_i.getF() + F_vec);
-      p_j.setF(p_j.getF() - F_vec);
+      const double fx = term * dx;
+      const double fy = term * dy;
+      const double fz = term * dz;
+
+      auto& fi = p_i.getF();
+      auto& fj = p_j.getF();
+      fi[0] += fx;
+      fi[1] += fy;
+      fi[2] += fz;
+      fj[0] -= fx;
+      fj[1] -= fy;
+      fj[2] -= fz;
     }
   };
 
   if (lc) {
-    // Update cell assignments and handle boundaries before iterating
     lc->handleOutflowBoundaries();
-    lc->iteratePairs(applyTruncatedLJ);
+    lc->iteratePairsTemplate(applyTruncatedLJ);
   } else {
-    // Direct sum fallback
     const size_t n_particles = particles.size();
     for (size_t i = 0; i < n_particles; ++i) {
       for (size_t j = i + 1; j < n_particles; ++j) {
@@ -781,48 +796,66 @@ void TruncatedLJForce::calculateF() {
 }
 
 HarmonicMembraneForce::HarmonicMembraneForce(ParticleContainer& particles, double k, double r0)
-    : ForceCalc(particles), stiffness(k), avgBondLength(r0) {}
+    : ForceCalc(particles), stiffness(k), avgBondLength(r0), diagonalBondLength(SQRT_2 * r0) {}
 
 void HarmonicMembraneForce::calculateF() {
-  constexpr double sqrt2 = 1.4142135623730950488016887242096980785696718753769480731766797379;  // sqrt(2)
-  const double diagonalBondLength = sqrt2 * avgBondLength;
+  const size_t numParticles = particles.size();
+  const double k = stiffness;
+  const double r0 = avgBondLength;
+  const double r0_diag = diagonalBondLength;
 
-  for (auto& p : particles) {
+  for (size_t i = 0; i < numParticles; ++i) {
+    Particle& p = particles[i];
+    const auto& px = p.getX();
+    auto& pf = p.getF();
+
     // Process direct neighbors (bond length = r0)
-    for (int neighborID : p.getDirectNeighbors()) {
-      if (neighborID < 0 || neighborID >= static_cast<int>(particles.size())) continue;
-      Particle& neighbor = particles[neighborID];
+    for (const int neighborID : p.getDirectNeighbors()) {
+      if (neighborID < 0 || neighborID >= static_cast<int>(numParticles))
+        continue;
+      const Particle& neighbor = particles[neighborID];
+      const auto& nx = neighbor.getX();
 
-      const auto dist = neighbor.getX() - p.getX();
-      const double norm = ArrayUtils::L2Norm(dist);
+      const double dx = nx[0] - px[0];
+      const double dy = nx[1] - px[1];
+      const double dz = nx[2] - px[2];
+      const double distSq = dx * dx + dy * dy + dz * dz;
 
-      if (norm > 0) {
-        const double deviation = norm - avgBondLength;
-        const auto F_vec = (stiffness * deviation / norm) * dist;
-        p.setF(p.getF() + F_vec);
+      if (distSq > 0.0) {
+        const double inv_norm = 1.0 / std::sqrt(distSq);
+        const double factor = k * (1.0 - r0 * inv_norm);
+        pf[0] += factor * dx;
+        pf[1] += factor * dy;
+        pf[2] += factor * dz;
       }
     }
 
     // Process diagonal neighbors (bond length = sqrt(2) * r0)
-    for (int neighborID : p.getDiagonalNeighbors()) {
-      if (neighborID < 0 || neighborID >= static_cast<int>(particles.size())) continue;
-      Particle& neighbor = particles[neighborID];
+    for (const int neighborID : p.getDiagonalNeighbors()) {
+      if (neighborID < 0 || neighborID >= static_cast<int>(numParticles))
+        continue;
+      const Particle& neighbor = particles[neighborID];
+      const auto& nx = neighbor.getX();
 
-      const auto dist = neighbor.getX() - p.getX();
-      const double norm = ArrayUtils::L2Norm(dist);
+      const double dx = nx[0] - px[0];
+      const double dy = nx[1] - px[1];
+      const double dz = nx[2] - px[2];
+      const double distSq = dx * dx + dy * dy + dz * dz;
 
-      if (norm > 0) {
-        const double deviation = norm - diagonalBondLength;
-        const auto F_vec = (stiffness * deviation / norm) * dist;
-        p.setF(p.getF() + F_vec);
+      if (distSq > 0.0) {
+        const double inv_norm = 1.0 / std::sqrt(distSq);
+        const double factor = k * (1.0 - r0_diag * inv_norm);
+        pf[0] += factor * dx;
+        pf[1] += factor * dy;
+        pf[2] += factor * dz;
       }
     }
   }
 }
 
-ConstantForce::ConstantForce(ParticleContainer& particles, double fx, double fy, double fz,
-                             double endTime, double& currentTime,
-                             std::vector<std::pair<int, int>> targetIndices, int membraneDimY)
+ConstantForce::ConstantForce(ParticleContainer& particles, double fx, double fy, double fz, const double endTime,
+                             double& currentTime, std::vector<std::pair<int, int>> targetIndices,
+                             const int membraneDimY)
     : ForceCalc(particles),
       force({fx, fy, fz}),
       endTime(endTime),
@@ -840,9 +873,9 @@ void ConstantForce::calculateF() {
   for (const auto& [gridX, gridY] : targetIndices) {
     // Calculate particle index from grid coordinates (matching generateMembrane layout)
     // The particle at (gridX, gridY) has index gridX * yDim + gridY
-    const int particleIdx = gridX * membraneDimY + gridY;
 
-    if (particleIdx >= 0 && particleIdx < static_cast<int>(particles.size())) {
+    if (const int particleIdx = gridX * membraneDimY + gridY;
+        particleIdx >= 0 && particleIdx < static_cast<int>(particles.size())) {
       Particle& p = particles[particleIdx];
       p.setF(p.getF() + force);
     }

@@ -269,8 +269,8 @@ SimulationConfig YAMLFileReader::getConfig() {
             fc.targetIndices.emplace_back(x, y);
           }
         }
-        SPDLOG_INFO("Constant force configured: F=({}, {}, {}), end_time={}, targets={}",
-                    *fc.forceX, *fc.forceY, *fc.forceZ, *fc.endTime, fc.targetIndices.size());
+        SPDLOG_INFO("Constant force configured: F=({}, {}, {}), end_time={}, targets={}", *fc.forceX, *fc.forceY,
+                    *fc.forceZ, *fc.endTime, fc.targetIndices.size());
         break;
     }
     simConfig.forceConfigs.push_back(fc);
@@ -344,7 +344,7 @@ SimulationConfig YAMLFileReader::getConfig() {
     bool isMembrane = cuboid["is_membrane"] && cuboid["is_membrane"].as<bool>();
 
     generatorRaw.queueCuboid(pos, vel, dim, h, m, meanV, type, sigma, epsilon, isMembrane);
-    
+
     // Store membrane dimensions if this is a membrane
     if (isMembrane) {
       simConfig.membraneDimY = dim[1];

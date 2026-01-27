@@ -31,8 +31,8 @@ class ForceCalc {
 
  public:
   /**
-  * @brief Constructs a force calculation strategy
-  * @param particles Particles affected by the force
+  * @brief Constructor
+  * @param particles ParticleContainer that stores the particles used by the calculation method
   */
   explicit ForceCalc(ParticleContainer& particles);
   virtual ~ForceCalc();
@@ -51,7 +51,6 @@ class ForceCalc {
   static void calculateV(ParticleContainer& particles, double dt);
   /**
   * @brief Calculates the new force that acts on the particles
-  * @note This is a pure virtual method.
   */
   virtual void calculateF() = 0;
 
@@ -166,13 +165,14 @@ class LennardJonesForce final : public ForceCalc {
 
 /**
  * @class TruncatedLJForce
- * @brief Repulsive-only Lennard-Jones potential, truncated at 2^(1/6)·sigma
+ * @brief Repulsive-only Lennard-Jones potential, truncated at 2^(1/6)* sigma
  * 
  * Used for membrane simulations to prevent self-penetration without attraction.
+ * Uses Lorentz-Berthelot mixing rules for mixed particle types.
  */
 class TruncatedLJForce final : public ForceCalc {
  public:
-  TruncatedLJForce(ParticleContainer& particles);
+  explicit TruncatedLJForce(ParticleContainer& particles);
 
   void calculateF() override;
 };
@@ -180,12 +180,13 @@ class TruncatedLJForce final : public ForceCalc {
 /**
  * @class HarmonicMembraneForce
  * @brief Harmonic potential for membrane bonds between neighboring particles
- * Models springs between direct and diagonal neighbors in a 2D membrane.
+ * Models interactions between direct and diagonal neighbors in a 2D membrane.
  */
 class HarmonicMembraneForce final : public ForceCalc {
  private:
-  double stiffness;     ///< Spring constant k
-  double avgBondLength; ///< Average bond length r0
+  double stiffness;           ///< Stiffness constant k
+  double avgBondLength;       ///< Average bond length r0 for direct neighbors
+  double diagonalBondLength;  ///< Bond length for diagonal neighbors: sqrt(2) * r0
 
  public:
   /**
@@ -202,15 +203,15 @@ class HarmonicMembraneForce final : public ForceCalc {
  * @class ConstantForce
  * @brief Applies a constant force to specific particles (identified by membrane x/y indices)
  * 
- * The force is only applied until a specified end time ("pulling" membrane particles)
+ * The force is only applied until a specified end time
  */
 class ConstantForce final : public ForceCalc {
  private:
   std::array<double, 3> force;
   double endTime;
-  double& currentTime;  ///< Reference to simulation's current time
+  double& currentTime;                             ///< Reference to simulation's current time
   std::vector<std::pair<int, int>> targetIndices;  ///< x/y indices of target particles
-  int membraneDimY;  ///< Y-dimension of membrane grid for index calculation
+  int membraneDimY;                                ///< Y-dimension of membrane grid for index calculation
 
  public:
   /**
@@ -223,8 +224,7 @@ class ConstantForce final : public ForceCalc {
    * @param targetIndices Vector of (x, y) index pairs identifying which particles to pull
    * @param membraneDimY Y-dimension of the membrane for calculating particle indices
    */
-  ConstantForce(ParticleContainer& particles, double fx, double fy, double fz, 
-                double endTime, double& currentTime, 
+  ConstantForce(ParticleContainer& particles, double fx, double fy, double fz, double endTime, double& currentTime,
                 std::vector<std::pair<int, int>> targetIndices, int membraneDimY);
 
   void calculateF() override;
