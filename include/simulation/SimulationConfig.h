@@ -69,6 +69,7 @@ enum class Parallelization {
 
 enum class ForceType {
   LENNARD_JONES,      ///< Full Lennard-Jones potential
+  SMOOTHED_LJ,        ///< Smoothed Lennard-Jones potential with continuous force at cutoff
   TRUNCATED_LJ,       ///< Repulsive-only LJ (truncated at 2^(1/6)*sigma)
   GLOBAL_GRAVITY,     ///< Constant gravitational acceleration on all particles
   HARMONIC_MEMBRANE,  ///< Harmonic bonds between membrane neighbors
@@ -78,10 +79,11 @@ enum class ForceType {
 struct ForceConfig {
   ForceType forceType = ForceType::LENNARD_JONES;
 
-  // Lennard-Jones potential (full or truncated)
+  // Lennard-Jones potential (full, smoothed, or truncated)
   std::optional<double> epsilon = std::nullopt;
   std::optional<double> sigma = std::nullopt;
-  std::optional<double> cutoff = std::nullopt;  // cutoff for the force calculations
+  std::optional<double> cutoff = std::nullopt;  // cutoff radius (r_c) for force calculations
+  std::optional<double> rl = std::nullopt;      // smoothing start radius (r_l) for smoothed LJ
 
   // Global gravity (constant acceleration along specified axis)
   std::optional<double> gravity = std::nullopt;   ///< Gravity acceleration value

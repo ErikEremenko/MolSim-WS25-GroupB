@@ -97,6 +97,13 @@ Simulation::Simulation(SimulationConfig& config)
                     *forceConfig.sigma, *forceConfig.cutoff);
         break;
 
+      case ForceType::SMOOTHED_LJ:
+        forces.push_back(std::make_unique<SmoothedLJForce>(*particles, *forceConfig.epsilon, *forceConfig.sigma,
+                                                           *forceConfig.cutoff, *forceConfig.rl));
+        SPDLOG_INFO("Initialized SmoothedLJForce (epsilon={}, sigma={}, r_c={}, r_l={})", *forceConfig.epsilon,
+                    *forceConfig.sigma, *forceConfig.cutoff, *forceConfig.rl);
+        break;
+
       case ForceType::TRUNCATED_LJ:
         forces.push_back(std::make_unique<TruncatedLJForce>(*particles));
         SPDLOG_INFO("Initialized TruncatedLJForce (repulsive-only, uses per-particle sigma/epsilon)");
@@ -231,7 +238,7 @@ void Simulation::runFileOutput() {
       thermostat->updateTemperature();
     }
     // Write state of particles to VTK
-    if (iteration % writeFrequency == 0) {
+    if (writeFrequency > 0 && iteration % writeFrequency == 0) {
       plotParticles(iteration);
     }
     // Write state of particles to checkpoint file

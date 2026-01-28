@@ -167,6 +167,8 @@ double YAMLFileReader::getCheckpointTime() const {
 ForceType YAMLFileReader::getForceType(const std::string& str) {
   if (str == "lennard_jones")
     return ForceType::LENNARD_JONES;
+  if (str == "smoothed_lj")
+    return ForceType::SMOOTHED_LJ;
   if (str == "truncated_lj")
     return ForceType::TRUNCATED_LJ;
   if (str == "global_gravity")
@@ -237,6 +239,17 @@ SimulationConfig YAMLFileReader::getConfig() {
         // Global sigma and epsilon will use the values defined here
         globalSigma = *fc.sigma;
         globalEpsilon = *fc.epsilon;
+        break;
+
+      case ForceType::SMOOTHED_LJ:
+        fc.epsilon = node["epsilon"].as<double>();
+        fc.sigma = node["sigma"].as<double>();
+        fc.cutoff = node["cutoff_radius"].as<double>();
+        fc.rl = node["smoothing_radius"].as<double>();
+        globalSigma = *fc.sigma;
+        globalEpsilon = *fc.epsilon;
+        SPDLOG_INFO("Smoothed LJ force configured: epsilon={}, sigma={}, r_c={}, r_l={}", *fc.epsilon, *fc.sigma,
+                    *fc.cutoff, *fc.rl);
         break;
 
       case ForceType::TRUNCATED_LJ:

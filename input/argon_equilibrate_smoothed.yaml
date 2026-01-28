@@ -1,0 +1,49 @@
+output:
+  base_name: "argon_equilibrate_smoothed"
+  write_frequency: 1000
+  checkpoint_frequency: 10000
+
+simulation:
+  t_end: 150.0
+  delta_t: 0.001
+  dimensions: 3
+
+domain:
+  size: [9.2, 9.2, 9.2]
+
+boundaries:
+  x_min: PERIODIC
+  x_max: PERIODIC
+  y_min: PERIODIC
+  y_max: PERIODIC
+  z_min: PERIODIC
+  z_max: PERIODIC
+
+forces:
+  - force_type: smoothed_lj
+    epsilon: 1.0
+    sigma: 1.0
+    cutoff_radius: 2.3
+    smoothing_radius: 1.9
+
+container:
+  container_type: linked
+  cutoff: 2.3
+
+thermostat:
+  n_thermostat: 40
+  temp_init: 0.01
+  temp_target: 3.0
+  temp_delta: 0.001
+
+cuboids:
+  - position: [0.575, 0.575, 0.575]
+    dimensions: [8, 8, 8]
+    mesh_width: 1.15
+    mass: 1.0
+    velocity: [0.0, 0.0, 0.0]
+    mean_velocity: 0.0
+    epsilon: 1.0
+    sigma: 1.0
+
+spheres: []

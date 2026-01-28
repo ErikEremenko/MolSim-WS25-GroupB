@@ -1,5 +1,6 @@
 #pragma once
 
+#include "physics/LinkedCellParticleContainer.h"
 #include "physics/ParticleContainer.h"
 #include "simulation/SimulationConfig.h"
 
@@ -55,6 +56,20 @@ class ForceCalc {
   virtual void calculateF() = 0;
 
   virtual void precomputeConstants();
+
+ protected:
+  /**
+   * @brief Helper template to iterate over periodic boundary pairs and apply a force function
+   * 
+   * This eliminates code duplication between LennardJonesForce and SmoothedLJForce.
+   * The ForceFunc callable should have signature: void(Particle* p1, Particle* p2)
+   * 
+   * @tparam ForceFunc Callable type for computing forces between particle pairs
+   * @param lc LinkedCellParticleContainer to iterate over
+   * @param calcForce Function to calculate and apply force between two particles
+   */
+  template <typename ForceFunc>
+  static void applyPeriodicBoundariesImpl(class LinkedCellParticleContainer* lc, ForceFunc&& calcForce);
 };
 
 /**
@@ -158,9 +173,71 @@ class LennardJonesForce final : public ForceCalc {
   void precomputeConstants() override;
 
  private:
+  static void applyLJPairForceGlobal(Particle& p_i, Particle& p_j, double sigma6, double epsilon, double cutoffSq);
+  __attribute__((always_inline)) static inline void applyLJPairForceLookup(Particle& p_i, Particle& p_j,
+                                                                           const double* __restrict__ lut1,
+                                                                           const double* __restrict__ lut2, int tw,
+                                                                           double cutoffSq);
   void applyReflectiveBoundaries(const class LinkedCellParticleContainer* lc) const;
   void calcFPeriodicBoundary(Particle* p1, Particle* p2) const;
   void applyPeriodicBoundaries(LinkedCellParticleContainer* lc) const;
+};
+
+/**
+ * @class SmoothedLJForce
+ * @brief Smoothed Lennard-Jones potential with continuous force at cutoff
+ * 
+ * Implements the smoothed LJ potential: U(x_i, x_j) = 4ε · S(x_i, x_j) · [(σ/r)^12 - (σ/r)^6]
+ * 
+ * The smoothing function S(x_i, x_j) ensures the force goes smoothly to zero at cutoff:
+ * - S = 1                                                    for d_ij ≤ r_l
+ * - S = 1 - (d - r_l)² · (3r_c - r_l - 2d) / (r_c - r_l)³   for r_l < d_ij < r_c
+ * - S = 0                                                    for d_ij ≥ r_c
+ * 
+ * Uses Lorentz-Berthelot mixing rules for mixed particle types.
+ */
+class SmoothedLJForce final : public ForceCalc {
+ private:
+  /// Global Lennard-Jones epsilon parameter
+  const double epsilon;
+  /// Global Lennard-Jones sigma parameter
+  const double sigma;
+  /// Cutoff radius (r_c) beyond which interactions are zero
+  const double cutoffRadius;
+  /// Smoothing start radius (r_l) below which standard LJ is used
+  const double smoothingRadius;
+
+  // Precomputed constants
+  double cutoffRadiusSq;     ///< r_c^2 for squared distance comparisons
+  double smoothingRadiusSq;  ///< r_l^2 for squared distance comparisons
+  double rcMinusRlCubed;     ///< (r_c - r_l)^3 for smoothing function
+
+  /// Lookup tables for pair interactions (indexed by type_i * tableWidth + type_j)
+  std::vector<double> pairEpsilon;  ///< Mixed epsilon values
+  std::vector<double> pairSigma6;   ///< sigma_ij^6
+  std::vector<double> pairSigma12;  ///< sigma_ij^12
+  int tableWidth = 0;
+
+ public:
+  /**
+   * @param particles ParticleContainer that stores the particles
+   * @param epsilon Epsilon in the Lennard-Jones potential formula
+   * @param sigma Sigma in the Lennard-Jones potential formula
+   * @param cutoffRadius Cutoff radius r_c beyond which interactions are ignored
+   * @param smoothingRadius Smoothing radius r_l below which standard LJ is used
+   */
+  SmoothedLJForce(ParticleContainer& particles, double epsilon, double sigma, double cutoffRadius,
+                  double smoothingRadius);
+
+  void calculateF() override;
+  void precomputeConstants() override;
+
+ private:
+  void calculateFDirectSum() const;
+  void calculateFLinkedCell();
+  void calcFPeriodicPair(Particle* p1, Particle* p2) const;
+  void applyPeriodicBoundaries(LinkedCellParticleContainer* lc) const;
+  __attribute__((always_inline)) inline void applySmoothedPairForce(Particle& p_i, Particle& p_j) const;
 };
 
 /**
@@ -242,3 +319,242 @@ class LennardJonesForceParallel final : public ForceCalc {
   LennardJonesForceParallel(ParticleContainer& particles, double epsilon, double sigma, double cutoffRadius);
   void calculateF() override;
 };
+
+// Template implementation (must be in header)
+template <typename ForceFunc>
+void ForceCalc::applyPeriodicBoundariesImpl(LinkedCellParticleContainer* lc, ForceFunc&& calcForce) {
+  const auto domainDims = lc->domain_dims();
+  const auto boundaryTypes = lc->boundary_types();
+  const auto numCells = lc->num_cells();
+
+  // Face interactions
+  // X-periodic: left wall (x=1) <-> right wall (x=numCells[0]-2)
+  if (boundaryTypes[0] == BoundaryType::PERIODIC && boundaryTypes[1] == BoundaryType::PERIODIC) {
+    for (int c1y = 1; c1y < numCells[1] - 1; c1y++)
+      for (int c1z = 1; c1z < numCells[2] - 1; c1z++) {
+        auto& cell1 = lc->cell_at(1, c1y, c1z);
+        for (int c2y = c1y - 1; c2y <= c1y + 1; c2y++)
+          for (int c2z = c1z - 1; c2z <= c1z + 1; c2z++) {
+            if (c2y < 1 || c2y > numCells[1] - 2 || c2z < 1 || c2z > numCells[2] - 2)
+              continue;
+            auto& cell2 = lc->cell_at(numCells[0] - 2, c2y, c2z);
+            for (auto& p1 : cell1)
+              for (auto& p2 : cell2) {
+                p2->setX(p2->getX()[0] - domainDims[0], 0);
+                calcForce(p1, p2);
+                p2->setX(p2->getX()[0] + domainDims[0], 0);
+              }
+          }
+      }
+  }
+
+  // Y-periodic: bottom wall (y=1) <-> top wall (y=numCells[1]-2)
+  if (boundaryTypes[2] == BoundaryType::PERIODIC && boundaryTypes[3] == BoundaryType::PERIODIC) {
+    for (int c1x = 1; c1x < numCells[0] - 1; c1x++)
+      for (int c1z = 1; c1z < numCells[2] - 1; c1z++) {
+        auto& cell1 = lc->cell_at(c1x, 1, c1z);
+        for (int c2x = c1x - 1; c2x <= c1x + 1; c2x++)
+          for (int c2z = c1z - 1; c2z <= c1z + 1; c2z++) {
+            if (c2x < 1 || c2x > numCells[0] - 2 || c2z < 1 || c2z > numCells[2] - 2)
+              continue;
+            auto& cell2 = lc->cell_at(c2x, numCells[1] - 2, c2z);
+            for (auto& p1 : cell1)
+              for (auto& p2 : cell2) {
+                p2->setX(p2->getX()[1] - domainDims[1], 1);
+                calcForce(p1, p2);
+                p2->setX(p2->getX()[1] + domainDims[1], 1);
+              }
+          }
+      }
+  }
+
+  // Z-periodic: front wall (z=1) <-> back wall (z=numCells[2]-2)
+  if (boundaryTypes[4] == BoundaryType::PERIODIC && boundaryTypes[5] == BoundaryType::PERIODIC) {
+    for (int c1x = 1; c1x < numCells[0] - 1; c1x++)
+      for (int c1y = 1; c1y < numCells[1] - 1; c1y++) {
+        auto& cell1 = lc->cell_at(c1x, c1y, 1);
+        for (int c2x = c1x - 1; c2x <= c1x + 1; c2x++)
+          for (int c2y = c1y - 1; c2y <= c1y + 1; c2y++) {
+            if (c2x < 1 || c2x > numCells[0] - 2 || c2y < 1 || c2y > numCells[1] - 2)
+              continue;
+            auto& cell2 = lc->cell_at(c2x, c2y, numCells[2] - 2);
+            for (auto& p1 : cell1)
+              for (auto& p2 : cell2) {
+                p2->setX(p2->getX()[2] - domainDims[2], 2);
+                calcForce(p1, p2);
+                p2->setX(p2->getX()[2] + domainDims[2], 2);
+              }
+          }
+      }
+  }
+
+  // Edge interactions (two periodic dimensions)
+  // X+Y periodic edges
+  if (boundaryTypes[0] == BoundaryType::PERIODIC && boundaryTypes[1] == BoundaryType::PERIODIC &&
+      boundaryTypes[2] == BoundaryType::PERIODIC && boundaryTypes[3] == BoundaryType::PERIODIC) {
+    for (int c1z = 1; c1z < numCells[2] - 1; c1z++) {
+      auto& cell1 = lc->cell_at(1, 1, c1z);
+      for (int c2z = c1z - 1; c2z <= c1z + 1; c2z++) {
+        if (c2z < 1 || c2z > numCells[2] - 2)
+          continue;
+        auto& cell2 = lc->cell_at(numCells[0] - 2, numCells[1] - 2, c2z);
+        for (auto& p1 : cell1)
+          for (auto& p2 : cell2) {
+            p2->setX(p2->getX()[0] - domainDims[0], 0);
+            p2->setX(p2->getX()[1] - domainDims[1], 1);
+            calcForce(p1, p2);
+            p2->setX(p2->getX()[0] + domainDims[0], 0);
+            p2->setX(p2->getX()[1] + domainDims[1], 1);
+          }
+      }
+    }
+    for (int c1z = 1; c1z < numCells[2] - 1; c1z++) {
+      auto& cell1 = lc->cell_at(1, numCells[1] - 2, c1z);
+      for (int c2z = c1z - 1; c2z <= c1z + 1; c2z++) {
+        if (c2z < 1 || c2z > numCells[2] - 2)
+          continue;
+        auto& cell2 = lc->cell_at(numCells[0] - 2, 1, c2z);
+        for (auto& p1 : cell1)
+          for (auto& p2 : cell2) {
+            p2->setX(p2->getX()[0] - domainDims[0], 0);
+            p2->setX(p2->getX()[1] + domainDims[1], 1);
+            calcForce(p1, p2);
+            p2->setX(p2->getX()[0] + domainDims[0], 0);
+            p2->setX(p2->getX()[1] - domainDims[1], 1);
+          }
+      }
+    }
+  }
+
+  // X+Z periodic edges
+  if (boundaryTypes[0] == BoundaryType::PERIODIC && boundaryTypes[1] == BoundaryType::PERIODIC &&
+      boundaryTypes[4] == BoundaryType::PERIODIC && boundaryTypes[5] == BoundaryType::PERIODIC) {
+    for (int c1y = 1; c1y < numCells[1] - 1; c1y++) {
+      auto& cell1 = lc->cell_at(1, c1y, 1);
+      for (int c2y = c1y - 1; c2y <= c1y + 1; c2y++) {
+        if (c2y < 1 || c2y > numCells[1] - 2)
+          continue;
+        auto& cell2 = lc->cell_at(numCells[0] - 2, c2y, numCells[2] - 2);
+        for (auto& p1 : cell1)
+          for (auto& p2 : cell2) {
+            p2->setX(p2->getX()[0] - domainDims[0], 0);
+            p2->setX(p2->getX()[2] - domainDims[2], 2);
+            calcForce(p1, p2);
+            p2->setX(p2->getX()[0] + domainDims[0], 0);
+            p2->setX(p2->getX()[2] + domainDims[2], 2);
+          }
+      }
+    }
+    for (int c1y = 1; c1y < numCells[1] - 1; c1y++) {
+      auto& cell1 = lc->cell_at(1, c1y, numCells[2] - 2);
+      for (int c2y = c1y - 1; c2y <= c1y + 1; c2y++) {
+        if (c2y < 1 || c2y > numCells[1] - 2)
+          continue;
+        auto& cell2 = lc->cell_at(numCells[0] - 2, c2y, 1);
+        for (auto& p1 : cell1)
+          for (auto& p2 : cell2) {
+            p2->setX(p2->getX()[0] - domainDims[0], 0);
+            p2->setX(p2->getX()[2] + domainDims[2], 2);
+            calcForce(p1, p2);
+            p2->setX(p2->getX()[0] + domainDims[0], 0);
+            p2->setX(p2->getX()[2] - domainDims[2], 2);
+          }
+      }
+    }
+  }
+
+  // Y+Z periodic edges
+  if (boundaryTypes[2] == BoundaryType::PERIODIC && boundaryTypes[3] == BoundaryType::PERIODIC &&
+      boundaryTypes[4] == BoundaryType::PERIODIC && boundaryTypes[5] == BoundaryType::PERIODIC) {
+    for (int c1x = 1; c1x < numCells[0] - 1; c1x++) {
+      auto& cell1 = lc->cell_at(c1x, 1, 1);
+      for (int c2x = c1x - 1; c2x <= c1x + 1; c2x++) {
+        if (c2x < 1 || c2x > numCells[0] - 2)
+          continue;
+        auto& cell2 = lc->cell_at(c2x, numCells[1] - 2, numCells[2] - 2);
+        for (auto& p1 : cell1)
+          for (auto& p2 : cell2) {
+            p2->setX(p2->getX()[1] - domainDims[1], 1);
+            p2->setX(p2->getX()[2] - domainDims[2], 2);
+            calcForce(p1, p2);
+            p2->setX(p2->getX()[1] + domainDims[1], 1);
+            p2->setX(p2->getX()[2] + domainDims[2], 2);
+          }
+      }
+    }
+    for (int c1x = 1; c1x < numCells[0] - 1; c1x++) {
+      auto& cell1 = lc->cell_at(c1x, 1, numCells[2] - 2);
+      for (int c2x = c1x - 1; c2x <= c1x + 1; c2x++) {
+        if (c2x < 1 || c2x > numCells[0] - 2)
+          continue;
+        auto& cell2 = lc->cell_at(c2x, numCells[1] - 2, 1);
+        for (auto& p1 : cell1)
+          for (auto& p2 : cell2) {
+            p2->setX(p2->getX()[1] - domainDims[1], 1);
+            p2->setX(p2->getX()[2] + domainDims[2], 2);
+            calcForce(p1, p2);
+            p2->setX(p2->getX()[1] + domainDims[1], 1);
+            p2->setX(p2->getX()[2] - domainDims[2], 2);
+          }
+      }
+    }
+  }
+
+  // Corner interactions (all 8 corners in fully periodic 3D domain)
+  if (boundaryTypes[0] == BoundaryType::PERIODIC && boundaryTypes[1] == BoundaryType::PERIODIC &&
+      boundaryTypes[2] == BoundaryType::PERIODIC && boundaryTypes[3] == BoundaryType::PERIODIC &&
+      boundaryTypes[4] == BoundaryType::PERIODIC && boundaryTypes[5] == BoundaryType::PERIODIC) {
+
+    auto& cell1 = lc->cell_at(1, 1, 1);
+    auto& cell2 = lc->cell_at(numCells[0] - 2, numCells[1] - 2, numCells[2] - 2);
+    for (auto& p1 : cell1)
+      for (auto& p2 : cell2) {
+        p2->setX(p2->getX()[0] - domainDims[0], 0);
+        p2->setX(p2->getX()[1] - domainDims[1], 1);
+        p2->setX(p2->getX()[2] - domainDims[2], 2);
+        calcForce(p1, p2);
+        p2->setX(p2->getX()[0] + domainDims[0], 0);
+        p2->setX(p2->getX()[1] + domainDims[1], 1);
+        p2->setX(p2->getX()[2] + domainDims[2], 2);
+      }
+
+    cell1 = lc->cell_at(numCells[0] - 2, 1, 1);
+    cell2 = lc->cell_at(1, numCells[1] - 2, numCells[2] - 2);
+    for (auto& p1 : cell1)
+      for (auto& p2 : cell2) {
+        p2->setX(p2->getX()[0] + domainDims[0], 0);
+        p2->setX(p2->getX()[1] - domainDims[1], 1);
+        p2->setX(p2->getX()[2] - domainDims[2], 2);
+        calcForce(p1, p2);
+        p2->setX(p2->getX()[0] - domainDims[0], 0);
+        p2->setX(p2->getX()[1] + domainDims[1], 1);
+        p2->setX(p2->getX()[2] + domainDims[2], 2);
+      }
+
+    cell1 = lc->cell_at(1, 1, numCells[2] - 2);
+    cell2 = lc->cell_at(numCells[0] - 2, numCells[1] - 2, 1);
+    for (auto& p1 : cell1)
+      for (auto& p2 : cell2) {
+        p2->setX(p2->getX()[0] - domainDims[0], 0);
+        p2->setX(p2->getX()[1] - domainDims[1], 1);
+        p2->setX(p2->getX()[2] + domainDims[2], 2);
+        calcForce(p1, p2);
+        p2->setX(p2->getX()[0] + domainDims[0], 0);
+        p2->setX(p2->getX()[1] + domainDims[1], 1);
+        p2->setX(p2->getX()[2] - domainDims[2], 2);
+      }
+
+    cell1 = lc->cell_at(numCells[0] - 2, 1, numCells[2] - 2);
+    cell2 = lc->cell_at(1, numCells[1] - 2, 1);
+    for (auto& p1 : cell1)
+      for (auto& p2 : cell2) {
+        p2->setX(p2->getX()[0] + domainDims[0], 0);
+        p2->setX(p2->getX()[1] - domainDims[1], 1);
+        p2->setX(p2->getX()[2] + domainDims[2], 2);
+        calcForce(p1, p2);
+        p2->setX(p2->getX()[0] - domainDims[0], 0);
+        p2->setX(p2->getX()[1] + domainDims[1], 1);
+        p2->setX(p2->getX()[2] - domainDims[2], 2);
+      }
+  }
+}
