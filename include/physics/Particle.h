@@ -44,6 +44,14 @@ class Particle {
   std::array<double, 3> x{};
 
   /**
+   * @brief Accumulated displacement of the particle
+   *
+   * This member is to be used for thermodynamical statistics calculations. It should
+   * be reset every time the statistics are updated
+   */
+  std::array<double, 3> displacement{};
+
+  /**
    * @brief Current velocity of the particle
    *
    *  A 3 component vector storing the particle's movement direction and speed
@@ -164,6 +172,8 @@ class Particle {
   [[nodiscard]] MOLSIM_FORCE_INLINE double getEpsilon() const noexcept { return epsilon; }
   /** @brief get unique identifier */
   [[nodiscard]] MOLSIM_FORCE_INLINE int getID() const noexcept { return id; }
+  /** @brief get accumulated displacement */
+  [[nodiscard]] MOLSIM_FORCE_INLINE std::array<double, 3> getDisplacement() const noexcept { return displacement; }
 
   /** @brief get the list of direct neighbors */
   [[nodiscard]] std::vector<int>& getDirectNeighbors();
@@ -176,7 +186,7 @@ class Particle {
   /** @brief set particle position vector
    *  @param val velocity vector as 3 element array
    */
-  void setX(const std::array<double, 3>& val) { this->x = val; }
+  void setX(const std::array<double, 3>& val);
   /** @brief set coordinate of particle position vector
    *  @param val value for the coordinate
    *  @param dim dimension (0=x, 1=y, 2=z)
@@ -200,6 +210,13 @@ class Particle {
   bool operator==(const Particle& other) const;
 
   [[nodiscard]] std::string toString() const;
+
+  /**
+   * @brief Resets the accumulated displacement of the particle.
+   * This function should be called after a thermodynamics statistics update.
+   * @note The array copying in the function is fine, as direct assignment also leads to the same assembly in -O3.
+   */
+  MOLSIM_FORCE_INLINE void resetDisplacement() { displacement = {0.0, 0.0, 0.0}; };
 };
 
 std::ostream& operator<<(std::ostream& stream, const Particle& p);
