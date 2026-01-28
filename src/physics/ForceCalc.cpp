@@ -13,7 +13,7 @@ ForceCalc::~ForceCalc() = default;
 void ForceCalc::calculateX(ParticleContainer& particles, const double dt) {
   const double dt_sq_half = 0.5 * dt * dt;
   const size_t n = particles.size();
-  
+
   // Manual loop (better SIMD optimization potential)
   for (size_t i = 0; i < n; ++i) {
     auto& p = particles[i];
@@ -21,7 +21,7 @@ void ForceCalc::calculateX(ParticleContainer& particles, const double dt) {
     const auto& v = p.getV();
     const auto& F = p.getF();
     const double inv_m = 1.0 / p.getM();
-    
+
     // compute all 3 components (SIMD friendly)
     std::array<double, 3> x_new;
     #pragma omp simd
@@ -34,14 +34,14 @@ void ForceCalc::calculateX(ParticleContainer& particles, const double dt) {
 
 void ForceCalc::calculateV(ParticleContainer& particles, const double dt) {
   const size_t n = particles.size();
-  
+
   for (size_t i = 0; i < n; ++i) {
     auto& p = particles[i];
     const auto& v_curr = p.getV();
     const auto& F = p.getF();
     const auto& F_old = p.getOldF();
     const double dt_half_inv_m = dt / (2.0 * p.getM());
-    
+
     std::array<double, 3> v_new;
     #pragma omp simd
     for (int d = 0; d < 3; ++d) {
@@ -105,7 +105,7 @@ LennardJonesForce::LennardJonesForce(ParticleContainer& particles, const double 
 
 void LennardJonesForce::calculateF() {
   if (dynamic_cast<LinkedCellParticleContainer*>(&particles)) {
-    calculateFLinkedCell();
+    calculateFLinkedCellParallel1();
   } else {
     calculateFDirectSum();
   }
@@ -739,7 +739,7 @@ void TruncatedLJForce::calculateF() {
   // Truncated (repulsive-only) Lennard-Jones: only applies when r < 2^(1/6) * sigma
   constexpr double sqrt2_6 = 1.1224620483093729814335330496791795162324111106139867534404095458;  // 2^(1/6)
   auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
-  
+
   auto applyTruncatedLJ = [](Particle& p_i, Particle& p_j) {
     const auto dist = p_j.getX() - p_i.getX();
     const double norm = ArrayUtils::L2Norm(dist);
@@ -848,3 +848,86 @@ void ConstantForce::calculateF() {
     }
   }
 }
+
+
+
+void LennardJonesForce::calculateFLinkedCellParallel1() {
+
+  auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
+  if (!lc) {
+    throw std::runtime_error("LennardJonesForce::calculateFLinkedCell requires LinkedCellParticleContainer");
+  }
+  lc->handleOutflowBoundaries();
+
+  //code for parallel f calc
+
+  const auto numCells = lc->num_cells();
+  const int nx = numCells[0];
+  const int ny = numCells[1];
+  const int nz = numCells[2];
+
+  for (int px = 0; px < 3; px++)
+  for (int py = 0; py < 2; py++){
+    int cx = -2 + px;
+    int cy = 1 + py;
+    bool breakCritical = false;
+    #pragma omp parallel
+    {
+
+      bool breakCriticalLocal = false;
+      while (true){
+        int lx, ly, lz;
+        #pragma omp critical
+        {
+          cx += 3;
+          if (cx >= nx - 1){
+            cy += 2; cx = 1 + px;
+            if (cy >= ny - 1){
+              breakCritical = true;
+            }
+          }
+          lx = cx; ly = cy;
+          if (breakCritical) breakCriticalLocal = true;
+        }
+        if (breakCriticalLocal){
+          break;
+        }
+
+        for (int lz = 1; lz < nz - 1; lz++){
+
+          auto& cell1 = lc->cell_at(lx, ly, lz);
+
+          for (int i = 0; i < cell1.size(); ++i)
+          for (int j = i + 1; j < cell1.size(); ++j) {
+            calcFPeriodicBoundary(cell1[i], cell1[j]);
+          }
+
+          for (int dx = -1; dx < 2; dx++)
+          for (int dz = -1; dz < 2; dz++)
+          for (int dy = 0; dy < 2; dy++){
+            if (dy == 0 && (dz == -1 || (dz == 0 && dx <= 0)))
+              continue;
+            int c2x = lx + dx, c2y = ly + dy, c2z = lz + dz;
+            if (c2x < 1 || c2x >= nx - 1 || c2y < 1 || c2y >= ny - 1 || c2z < 1 || c2z >= nz - 1)
+              continue;
+
+            auto& cell2 = lc->cell_at(c2x, c2y, c2z);
+            for (auto& p1 : cell1)
+            for (auto& p2 : cell2) {
+              calcFPeriodicBoundary(p1, p2);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  //code for parallel f calc end
+
+  applyReflectiveBoundaries(lc);
+  applyPeriodicBoundaries(lc);
+}
+
+
+
+

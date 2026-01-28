@@ -9,15 +9,15 @@
 /**
  * @class ForceCalc
  * @brief Abstract base class used for implementing different force calculation strategies
- * 
+ *
  * @section perf_requirements Performance Requirements
  * For optimal performance with millions/billions of particle operations:
- * 
+ *
  * @warning **Zero-Distance Checks**: Force calculation methods in derived classes may omit
  * zero-distance checks for performance. Ensure particles are initialized with distinct positions.
  * Overlapping particles will cause division by zero, resulting in NaN/inf values that silently
  * propagate through the simulation.
- * 
+ *
  * @warning **Particle Types**: The LennardJonesForce class requires that particle types
  * uniquely identify (sigma, epsilon) pairs. Use the automatic type assignment in YAMLFileReader
  * or ensure manual type assignments are consistent.
@@ -95,11 +95,11 @@ class GlobalGravityForce final : public ForceCalc {
 /**
  * @class LennardJonesForce
  * @brief Models the Lennard-Jones potential
- * 
+ *
  * @warning This class assumes that each particle type uniquely maps to a (sigma, epsilon) pair.
  * Particles with the same type MUST have identical sigma and epsilon values.
  * Violating this assumption leads to incorrect force calculations!
- * 
+ *
  * @warning For performance, zero-distance checks between particles are NOT performed in
  * calculateFLinkedCell(). Ensure particles are properly initialized with distinct positions.
  * Overlapping particles will cause division by zero and NaN/inf propagation!
@@ -155,6 +155,7 @@ class LennardJonesForce final : public ForceCalc {
   void calculateF() override;
   void calculateFDirectSum();
   void calculateFLinkedCell();
+  void calculateFLinkedCellParallel1();
 
   void precomputeConstants() override;
 
@@ -167,7 +168,7 @@ class LennardJonesForce final : public ForceCalc {
 /**
  * @class TruncatedLJForce
  * @brief Repulsive-only Lennard-Jones potential, truncated at 2^(1/6)·sigma
- * 
+ *
  * Used for membrane simulations to prevent self-penetration without attraction.
  */
 class TruncatedLJForce final : public ForceCalc {
@@ -201,7 +202,7 @@ class HarmonicMembraneForce final : public ForceCalc {
 /**
  * @class ConstantForce
  * @brief Applies a constant force to specific particles (identified by membrane x/y indices)
- * 
+ *
  * The force is only applied until a specified end time ("pulling" membrane particles)
  */
 class ConstantForce final : public ForceCalc {
@@ -223,8 +224,8 @@ class ConstantForce final : public ForceCalc {
    * @param targetIndices Vector of (x, y) index pairs identifying which particles to pull
    * @param membraneDimY Y-dimension of the membrane for calculating particle indices
    */
-  ConstantForce(ParticleContainer& particles, double fx, double fy, double fz, 
-                double endTime, double& currentTime, 
+  ConstantForce(ParticleContainer& particles, double fx, double fy, double fz,
+                double endTime, double& currentTime,
                 std::vector<std::pair<int, int>> targetIndices, int membraneDimY);
 
   void calculateF() override;
