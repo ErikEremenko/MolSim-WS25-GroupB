@@ -1,14 +1,12 @@
 #include "physics/thermodynamics/ThermodynamicsStatistics.h"
 
 ThermodynamicsStatistics::ThermodynamicsStatistics(
-  ParticleContainer& particles, const std::array<double, 3>& domainDims
-  ) : msd(particles), rdf(particles, domainDims) {}
+  ParticleContainer& particles, const std::array<double, 3>& domainDims, const std::string& baseName
+  ) : msd(particles), rdf(particles, domainDims), writer(baseName) {}
 
 void ThermodynamicsStatistics::updateStatistics() {
-  double diffusion = msd.calculateDiffusion();
+  const double diffusion = msd.calculateDiffusion();
+  const std::array<int, RDFCalculator::intervalCount>& rdfBins = rdf.calculateDistribution();
 
-  rdf.calculateDistribution();
-  auto& rdfBins = rdf.getIntervals();
-
-  // TODO: Add file output
+  writer.write(diffusion, rdfBins);
 }

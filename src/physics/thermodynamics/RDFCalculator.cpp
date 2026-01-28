@@ -7,7 +7,7 @@
 RDFCalculator::RDFCalculator(ParticleContainer& particles, const std::array<double, 3>& domainDims)
   : particles(particles), domainDims(domainDims) {}
 
-void RDFCalculator::calculateDistribution() {
+const std::array<int, RDFCalculator::intervalCount>& RDFCalculator::calculateDistribution() {
   resetIntervals();
 
   const std::size_t n_particles = particles.size();
@@ -38,12 +38,10 @@ void RDFCalculator::calculateDistribution() {
       intervals[intervalIndex] += 2;  // add both particles
     }
   }
+
+  return intervals;
 }
 
 void RDFCalculator::resetIntervals() {
   for (int& interval : intervals) interval = 0;
-}
-
-std::array<int, RDFCalculator::intervalCount>& RDFCalculator::getIntervals() {
-  return intervals;
 }
