@@ -11,11 +11,10 @@ class ThermodynamicsStatistics {
   private:
     MSDCalculator msd;
     RDFCalculator rdf;
-    const int updateFrequency;
   public:
-    ThermodynamicsStatistics(ParticleContainer& particles, const std::array<double, 3>& domainDims, int updateFrequency);
+    static constexpr int updateFrequency = 1000;
+
+    ThermodynamicsStatistics(ParticleContainer& particles, const std::array<double, 3>& domainDims);
 
     void updateStatistics();
-
-   [[nodiscard]] int getUpdateFrequency() const;
 };

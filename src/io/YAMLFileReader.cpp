@@ -304,8 +304,11 @@ SimulationConfig YAMLFileReader::getConfig() {
     SPDLOG_INFO("No container section found, defaulting to LINKED with cutoff={}", inferredCutoff);
   }
 
-  // Thermostat
+  // Thermostat and thermodynamics
   simConfig.thermostatConfig = getThermostatConfig();
+  if (config["simulation"]["calculate_thermodynamics"]) {
+    simConfig.calculateThermodynamics = config["simulation"]["calculate_thermodynamics"].as<bool>();
+  }
 
   // Particle generation
   // Each cuboid/sphere gets a sequential type ID (0, 1, 2, ...) unless manually overridden in the YAML file
