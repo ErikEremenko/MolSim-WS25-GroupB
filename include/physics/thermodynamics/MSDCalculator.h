@@ -8,5 +8,5 @@ class MSDCalculator {
     ParticleContainer& particles;
   public:
     explicit MSDCalculator(ParticleContainer& particles);
-    void calculateDiffusion();
+    double calculateDiffusion();
 };

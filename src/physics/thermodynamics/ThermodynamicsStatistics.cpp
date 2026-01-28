@@ -8,6 +8,8 @@ int ThermodynamicsStatistics::getUpdateFrequency() const {
 }
 
 void ThermodynamicsStatistics::updateStatistics() {
-  msd.calculateDiffusion();
+  double diffusion = msd.calculateDiffusion();
   rdf.calculateDistribution();
+
+  // TODO: Add file output
 }
