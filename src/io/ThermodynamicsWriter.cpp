@@ -1,9 +1,17 @@
 #include "io/ThermodynamicsWriter.h"
 
 #include <stdexcept>
+#include <filesystem>
 
 ThermodynamicsWriter::ThermodynamicsWriter(const std::string& baseName)
-  : filename(outputDirectory + baseName + "_thermodynamics.csv") {}
+  : filename(outputDirectory + baseName + "_thermodynamics.csv") {
+  // Create the directory if it doesn't exist
+  try {
+    std::filesystem::create_directories(outputDirectory);
+  } catch (const std::filesystem::filesystem_error& err) {
+    throw std::runtime_error("Could not create output directory " + outputDirectory + ": " + err.what());
+  }
+}
 
 void ThermodynamicsWriter::write(const double diffusion, const std::array<int, RDFCalculator::intervalCount>& rdfBins) const {
   const bool exists = fileExists();

@@ -3,14 +3,13 @@
 #include <string>
 #include <fstream>
 #include <array>
-#include <iostream>
 
 #include "physics/thermodynamics/RDFCalculator.h"
 
 // TODO: Write docstrings for this class
 class ThermodynamicsWriter {
   private:
-    inline static const std::string outputDirectory = "build/output/thermodynamics";
+    inline static const std::string outputDirectory = "output/thermodynamics/";
 
     std::string filename;
     [[nodiscard]] bool fileExists() const {
