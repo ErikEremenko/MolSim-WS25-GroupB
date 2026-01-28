@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "physics/ParticleContainer.h"
 #include "physics/thermodynamics/MSDCalculator.h"
 #include "physics/thermodynamics/RDFCalculator.h"
@@ -11,7 +13,7 @@ class ThermodynamicsStatistics {
     RDFCalculator rdf;
     const int updateFrequency;
   public:
-    ThermodynamicsStatistics(ParticleContainer& particles, int updateFrequency);
+    ThermodynamicsStatistics(ParticleContainer& particles, const std::array<double, 3>& domainDims, int updateFrequency);
 
     void updateStatistics();
 
