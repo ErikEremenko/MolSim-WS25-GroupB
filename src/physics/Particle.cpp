@@ -59,6 +59,12 @@ std::vector<int>& Particle::getDiagonalNeighbors() {
   return diagonalNeighbors;
 }
 
+void Particle::setX(const std::array<double, 3>& val) {
+  displacement = displacement + x - val;  // update displacement before position
+
+  x = val;
+}
+
 bool Particle::operator==(const Particle& other) const {
   return (x == other.x) and (v == other.v) and (f == other.f) and (type == other.type) and (m == other.m) and
          (old_f == other.old_f);

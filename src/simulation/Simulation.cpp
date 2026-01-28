@@ -163,6 +163,13 @@ Simulation::Simulation(SimulationConfig& config)
   } else {
     thermostat = nullptr;
   }
+
+  // Initialize thermodynamics statistics
+  if (config.calculateThermodynamics) {
+    thermodynamicsStatistics = std::make_unique<ThermodynamicsStatistics>(*particles, *config.domainSize, outputBasename);
+  } else {
+    thermodynamicsStatistics = nullptr;
+  }
 }
 
 Simulation::~Simulation() = default;
@@ -237,6 +244,10 @@ void Simulation::runFileOutput() {
     if (thermostat && (iteration % thermoFrequency == 0)) {
       thermostat->updateTemperature();
     }
+    // Update thermodynamics statistics
+    if (thermodynamicsStatistics && (iteration % ThermodynamicsStatistics::updateFrequency == 0)) {
+      thermodynamicsStatistics->updateStatistics();
+    }
     // Write state of particles to VTK
     if (writeFrequency > 0 && iteration % writeFrequency == 0) {
       plotParticles(iteration);
@@ -291,6 +302,11 @@ void Simulation::runBenchmark() {
     // Update temperature
     if (thermostat && (iteration % thermoFrequency == 0)) {
       thermostat->updateTemperature();
+    }
+
+    // Update thermodynamics statistics
+    if (thermodynamicsStatistics && (iteration % ThermodynamicsStatistics::updateFrequency == 0)) {
+      thermodynamicsStatistics->updateStatistics();
     }
 
     currentTime += dt;
