@@ -166,7 +166,8 @@ Simulation::Simulation(SimulationConfig& config)
 
   // Initialize thermodynamics statistics
   if (config.calculateThermodynamics) {
-    thermodynamicsStatistics = std::make_unique<ThermodynamicsStatistics>(*particles, *config.domainSize, outputBasename);
+    thermodynamicsStatistics =
+        std::make_unique<ThermodynamicsStatistics>(*particles, *config.domainSize, outputBasename);
   } else {
     thermodynamicsStatistics = nullptr;
   }

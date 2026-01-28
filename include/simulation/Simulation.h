@@ -1,9 +1,9 @@
 #pragma once
 
-#include "physics/thermodynamics/Thermostat.h"
-#include "physics/thermodynamics/ThermodynamicsStatistics.h"
 #include "physics/ForceCalc.h"
 #include "physics/ParticleGenerator.h"
+#include "physics/thermodynamics/ThermodynamicsStatistics.h"
+#include "physics/thermodynamics/Thermostat.h"
 #include "simulation/SimulationConfig.h"
 
 #include <memory>

@@ -4,9 +4,10 @@
 
 // TODO: Write docstrings for this class
 class MSDCalculator {
-  private:
-    ParticleContainer& particles;
-  public:
-    explicit MSDCalculator(ParticleContainer& particles);
-    double calculateDiffusion();
+ private:
+  ParticleContainer& particles;
+
+ public:
+  explicit MSDCalculator(ParticleContainer& particles);
+  double calculateDiffusion();
 };

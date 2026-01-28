@@ -5,7 +5,7 @@
 #include <cstddef>  // for size_t
 
 RDFCalculator::RDFCalculator(ParticleContainer& particles, const std::array<double, 3>& domainDims)
-  : particles(particles), domainDims(domainDims) {}
+    : particles(particles), domainDims(domainDims) {}
 
 const std::array<int, RDFCalculator::intervalCount>& RDFCalculator::calculateDistribution() {
   resetIntervals();
@@ -25,14 +25,17 @@ const std::array<int, RDFCalculator::intervalCount>& RDFCalculator::calculateDis
       for (int dim = 0; dim < 3; dim++) {
         // Assume all boundaries are periodic
         const double halfDim = domainDims[dim] * 0.5;
-        if (distanceVector[dim] > halfDim) distanceVector[dim] -= domainDims[dim];
-        else if (distanceVector[dim] < -halfDim) distanceVector[dim] += domainDims[dim];
+        if (distanceVector[dim] > halfDim)
+          distanceVector[dim] -= domainDims[dim];
+        else if (distanceVector[dim] < -halfDim)
+          distanceVector[dim] += domainDims[dim];
       }
 
       const double distance = ArrayUtils::L2Norm(distanceVector);
 
       // Find which interval to put this pair in
-      if (distance >= maxIntervalValue) continue;  // pair distance exceeds our RDF range, skip
+      if (distance >= maxIntervalValue)
+        continue;  // pair distance exceeds our RDF range, skip
 
       const auto intervalIndex = static_cast<std::size_t>(distance * invSampleWidth);
       intervals[intervalIndex] += 2;  // add both particles
@@ -43,5 +46,6 @@ const std::array<int, RDFCalculator::intervalCount>& RDFCalculator::calculateDis
 }
 
 void RDFCalculator::resetIntervals() {
-  for (int& interval : intervals) interval = 0;
+  for (int& interval : intervals)
+    interval = 0;
 }
