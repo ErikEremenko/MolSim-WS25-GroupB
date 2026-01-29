@@ -34,29 +34,18 @@
  */
 class Particle {
  private:
-  /** @name Data members */
+  /** @name Data members (ordered for cache-friendly force calculation)
+   *  The Hot data (frequently accessed in force calculation) comes first:
+   *  x, f, type are accessed every iteration in the inner loop
+   */
   ///@{
+
   /**
    * @brief Position of the particle
    *
    *  A 3 component vector storing the particle's position
    */
   std::array<double, 3> x{};
-
-  /**
-   * @brief Accumulated displacement of the particle
-   *
-   * This member is to be used for thermodynamical statistics calculations. It should
-   * be reset every time the statistics are updated
-   */
-  std::array<double, 3> displacement{};
-
-  /**
-   * @brief Current velocity of the particle
-   *
-   *  A 3 component vector storing the particle's movement direction and speed
-   */
-  std::array<double, 3> v{};
 
   /**
    * @brief Force effective on the particle
@@ -66,21 +55,29 @@ class Particle {
   std::array<double, 3> f{};
 
   /**
+   * @brief Type of the particle (used in lookup table indexing)
+   */
+  int type{};
+
+  // Padding to align next 8-byte member
+  int _pad0{};
+
+  /**
+   * @brief Current velocity of the particle
+   *
+   *  A 3 component vector storing the particle's movement direction and speed
+   */
+  std::array<double, 3> v{};
+
+  /**
    * @brief Force vector of the force that was effective on the particle in the previous iteration
    */
   std::array<double, 3> old_f{};
 
   /**
    * @brief Mass of the particle
-   *
    */
   double m{};
-
-  /**
-   * @brief Type of the particle
-   *
-   */
-  int type{};
 
   /**
    * @brief Lennard-Jones sigma parameter for the particle
@@ -98,6 +95,17 @@ class Particle {
    * @note The ID will always match the particle's index in the particle container, e.g. first particle will have ID 0
    */
   int id = 0;
+
+  // Padding for 8-byte alignment
+  int _pad1{};
+
+  /**
+   * @brief Accumulated displacement of the particle (only accessed for statistics)
+   *
+   * This member is to be used for thermodynamical statistics calculations. It should
+   * be reset every time the statistics are updated
+   */
+  std::array<double, 3> displacement{};
 
   /**
    * @brief Class variable that keeps track of the created particles indices.

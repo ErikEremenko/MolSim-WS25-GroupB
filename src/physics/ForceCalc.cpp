@@ -200,24 +200,25 @@ void LennardJonesForce::calculateFLinkedCell() {
   }
   lc->handleOutflowBoundaries();
 
-  // Use template version to eliminate std::function overhead (~85% overhead on VTune)
-  // Cache lookup table pointers for better optimization
+  // Cache constants for inner loop (avoid member access)
   const double* __restrict__ lut1 = pairLookupTable1.data();
   const double* __restrict__ lut2 = pairLookupTable2.data();
   const int tw = tableWidth;
   const double cutoffSq = cutoffRadiusSq;
 
-  // CRITICAL: Force calculation MUST be directly in the lambda for proper inlining.
-  // Calling a separate function (even with always_inline) prevents compiler optimizations.
   lc->iteratePairsTemplate([lut1, lut2, tw, cutoffSq](Particle& p_i, Particle& p_j) {
-    // Get positions (getX() force-inlined)
-    const auto& xi = p_i.getX();
-    const auto& xj = p_j.getX();
+    // Load positions into local variables (helps register allocation)
+    const double xi0 = p_i.getX()[0];
+    const double xi1 = p_i.getX()[1];
+    const double xi2 = p_i.getX()[2];
+    const double xj0 = p_j.getX()[0];
+    const double xj1 = p_j.getX()[1];
+    const double xj2 = p_j.getX()[2];
 
     // Compute distance vector and squared distance
-    const double dx = xj[0] - xi[0];
-    const double dy = xj[1] - xi[1];
-    const double dz = xj[2] - xi[2];
+    const double dx = xj0 - xi0;
+    const double dy = xj1 - xi1;
+    const double dz = xj2 - xi2;
     const double distSq = dx * dx + dy * dy + dz * dz;
 
     if (distSq > cutoffSq)
@@ -233,7 +234,7 @@ void LennardJonesForce::calculateFLinkedCell() {
     const double fy = term * dy;
     const double fz = term * dz;
 
-    // Update forces (getF() force-inlined)
+    // Update forces with Newton's third law
     auto& fi = p_i.getF();
     auto& fj = p_j.getF();
     fi[0] += fx;
@@ -560,15 +561,19 @@ void SmoothedLJForce::calculateFLinkedCell() {
   const double* __restrict__ sig12 = pairSigma12.data();
   const int tw = tableWidth;
 
-  // CRITICAL: Force calculation MUST be directly in the lambda for proper inlining.
   lc->iteratePairsTemplate(
       [cutoffSq, smoothingSq, smoothingR, cutoffR, rcRlCubed, eps, sig6, sig12, tw](Particle& p_i, Particle& p_j) {
-        const auto& xi = p_i.getX();
-        const auto& xj = p_j.getX();
+        // load positions into local variables (helps register allocation)
+        const double xi0 = p_i.getX()[0];
+        const double xi1 = p_i.getX()[1];
+        const double xi2 = p_i.getX()[2];
+        const double xj0 = p_j.getX()[0];
+        const double xj1 = p_j.getX()[1];
+        const double xj2 = p_j.getX()[2];
 
-        const double dx = xj[0] - xi[0];
-        const double dy = xj[1] - xi[1];
-        const double dz = xj[2] - xi[2];
+        const double dx = xj0 - xi0;
+        const double dy = xj1 - xi1;
+        const double dz = xj2 - xi2;
         const double distSq = dx * dx + dy * dy + dz * dz;
 
         if (distSq >= cutoffSq) {
@@ -578,20 +583,18 @@ void SmoothedLJForce::calculateFLinkedCell() {
         // Use precomputed lookup tables
         const int idx = p_i.getType() * tw + p_j.getType();
         const double epsilon_ij = eps[idx];
-        const double sigma6 = sig6[idx];
-        const double sigma12 = sig12[idx];
+        const double sigma6_val = sig6[idx];
+        const double sigma12_val = sig12[idx];
 
         const double inv_distSq = 1.0 / distSq;
         const double inv_distSq3 = inv_distSq * inv_distSq * inv_distSq;
-        const double sigma6_d6 = sigma6 * inv_distSq3;
-        const double sigma12_d12 = sigma12 * inv_distSq3 * inv_distSq3;
+        const double sigma6_d6 = sigma6_val * inv_distSq3;
+        const double sigma12_d12 = sigma12_val * inv_distSq3 * inv_distSq3;
 
         const double U_LJ = 4.0 * epsilon_ij * (sigma12_d12 - sigma6_d6);
         const double F_LJ_scalar = 24.0 * epsilon_ij * inv_distSq * (sigma6_d6 - 2.0 * sigma12_d12);
 
-        double fx = 0.0;
-        double fy = 0.0;
-        double fz = 0.0;
+        double fx, fy, fz;
 
         if (distSq <= smoothingSq) {
           fx = F_LJ_scalar * dx;

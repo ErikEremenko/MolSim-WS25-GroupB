@@ -119,7 +119,8 @@ class LinkedCellParticleContainer : public ParticleContainer {
       for (size_t i = 0; i < cellSize; ++i) {
         Particle* __restrict__ pi = cell[i];
         for (size_t j = i + 1; j < cellSize; ++j) {
-          pairFunc(*pi, *cell[j]);
+          Particle* __restrict__ pj = cell[j];
+          pairFunc(*pi, *pj);
         }
       }
 
@@ -144,10 +145,13 @@ class LinkedCellParticleContainer : public ParticleContainer {
         // Convert neighbor coordinates back to 1D index
         const int nIndex = (niz * layerSize) + (niy * nx) + nix;
         const auto& ncell = cells[static_cast<size_t>(nIndex)];
+        const size_t ncellSize = ncell.size();
 
-        // Compute interactions between current cell and neighbor
-        for (Particle* __restrict__ pi : cell) {
-          for (Particle* __restrict__ pj : ncell) {
+        // Inter-cell pairs: loops over all pairs
+        for (size_t i = 0; i < cellSize; ++i) {
+          Particle* __restrict__ pi = cell[i];
+          for (size_t j = 0; j < ncellSize; ++j) {
+            Particle* __restrict__ pj = ncell[j];
             pairFunc(*pi, *pj);
           }
         }
