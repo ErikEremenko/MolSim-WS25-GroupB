@@ -197,7 +197,9 @@ class LennardJonesForce final : public ForceCalc {
 
   void applyReflectiveBoundaries(const class LinkedCellParticleContainer* lc) const;
   void calcFPeriodicBoundary(Particle* p1, Particle* p2) const;
+  void calcFPeriodicBoundaryAtomic(Particle* p1, const std::array<double, 3>& p2_shifted_pos, Particle* p2) const;
   void applyPeriodicBoundaries(LinkedCellParticleContainer* lc) const;
+  void applyPeriodicBoundariesParallel(LinkedCellParticleContainer* lc) const;
 };
 
 /**

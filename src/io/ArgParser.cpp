@@ -9,10 +9,11 @@ ArgParser::~ArgParser() = default;
 void ArgParser::printUsage() {
   SPDLOG_INFO("Usage:");
   SPDLOG_INFO(
-    "  YAML mode: ./MolSim filename [file | benchmark] [off | error | debug | trace | info] [linked | direct] [P:ON | P:OFF] [S:COLORING | S:TASKBASED]");
+      "  YAML mode: ./MolSim filename [file | benchmark] [off | error | debug | trace | info] [linked | direct] [P:ON "
+      "| P:OFF] [S:COLORING | S:TASKBASED]");
   SPDLOG_INFO(
-    "  Legacy mode: ./MolSim filename t_end delta_t [file | benchmark] [off | error | debug | trace | info] [P:OFF | "
-    "P:ON] [S:COLORING | S:TASKBASED]");
+      "  Legacy mode: ./MolSim filename t_end delta_t [file | benchmark] [off | error | debug | trace | info] [P:OFF | "
+      "P:ON] [S:COLORING | S:TASKBASED]");
 }
 
 LogLevelConfig ArgParser::parseLogLevel(const std::string& logLevelStr) {

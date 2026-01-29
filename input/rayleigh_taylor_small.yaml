@@ -32,6 +32,10 @@ container:
   container_type: linked
   cutoff: 2.5
 
+parallelization:
+  enabled: false
+  strategy: coloring
+
 thermostat:
   n_thermostat: 1000
   temp_init: 40.0

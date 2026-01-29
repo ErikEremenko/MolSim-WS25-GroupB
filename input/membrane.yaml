@@ -12,6 +12,10 @@ container:
   container_type: linked
   cutoff: 4.0
 
+parallelization:
+  enabled: false
+  strategy: coloring
+
 forces:
   # Truncated repulsive Lennard-Jones (only repulsive part, truncated at 2^(1/6)*sigma)
   - force_type: truncated_lj
