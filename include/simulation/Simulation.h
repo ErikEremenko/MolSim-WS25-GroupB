@@ -97,6 +97,11 @@ class Simulation {
    */
   std::vector<std::unique_ptr<ForceCalc>> forces;
 
+  /**
+   * @brief Original force configurations (needed for checkpoint writing).
+   */
+  std::vector<ForceConfig> forceConfigs;
+
   // Thermostat-related members, TODO: Add docstrings for them
   std::unique_ptr<Thermostat> thermostat;
   bool needToAutoSetTargetTemperature = false;

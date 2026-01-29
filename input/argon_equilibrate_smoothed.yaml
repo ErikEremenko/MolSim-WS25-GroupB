@@ -1,3 +1,5 @@
+# Argon Crystallization: Create equilibrated fluid using Smoothed LJ
+
 output:
   base_name: "argon_equilibrate_smoothed"
   write_frequency: 1000
@@ -23,8 +25,8 @@ forces:
   - force_type: smoothed_lj
     epsilon: 1.0
     sigma: 1.0
-    cutoff_radius: 2.3
-    smoothing_radius: 1.9
+    cutoff_radius: 2.3       # r_c = 2.3 * sigma
+    smoothing_radius: 1.9    # r_l = 1.9
 
 container:
   container_type: linked

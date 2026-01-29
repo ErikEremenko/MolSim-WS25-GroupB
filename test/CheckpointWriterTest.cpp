@@ -5,6 +5,7 @@
 #include "io/CheckpointWriter.h"
 #include "io/YAMLFileReader.h"
 #include "physics/ParticleContainer.h"
+#include "simulation/SimulationConfig.h"
 
 class CheckpointWriterTest : public ::testing::Test {
  protected:
@@ -43,6 +44,29 @@ class CheckpointWriterTest : public ::testing::Test {
 
     return pc;
   }
+
+  // Helper to create standard LJ force config
+  std::vector<ForceConfig> createLJForceConfigs(double epsilon = 1.0, double sigma = 1.0, double cutoff = 3.0) {
+    std::vector<ForceConfig> forceConfigs;
+    ForceConfig ljConfig;
+    ljConfig.forceType = ForceType::LENNARD_JONES;
+    ljConfig.epsilon = epsilon;
+    ljConfig.sigma = sigma;
+    ljConfig.cutoff = cutoff;
+    forceConfigs.push_back(ljConfig);
+    return forceConfigs;
+  }
+
+  // Helper to create LJ + gravity force config
+  std::vector<ForceConfig> createLJAndGravityForceConfigs(double epsilon = 1.0, double sigma = 1.0, double cutoff = 3.0, double gravity = -9.81) {
+    std::vector<ForceConfig> forceConfigs = createLJForceConfigs(epsilon, sigma, cutoff);
+    ForceConfig gravityConfig;
+    gravityConfig.forceType = ForceType::GLOBAL_GRAVITY;
+    gravityConfig.gravity = gravity;
+    gravityConfig.gravityAxis = 1;
+    forceConfigs.push_back(gravityConfig);
+    return forceConfigs;
+  }
 };
 
 // Test that writeCheckpoint creates a file
@@ -50,9 +74,10 @@ TEST_F(CheckpointWriterTest, CreatesFile) {
   ParticleContainer pc = createTestParticles();
   std::array<double, 3> domainSize = {100.0, 100.0, 1.0};
   std::array<std::string, 6> boundaryTypes = {"OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"};
+  auto forceConfigs = createLJForceConfigs(5.0, 1.0, 3.0);
 
-  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 1.0, 0.0005, 5.0,
-                                                  1.0, 3.0, 0.0, domainSize, boundaryTypes, testOutputDir);
+  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 1.0, 0.0005,
+                                                  forceConfigs, domainSize, boundaryTypes, testOutputDir);
 
   std::string fullPath = testOutputDir + "/" + testFilename;
   EXPECT_TRUE(std::filesystem::exists(fullPath));
@@ -63,9 +88,10 @@ TEST_F(CheckpointWriterTest, CreatesValidYAML) {
   ParticleContainer pc = createTestParticles();
   std::array<double, 3> domainSize = {100.0, 100.0, 1.0};
   std::array<std::string, 6> boundaryTypes = {"OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"};
+  auto forceConfigs = createLJForceConfigs(5.0, 1.0, 3.0);
 
-  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 1.0, 0.0005, 5.0,
-                                                  1.0, 3.0, 0.0, domainSize, boundaryTypes, testOutputDir);
+  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 1.0, 0.0005,
+                                                  forceConfigs, domainSize, boundaryTypes, testOutputDir);
 
   std::string fullPath = testOutputDir + "/" + testFilename;
 
@@ -78,9 +104,10 @@ TEST_F(CheckpointWriterTest, WritesCheckpointMetadata) {
   ParticleContainer pc = createTestParticles();
   std::array<double, 3> domainSize = {100.0, 100.0, 1.0};
   std::array<std::string, 6> boundaryTypes = {"OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"};
+  auto forceConfigs = createLJForceConfigs(5.0, 1.0, 3.0);
 
-  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 1234, 0.617, "test_base", 10, 500, 1.0, 0.0005, 5.0,
-                                                  1.0, 3.0, 0.0, domainSize, boundaryTypes, testOutputDir);
+  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 1234, 0.617, "test_base", 10, 500, 1.0, 0.0005,
+                                                  forceConfigs, domainSize, boundaryTypes, testOutputDir);
 
   std::string fullPath = testOutputDir + "/" + testFilename;
   YAML::Node config = YAML::LoadFile(fullPath);
@@ -94,9 +121,10 @@ TEST_F(CheckpointWriterTest, WritesOutputParameters) {
   ParticleContainer pc = createTestParticles();
   std::array<double, 3> domainSize = {100.0, 100.0, 1.0};
   std::array<std::string, 6> boundaryTypes = {"OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"};
+  auto forceConfigs = createLJForceConfigs(5.0, 1.0, 3.0);
 
   outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "my_simulation", 50, 1000, 2.0, 0.001,
-                                                  5.0, 1.0, 3.0, 0.0, domainSize, boundaryTypes, testOutputDir);
+                                                  forceConfigs, domainSize, boundaryTypes, testOutputDir);
 
   std::string fullPath = testOutputDir + "/" + testFilename;
   YAML::Node config = YAML::LoadFile(fullPath);
@@ -111,19 +139,24 @@ TEST_F(CheckpointWriterTest, WritesSimulationParameters) {
   ParticleContainer pc = createTestParticles();
   std::array<double, 3> domainSize = {100.0, 100.0, 1.0};
   std::array<std::string, 6> boundaryTypes = {"OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"};
+  auto forceConfigs = createLJAndGravityForceConfigs(5.0, 1.0, 3.0, -9.81);
 
-  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 2.0, 0.001, 5.0,
-                                                  1.0, 3.0, -9.81, domainSize, boundaryTypes, testOutputDir);
+  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 2.0, 0.001,
+                                                  forceConfigs, domainSize, boundaryTypes, testOutputDir);
 
   std::string fullPath = testOutputDir + "/" + testFilename;
   YAML::Node config = YAML::LoadFile(fullPath);
 
   EXPECT_DOUBLE_EQ(config["simulation"]["t_end"].as<double>(), 2.0);
   EXPECT_DOUBLE_EQ(config["simulation"]["delta_t"].as<double>(), 0.001);
-  EXPECT_DOUBLE_EQ(config["simulation"]["epsilon"].as<double>(), 5.0);
-  EXPECT_DOUBLE_EQ(config["simulation"]["sigma"].as<double>(), 1.0);
-  EXPECT_DOUBLE_EQ(config["simulation"]["cutoff_radius"].as<double>(), 3.0);
-  EXPECT_DOUBLE_EQ(config["simulation"]["gravity"].as<double>(), -9.81);
+  // Forces are now in a separate section
+  EXPECT_EQ(config["forces"].size(), 2);
+  EXPECT_EQ(config["forces"][0]["force_type"].as<std::string>(), "lennard_jones");
+  EXPECT_DOUBLE_EQ(config["forces"][0]["epsilon"].as<double>(), 5.0);
+  EXPECT_DOUBLE_EQ(config["forces"][0]["sigma"].as<double>(), 1.0);
+  EXPECT_DOUBLE_EQ(config["forces"][0]["cutoff_radius"].as<double>(), 3.0);
+  EXPECT_EQ(config["forces"][1]["force_type"].as<std::string>(), "global_gravity");
+  EXPECT_DOUBLE_EQ(config["forces"][1]["g"].as<double>(), -9.81);
 }
 
 // Test that domain size is correctly written
@@ -131,9 +164,10 @@ TEST_F(CheckpointWriterTest, WritesDomainSize) {
   ParticleContainer pc = createTestParticles();
   std::array<double, 3> domainSize = {150.0, 75.0, 2.0};
   std::array<std::string, 6> boundaryTypes = {"OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"};
+  auto forceConfigs = createLJForceConfigs(5.0, 1.0, 3.0);
 
-  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 1.0, 0.0005, 5.0,
-                                                  1.0, 3.0, 0.0, domainSize, boundaryTypes, testOutputDir);
+  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 1.0, 0.0005,
+                                                  forceConfigs, domainSize, boundaryTypes, testOutputDir);
 
   std::string fullPath = testOutputDir + "/" + testFilename;
   YAML::Node config = YAML::LoadFile(fullPath);
@@ -149,9 +183,10 @@ TEST_F(CheckpointWriterTest, WritesBoundaryTypes) {
   ParticleContainer pc = createTestParticles();
   std::array<double, 3> domainSize = {100.0, 100.0, 1.0};
   std::array<std::string, 6> boundaryTypes = {"OUTFLOW", "REFLECTIVE", "PERIODIC", "OUTFLOW", "REFLECTIVE", "PERIODIC"};
+  auto forceConfigs = createLJForceConfigs(5.0, 1.0, 3.0);
 
-  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 1.0, 0.0005, 5.0,
-                                                  1.0, 3.0, 0.0, domainSize, boundaryTypes, testOutputDir);
+  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 1.0, 0.0005,
+                                                  forceConfigs, domainSize, boundaryTypes, testOutputDir);
 
   std::string fullPath = testOutputDir + "/" + testFilename;
   YAML::Node config = YAML::LoadFile(fullPath);
@@ -169,9 +204,10 @@ TEST_F(CheckpointWriterTest, WritesCorrectParticleCount) {
   ParticleContainer pc = createTestParticles();
   std::array<double, 3> domainSize = {100.0, 100.0, 1.0};
   std::array<std::string, 6> boundaryTypes = {"OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"};
+  auto forceConfigs = createLJForceConfigs(5.0, 1.0, 3.0);
 
-  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 1.0, 0.0005, 5.0,
-                                                  1.0, 3.0, 0.0, domainSize, boundaryTypes, testOutputDir);
+  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 1.0, 0.0005,
+                                                  forceConfigs, domainSize, boundaryTypes, testOutputDir);
 
   std::string fullPath = testOutputDir + "/" + testFilename;
   YAML::Node config = YAML::LoadFile(fullPath);
@@ -184,9 +220,10 @@ TEST_F(CheckpointWriterTest, WritesParticleData) {
   ParticleContainer pc = createTestParticles();
   std::array<double, 3> domainSize = {100.0, 100.0, 1.0};
   std::array<std::string, 6> boundaryTypes = {"OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"};
+  auto forceConfigs = createLJForceConfigs(5.0, 1.0, 3.0);
 
-  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 1.0, 0.0005, 5.0,
-                                                  1.0, 3.0, 0.0, domainSize, boundaryTypes, testOutputDir);
+  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 1.0, 0.0005,
+                                                  forceConfigs, domainSize, boundaryTypes, testOutputDir);
 
   std::string fullPath = testOutputDir + "/" + testFilename;
   YAML::Node config = YAML::LoadFile(fullPath);
@@ -214,9 +251,10 @@ TEST_F(CheckpointWriterTest, WritesForceVectors) {
   ParticleContainer pc = createTestParticles();
   std::array<double, 3> domainSize = {100.0, 100.0, 1.0};
   std::array<std::string, 6> boundaryTypes = {"OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW", "OUTFLOW"};
+  auto forceConfigs = createLJForceConfigs(5.0, 1.0, 3.0);
 
-  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 1.0, 0.0005, 5.0,
-                                                  1.0, 3.0, 0.0, domainSize, boundaryTypes, testOutputDir);
+  outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 100, 0.5, "test_base", 10, 500, 1.0, 0.0005,
+                                                  forceConfigs, domainSize, boundaryTypes, testOutputDir);
 
   std::string fullPath = testOutputDir + "/" + testFilename;
   YAML::Node config = YAML::LoadFile(fullPath);
@@ -240,9 +278,10 @@ TEST_F(CheckpointWriterTest, RoundTripPreservesData) {
   ParticleContainer pc = createTestParticles();
   std::array<double, 3> domainSize = {100.0, 100.0, 1.0};
   std::array<std::string, 6> boundaryTypes = {"OUTFLOW", "REFLECTIVE", "OUTFLOW", "REFLECTIVE", "OUTFLOW", "OUTFLOW"};
+  auto forceConfigs = createLJAndGravityForceConfigs(5.0, 1.0, 3.0, -9.81);
 
   outputWriter::CheckpointWriter::writeCheckpoint(pc, testFilename, 500, 0.25, "roundtrip_test", 50, 200, 1.0, 0.0005,
-                                                  5.0, 1.0, 3.0, -9.81, domainSize, boundaryTypes, testOutputDir);
+                                                  forceConfigs, domainSize, boundaryTypes, testOutputDir);
 
   std::string fullPath = testOutputDir + "/" + testFilename;
 
@@ -258,7 +297,12 @@ TEST_F(CheckpointWriterTest, RoundTripPreservesData) {
   EXPECT_EQ(config.outputBasename, "roundtrip_test");
   EXPECT_EQ(config.writeFrequency, 50);
   EXPECT_EQ(config.checkpointFrequency, 200);
-  // Note: gravity is no longer stored in SimulationConfig directly; it's part of force configs
+  
+  // Verify forces are correctly loaded
+  EXPECT_EQ(config.forceConfigs.size(), 2);
+  EXPECT_EQ(config.forceConfigs[0].forceType, ForceType::LENNARD_JONES);
+  EXPECT_EQ(config.forceConfigs[1].forceType, ForceType::GLOBAL_GRAVITY);
+  EXPECT_DOUBLE_EQ(config.forceConfigs[1].gravity.value(), -9.81);
 
   // Verify particles can be loaded
   ParticleContainer loadedPc;

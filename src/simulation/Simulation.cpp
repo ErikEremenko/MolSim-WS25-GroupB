@@ -87,6 +87,9 @@ Simulation::Simulation(SimulationConfig& config)
       break;
   }
 
+  // Store force configurations for checkpoint writing
+  forceConfigs = config.forceConfigs;
+
   // Initialize forces
   for (auto& forceConfig : config.forceConfigs) {
     switch (forceConfig.forceType) {
@@ -185,7 +188,7 @@ void Simulation::writeCheckpoint(const int iteration, const double time) const {
 
   outputWriter::CheckpointWriter::writeCheckpoint(
       *particles, outputBasename + "_checkpoint_" + std::to_string(iteration) + ".yaml", iteration, time,
-      outputBasename, writeFrequency, checkpointFrequency, endTime, dt, epsilon, sigma, cutoff, gravity, domainSize,
+      outputBasename, writeFrequency, checkpointFrequency, endTime, dt, forceConfigs, domainSize,
       boundaryTypeStrings, outputDirectory);
 }
 
