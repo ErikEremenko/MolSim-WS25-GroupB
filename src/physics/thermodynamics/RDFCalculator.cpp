@@ -3,13 +3,20 @@
 #include "utils/ArrayUtils.h"
 
 #include <cstddef>  // for size_t
+#include <cmath>
+
+// Source - https://stackoverflow.com/a/49778398
+// Posted by Ron, modified by community. See post 'Timeline' for change history
+// Retrieved 2026-01-29, License - CC BY-SA 4.0
+constexpr double pi = 3.14159265358979323846;
 
 RDFCalculator::RDFCalculator(ParticleContainer& particles, const std::array<double, 3>& domainDims)
     : particles(particles), domainDims(domainDims) {}
 
-const std::array<int, RDFCalculator::intervalCount>& RDFCalculator::calculateDistribution() {
-  resetIntervals();
+const std::array<double, RDFCalculator::intervalCount>& RDFCalculator::calculateDistribution() {
+  resetParticleCounts();
 
+  // Calculate particle counts
   const std::size_t n_particles = particles.size();
   for (std::size_t i = 0; i < n_particles; ++i) {
     for (std::size_t j = i + 1; j < n_particles; ++j) {  // Iterate over particle pairs
@@ -38,14 +45,24 @@ const std::array<int, RDFCalculator::intervalCount>& RDFCalculator::calculateDis
         continue;  // pair distance exceeds our RDF range, skip
 
       const auto intervalIndex = static_cast<std::size_t>(distance * invSampleWidth);
-      intervals[intervalIndex] += 2;  // add both particles
+      particleCounts[intervalIndex] += 2;  // add both particles
     }
   }
 
-  return intervals;
+  // Calculate densities
+  for (std::size_t i = 0; i < intervalCount; ++i) {
+    // Calculate the volume of the spherical shell (difference of two spheres)
+    const double r_inner = static_cast<double>(i) * sampleWidth;
+    const double r_outer = r_inner + sampleWidth;
+    const double shellVolume = (4.0 / 3.0) * pi * ((r_outer * r_outer * r_outer) - (r_inner * r_inner * r_inner));
+
+    densities[i] = static_cast<double>(particleCounts[i]) / shellVolume;
+  }
+
+  return densities;
 }
 
-void RDFCalculator::resetIntervals() {
-  for (int& interval : intervals)
-    interval = 0;
+void RDFCalculator::resetParticleCounts() {
+  for (int& particleCount : particleCounts)
+    particleCount = 0;
 }

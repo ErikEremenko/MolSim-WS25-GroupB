@@ -5,8 +5,8 @@ ThermodynamicsStatistics::ThermodynamicsStatistics(ParticleContainer& particles,
     : msd(particles), rdf(particles, domainDims), writer(baseName) {}
 
 void ThermodynamicsStatistics::updateStatistics() {
-  const double diffusion = msd.calculateDiffusion();
-  const std::array<int, RDFCalculator::intervalCount>& rdfBins = rdf.calculateDistribution();
+  const auto diffusion = msd.calculateDiffusion();
+  const auto& rdfDensities = rdf.calculateDistribution();
 
-  writer.write(diffusion, rdfBins);
+  writer.write(diffusion, rdfDensities);
 }

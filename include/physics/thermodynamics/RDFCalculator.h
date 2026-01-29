@@ -15,11 +15,11 @@ class RDFCalculator {
   ParticleContainer& particles;
   std::array<double, 3> domainDims;
 
-  std::array<int, intervalCount> intervals{};
+  std::array<int, intervalCount> particleCounts{};
+  std::array<double, intervalCount> densities{};
 
-  void resetIntervals();
-
+  void resetParticleCounts();
  public:
   explicit RDFCalculator(ParticleContainer& particles, const std::array<double, 3>& domainDims);
-  const std::array<int, intervalCount>& calculateDistribution();
+  const std::array<double, intervalCount>& calculateDistribution();
 };
