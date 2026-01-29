@@ -4,6 +4,7 @@
 #include "physics/ParticleContainer.h"
 #include "simulation/SimulationConfig.h"
 
+#include <cmath>
 #include <utility>
 #include <vector>
 
@@ -174,10 +175,48 @@ class LennardJonesForce final : public ForceCalc {
 
  private:
   static void applyLJPairForceGlobal(Particle& p_i, Particle& p_j, double sigma6, double epsilon, double cutoffSq);
+
+  /**
+   * @brief Compute and apply LJ pair force using lookup tables (must be defined in header for inlining)
+   * 
+   * This function is critical for performance ~80% of CPU time) and has to be be inlined.
+   * Moving the definition to the .cpp file prevents inlining across translation units.
+   */
   __attribute__((always_inline)) static inline void applyLJPairForceLookup(Particle& p_i, Particle& p_j,
                                                                            const double* __restrict__ lut1,
-                                                                           const double* __restrict__ lut2, int tw,
-                                                                           double cutoffSq);
+                                                                           const double* __restrict__ lut2,
+                                                                           const int tw, const double cutoffSq) {
+    const auto& xi = p_i.getX();
+    const auto& xj = p_j.getX();
+
+    const double dx = xj[0] - xi[0];
+    const double dy = xj[1] - xi[1];
+    const double dz = xj[2] - xi[2];
+    const double distSq = dx * dx + dy * dy + dz * dz;
+
+    if (distSq > cutoffSq) {
+      return;
+    }
+
+    const double inv_distSq = 1.0 / distSq;
+    const int idx = p_i.getType() * tw + p_j.getType();
+    const double inv_distSq3 = inv_distSq * inv_distSq * inv_distSq;
+    const double term = lut1[idx] * inv_distSq * inv_distSq3 * (lut2[idx] - inv_distSq3);
+
+    const double fx = term * dx;
+    const double fy = term * dy;
+    const double fz = term * dz;
+
+    auto& fi = p_i.getF();
+    auto& fj = p_j.getF();
+    fi[0] += fx;
+    fi[1] += fy;
+    fi[2] += fz;
+    fj[0] -= fx;
+    fj[1] -= fy;
+    fj[2] -= fz;
+  }
+
   void applyReflectiveBoundaries(const class LinkedCellParticleContainer* lc) const;
   void calcFPeriodicBoundary(Particle* p1, Particle* p2) const;
   void applyPeriodicBoundaries(LinkedCellParticleContainer* lc) const;
@@ -237,7 +276,67 @@ class SmoothedLJForce final : public ForceCalc {
   void calculateFLinkedCell();
   void calcFPeriodicPair(Particle* p1, Particle* p2) const;
   void applyPeriodicBoundaries(LinkedCellParticleContainer* lc) const;
-  __attribute__((always_inline)) inline void applySmoothedPairForce(Particle& p_i, Particle& p_j) const;
+
+  /**
+   * @brief Compute and apply smoothed LJ pair force (must be defined in header for proper inlining)
+   */
+  __attribute__((always_inline)) inline void applySmoothedPairForce(Particle& p_i, Particle& p_j) const {
+    const auto& xi = p_i.getX();
+    const auto& xj = p_j.getX();
+
+    const double dx = xj[0] - xi[0];
+    const double dy = xj[1] - xi[1];
+    const double dz = xj[2] - xi[2];
+    const double distSq = dx * dx + dy * dy + dz * dz;
+
+    if (distSq >= cutoffRadiusSq) {
+      return;
+    }
+
+    // Use precomputed lookup tables
+    const int idx = p_i.getType() * tableWidth + p_j.getType();
+    const double epsilon_ij = pairEpsilon[idx];
+    const double sigma6 = pairSigma6[idx];
+    const double sigma12 = pairSigma12[idx];
+
+    const double inv_distSq = 1.0 / distSq;
+    const double inv_distSq3 = inv_distSq * inv_distSq * inv_distSq;
+    const double sigma6_d6 = sigma6 * inv_distSq3;
+    const double sigma12_d12 = sigma12 * inv_distSq3 * inv_distSq3;
+
+    const double U_LJ = 4.0 * epsilon_ij * (sigma12_d12 - sigma6_d6);
+    const double F_LJ_scalar = 24.0 * epsilon_ij * inv_distSq * (sigma6_d6 - 2.0 * sigma12_d12);
+
+    double fx = 0.0;
+    double fy = 0.0;
+    double fz = 0.0;
+
+    if (distSq <= smoothingRadiusSq) {
+      fx = F_LJ_scalar * dx;
+      fy = F_LJ_scalar * dy;
+      fz = F_LJ_scalar * dz;
+    } else {
+      const double d = std::sqrt(distSq);
+      const double dMinusRl = d - smoothingRadius;
+      const double dMinusRl2 = dMinusRl * dMinusRl;
+      const double S = 1.0 - dMinusRl2 * (3.0 * cutoffRadius - smoothingRadius - 2.0 * d) / rcMinusRlCubed;
+      const double dS_dd = -6.0 * dMinusRl * (cutoffRadius - d) / rcMinusRlCubed;
+
+      const double F_total_scalar = S * F_LJ_scalar + U_LJ * dS_dd / d;
+      fx = F_total_scalar * dx;
+      fy = F_total_scalar * dy;
+      fz = F_total_scalar * dz;
+    }
+
+    auto& fi = p_i.getF();
+    auto& fj = p_j.getF();
+    fi[0] += fx;
+    fi[1] += fy;
+    fi[2] += fz;
+    fj[0] -= fx;
+    fj[1] -= fy;
+    fj[2] -= fz;
+  }
 };
 
 /**
