@@ -155,11 +155,46 @@ class LennardJonesForce final : public ForceCalc {
   void calculateF() override;
   void calculateFDirectSum();
   void calculateFLinkedCell();
+
+  /**
+   * @brief Strategy 1: C-coloring (domain decomposition)
+   *
+   * 3×2 coloring in X/Y. Same color cells are independent
+   * 6 phases, each using an OpenMP parallel for.
+   *
+   * Pros: no atomics, cache-friendly, deterministic.
+   * Cons: 6 barriers, can imbalance on inhomogeneous data.
+   */
   void calculateFLinkedCellParallel1();
+
+  /**
+   * @brief Strategy 2: task-based with atomics
+   *
+   * One task per cell, work-stealing balances load.
+   * Atomics protect inter-cell updates.
+   *
+   * Pros: fewer barriers, adapts to inhomogeneous data.
+   * Cons: atomic + task overhead.
+   */
+  void calculateFLinkedCellParallel2();
 
   void precomputeConstants() override;
 
+  /**
+   * @brief Set the parallel strategy for force calculation
+   * @param strategy COLORING or TASKBASED
+   */
+  void setParallelStrategy(ParallelStrategy strategy) { parallelStrategy = strategy; }
+
+  /**
+   * @brief Enable or disable parallelization
+   */
+  void setUseParallel(bool enable) { useParallel = enable; }
+
  private:
+  ParallelStrategy parallelStrategy = ParallelStrategy::COLORING;
+  bool useParallel = false;
+
   void applyReflectiveBoundaries(const class LinkedCellParticleContainer* lc) const;
   void calcFPeriodicBoundary(Particle* p1, Particle* p2) const;
   void applyPeriodicBoundaries(LinkedCellParticleContainer* lc) const;

@@ -90,12 +90,18 @@ Simulation::Simulation(SimulationConfig& config)
   // Initialize forces
   for (auto& forceConfig : config.forceConfigs) {
     switch (forceConfig.forceType) {
-      case ForceType::LENNARD_JONES:
-        forces.push_back(std::make_unique<LennardJonesForce>(*particles, *forceConfig.epsilon, *forceConfig.sigma,
-                                                             *forceConfig.cutoff));
-        SPDLOG_INFO("Initialized LennardJonesForce (epsilon={}, sigma={}, cutoff={})", *forceConfig.epsilon,
-                    *forceConfig.sigma, *forceConfig.cutoff);
+      case ForceType::LENNARD_JONES: {
+        auto ljForce = std::make_unique<LennardJonesForce>(*particles, *forceConfig.epsilon, *forceConfig.sigma,
+                                                           *forceConfig.cutoff);
+        // Configure parallelization
+        ljForce->setUseParallel(config.useParallelization);
+        ljForce->setParallelStrategy(config.parallelStrategy);
+        forces.push_back(std::move(ljForce));
+        SPDLOG_INFO("Initialized LennardJonesForce (epsilon={}, sigma={}, cutoff={}, parallel={}, strategy={})",
+                    *forceConfig.epsilon, *forceConfig.sigma, *forceConfig.cutoff, config.useParallelization,
+                    config.parallelStrategy == ParallelStrategy::COLORING ? "COLORING" : "TASKBASED");
         break;
+      }
 
       case ForceType::TRUNCATED_LJ:
         forces.push_back(std::make_unique<TruncatedLJForce>(*particles));

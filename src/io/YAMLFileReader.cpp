@@ -304,6 +304,26 @@ SimulationConfig YAMLFileReader::getConfig() {
     SPDLOG_INFO("No container section found, defaulting to LINKED with cutoff={}", inferredCutoff);
   }
 
+  // Parallelization settings
+  if (config["parallelization"]) {
+    const auto& parallelNode = config["parallelization"];
+    if (parallelNode["enabled"]) {
+      simConfig.useParallelization = parallelNode["enabled"].as<bool>();
+    }
+    if (parallelNode["strategy"]) {
+      std::string strategyStr = parallelNode["strategy"].as<std::string>();
+      if (strategyStr == "coloring" || strategyStr == "COLORING") {
+        simConfig.parallelStrategy = ParallelStrategy::COLORING;
+      } else if (strategyStr == "taskbased" || strategyStr == "TASKBASED") {
+        simConfig.parallelStrategy = ParallelStrategy::TASKBASED;
+      } else {
+        SPDLOG_WARN("Unknown parallelization strategy '{}', defaulting to COLORING", strategyStr);
+      }
+    }
+    SPDLOG_INFO("Parallelization: enabled={}, strategy={}", simConfig.useParallelization,
+                simConfig.parallelStrategy == ParallelStrategy::COLORING ? "COLORING" : "TASKBASED");
+  }
+
   // Thermostat
   simConfig.thermostatConfig = getThermostatConfig();
 

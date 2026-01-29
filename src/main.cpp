@@ -29,7 +29,7 @@ int main(const int argc, char* argv[]) {
   }
 
   SimulationConfig simConfig;
-  if (cli.isYaml) {  // TODO: If we want to add a cuboid file reader, we can introduce a file type enum
+  if (cli.isYaml) {
     // YAML mode
     SPDLOG_INFO("YAML mode, Reading file: {}", cli.filename);
     YAMLFileReader fileReader(cli.filename);
@@ -48,6 +48,11 @@ int main(const int argc, char* argv[]) {
       simConfig.useParallelization = *cli.useParallelization;
       SPDLOG_WARN("CLI Override: Parallelization");
     }
+    if (cli.parallelStrategy) {
+      simConfig.parallelStrategy = *cli.parallelStrategy;
+      simConfig.useParallelization = true;
+      SPDLOG_WARN("CLI Override: Parallel Strategy");
+    }
   } else {
     // Legacy mode
     SPDLOG_INFO("Legacy mode, configuring from CLI arguments.");
@@ -59,6 +64,11 @@ int main(const int argc, char* argv[]) {
 
     // Parallelization
     simConfig.useParallelization = cli.useParallelization.value();
+    if (cli.parallelStrategy) {
+      simConfig.parallelStrategy = *cli.parallelStrategy;
+      simConfig.useParallelization = true;
+      SPDLOG_WARN("CLI Override: Parallel Strategy");
+    }
 
     // Container Type, legacy mode defaults to LINKED
     simConfig.containerType = ContainerType::LINKED;

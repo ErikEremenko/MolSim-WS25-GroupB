@@ -67,6 +67,42 @@ enum class Parallelization {
   ON
 };
 
+/**
+ * @enum ParallelStrategy
+ * @brief Selects which parallelization strategy to use for force calculation.
+ *
+ * Two strategies are provided with different tradeoffs:
+ *
+ *   Coloring (C-Coloring / Domain Decomposition)
+ * - Divides cells into 6 colors using a 3×2 pattern in X/Y dimensions
+ * - Cells of the same color can be processed in parallel without race conditions
+ * - Pros: No atomics, no locks, cache-friendly memory access
+ * - Cons: 6 synchronization barriers per iteration, potential load imbalance
+ * - Best suited for Homogeneous particle distributions, moderate thread counts
+ *
+ *   Taskbased (OpenMP Task Parallelism)
+ * - Creates one OpenMP task per cell, uses work-stealing to achieve load balancing
+ * - Atomics used for force updates to handle race conditions
+ * - Pros: Better load balancing, adapts to inhomogeneous distributions
+ * - Cons: Atomic overhead, higher scheduling cost
+ * - Best suited for  Inhomogeneous distributions, high thread counts
+ */
+enum class ParallelStrategy {
+  /**
+   * @var ParallelStrategy::COLORING
+   * C-Coloring approach: 6 colors (3×2 pattern), parallel within each color.
+   * No race conditions, but 6 barriers per iteration.
+   */
+  COLORING,
+
+  /**
+   * @var ParallelStrategy::TASKBASED
+   * Task-based approach: One task per cell, atomics for force updates.
+   * Better load balancing via work-stealing.
+   */
+  TASKBASED
+};
+
 enum class ForceType {
   LENNARD_JONES,      ///< Full Lennard-Jones potential
   TRUNCATED_LJ,       ///< Repulsive-only LJ (truncated at 2^(1/6)·sigma)
@@ -126,7 +162,8 @@ struct SimulationConfig {
   // Forces
   std::vector<ForceConfig> forceConfigs{};
 
-  bool useParallelization = false;  // TODO: Replace this with compiler flag
+  bool useParallelization = false;
+  ParallelStrategy parallelStrategy = ParallelStrategy::COLORING;  ///< Strategy: COLORING or TASKBASED
 
   // Container and Linked Cell parameters
   ContainerType containerType = ContainerType::LINKED;

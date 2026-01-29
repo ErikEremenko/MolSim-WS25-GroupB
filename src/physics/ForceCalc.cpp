@@ -105,7 +105,19 @@ LennardJonesForce::LennardJonesForce(ParticleContainer& particles, const double 
 
 void LennardJonesForce::calculateF() {
   if (dynamic_cast<LinkedCellParticleContainer*>(&particles)) {
-    calculateFLinkedCellParallel1();
+#ifdef _OPENMP
+    if (useParallel) {
+      if (parallelStrategy == ParallelStrategy::COLORING) {
+        calculateFLinkedCellParallel1();
+      } else {
+        calculateFLinkedCellParallel2();
+      }
+    } else {
+      calculateFLinkedCell();
+    }
+#else
+    calculateFLinkedCell();
+#endif
   } else {
     calculateFDirectSum();
   }
@@ -851,6 +863,9 @@ void ConstantForce::calculateF() {
 }
 
 void LennardJonesForce::calculateFLinkedCellParallel1() {
+  // Strategy 1: Domain decomposition with static scheduling
+  // - Divides the domain into 6 independent sets of cells
+  // - Each set can be processed in parallel without race conditions
 
   auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
   if (!lc) {
@@ -872,8 +887,8 @@ void LennardJonesForce::calculateFLinkedCellParallel1() {
 
             auto& cell1 = lc->cell_at(lx, ly, lz);
 
-            for (int i = 0; i < cell1.size(); ++i)
-              for (int j = i + 1; j < cell1.size(); ++j) {
+            for (size_t i = 0; i < cell1.size(); ++i)
+              for (size_t j = i + 1; j < cell1.size(); ++j) {
                 calcFPeriodicBoundary(cell1[i], cell1[j]);
               }
 
@@ -895,6 +910,145 @@ void LennardJonesForce::calculateFLinkedCellParallel1() {
           }
         }
     }
+
+  applyReflectiveBoundaries(lc);
+  applyPeriodicBoundaries(lc);
+}
+
+void LennardJonesForce::calculateFLinkedCellParallel2() {
+  // Strategy 2: Task-based parallelization with atomics
+  // - Creates one task per cell for dynamic load balancing
+  // - Uses atomic operations for force updates (race condition safe)
+  // - Work-stealing provides better balance for inhomogeneous particle distributions
+
+  auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
+  if (!lc) {
+    throw std::runtime_error("LennardJonesForce::calculateFLinkedCellParallel2 requires LinkedCellParticleContainer");
+  }
+  lc->handleOutflowBoundaries();
+
+  const auto numCells = lc->num_cells();
+  const int nx = numCells[0];
+  const int ny = numCells[1];
+  const int nz = numCells[2];
+
+  // Cache lookup table data for lambda capture
+  const double* __restrict__ lut1 = pairLookupTable1.data();
+  const double* __restrict__ lut2 = pairLookupTable2.data();
+  const int tw = tableWidth;
+  const double cutoffSq = cutoffRadiusSq;
+
+#pragma omp parallel
+  {
+#pragma omp single
+    {
+      // Spawning one task per cell (OpenMP runtime handles work distribution)
+      for (int lx = 1; lx < nx - 1; lx++) {
+        for (int ly = 1; ly < ny - 1; ly++) {
+          for (int lz = 1; lz < nz - 1; lz++) {
+#pragma omp task firstprivate(lx, ly, lz)
+            {
+              auto& cell1 = lc->cell_at(lx, ly, lz);
+
+              // Intra-cell pairs
+              for (size_t i = 0; i < cell1.size(); ++i) {
+                for (size_t j = i + 1; j < cell1.size(); ++j) {
+                  Particle* p1 = cell1[i];
+                  Particle* p2 = cell1[j];
+
+                  const auto& x1 = p1->getX();
+                  const auto& x2 = p2->getX();
+                  const double dx = x2[0] - x1[0];
+                  const double dy = x2[1] - x1[1];
+                  const double dz = x2[2] - x1[2];
+                  const double distSq = dx * dx + dy * dy + dz * dz;
+
+                  if (distSq >= cutoffSq)
+                    continue;
+
+                  const double inv_distSq = 1.0 / distSq;
+                  const int idx = p1->getType() * tw + p2->getType();
+                  const double inv_distSq3 = inv_distSq * inv_distSq * inv_distSq;
+                  const double term = lut1[idx] * inv_distSq * inv_distSq3 * (lut2[idx] - inv_distSq3);
+
+                  const double fx = term * dx;
+                  const double fy = term * dy;
+                  const double fz = term * dz;
+
+                  // no race condition, direct update
+                  auto& f1 = p1->getF();
+                  auto& f2 = p2->getF();
+                  f1[0] += fx;
+                  f1[1] += fy;
+                  f1[2] += fz;
+                  f2[0] -= fx;
+                  f2[1] -= fy;
+                  f2[2] -= fz;
+                }
+              }
+
+              // Inter-cell pairs (use atomics for neighbor cell particles)
+              // Only process forward neighbors to avoid double-counting
+              for (int ddx = -1; ddx <= 1; ddx++) {
+                for (int ddz = -1; ddz <= 1; ddz++) {
+                  for (int ddy = 0; ddy <= 1; ddy++) {
+                    // Skipping self and backward neighbors
+                    if (ddy == 0 && (ddz < 0 || (ddz == 0 && ddx <= 0)))
+                      continue;
+
+                    int c2x = lx + ddx, c2y = ly + ddy, c2z = lz + ddz;
+                    if (c2x < 1 || c2x >= nx - 1 || c2y < 1 || c2y >= ny - 1 || c2z < 1 || c2z >= nz - 1)
+                      continue;
+
+                    auto& cell2 = lc->cell_at(c2x, c2y, c2z);
+
+                    for (auto& p1 : cell1) {
+                      for (auto& p2 : cell2) {
+                        const auto& x1 = p1->getX();
+                        const auto& x2 = p2->getX();
+                        const double dx_p = x2[0] - x1[0];
+                        const double dy_p = x2[1] - x1[1];
+                        const double dz_p = x2[2] - x1[2];
+                        const double distSq = dx_p * dx_p + dy_p * dy_p + dz_p * dz_p;
+
+                        if (distSq >= cutoffSq)
+                          continue;
+
+                        const double inv_distSq = 1.0 / distSq;
+                        const int idx = p1->getType() * tw + p2->getType();
+                        const double inv_distSq3 = inv_distSq * inv_distSq * inv_distSq;
+                        const double term = lut1[idx] * inv_distSq * inv_distSq3 * (lut2[idx] - inv_distSq3);
+
+                        const double fx = term * dx_p;
+                        const double fy = term * dy_p;
+                        const double fz = term * dz_p;
+
+                        // Inter-cell: using atomics for thread safety
+                        auto& f1 = p1->getF();
+                        auto& f2 = p2->getF();
+#pragma omp atomic
+                        f1[0] += fx;
+#pragma omp atomic
+                        f1[1] += fy;
+#pragma omp atomic
+                        f1[2] += fz;
+#pragma omp atomic
+                        f2[0] -= fx;
+#pragma omp atomic
+                        f2[1] -= fy;
+#pragma omp atomic
+                        f2[2] -= fz;
+                      }
+                    }
+                  }
+                }
+              }
+            }  // end task
+          }
+        }
+      }
+    }  // end single (implicit taskwait at end of single)
+  }  // end parallel
 
   applyReflectiveBoundaries(lc);
   applyPeriodicBoundaries(lc);
