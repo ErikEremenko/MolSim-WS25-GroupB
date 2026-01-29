@@ -20,8 +20,11 @@ class ThermodynamicsWriter {
 
   /**
      * @brief Writes the calculated thermodynamics data: Diffusion + RDF
+     * @param simulationIterations Current iteration number of the simulation
+     * @param temperature Current temperature of the system
      * @param diffusion The calculated diffusion coefficient (MSD)
      * @param rdfDensities The amount of particles in intervals - the radial distribution function (RDF)
      */
-  void write(double diffusion, const std::array<double, RDFCalculator::intervalCount>& rdfDensities);
+  void write(int simulationIterations, double temperature, double diffusion,
+    const std::array<double, RDFCalculator::intervalCount>& rdfDensities);
 };

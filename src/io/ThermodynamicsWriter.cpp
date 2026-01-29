@@ -13,7 +13,7 @@ ThermodynamicsWriter::ThermodynamicsWriter(const std::string& baseName)
   }
 }
 
-void ThermodynamicsWriter::write(const double diffusion,
+void ThermodynamicsWriter::write(const int simulationIterations, const double temperature, const double diffusion,
                                  const std::array<double, RDFCalculator::intervalCount>& rdfDensities) {
   auto writeMode = std::ios::app;  // append
   if (firstWrite) {
@@ -26,9 +26,9 @@ void ThermodynamicsWriter::write(const double diffusion,
     throw std::runtime_error("Could not open file: " + filename);
   }
 
-  // Writer headers if writing for the first time
+  // Write headers if writing for the first time
   if (firstWrite) {
-    file << "Diffusion";
+    file << "Iterations,Temperature,Diffusion";
     for (size_t i = 1; i <= RDFCalculator::intervalCount; ++i) {
       file << ",Bin" << i;  // "bin1, bin2, bin3..."
     }
@@ -37,8 +37,8 @@ void ThermodynamicsWriter::write(const double diffusion,
     firstWrite = false;
   }
 
-  // Write diffusion and RDF values
-  file << diffusion;
+  // Write data
+  file << simulationIterations << "," << temperature << "," << diffusion;
   for (const double val : rdfDensities) {
     file << "," << val;
   }
