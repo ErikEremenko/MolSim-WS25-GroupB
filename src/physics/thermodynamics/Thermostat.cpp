@@ -1,4 +1,4 @@
-#include "physics/Thermostat.h"
+#include "physics/thermodynamics/Thermostat.h"
 
 #include <algorithm>
 #include <cmath>

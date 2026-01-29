@@ -139,6 +139,9 @@ struct SimulationConfig {
   // Thermostat
   std::optional<ThermostatConfig> thermostatConfig = std::nullopt;
 
+  // Thermodynamics statistics
+  bool calculateThermodynamics = false;
+
   // Membrane parameters (for ConstantForce target index calculation)
   std::optional<int> membraneDimY = std::nullopt;  ///< Y-dimension of membrane grid
 };

@@ -9,6 +9,7 @@ simulation:
   t_end: 150.0
   delta_t: 0.001
   dimensions: 3
+  calculate_thermodynamics: true
 
 domain:
   size: [9.2, 9.2, 9.2]
