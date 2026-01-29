@@ -105,7 +105,7 @@ LennardJonesForce::LennardJonesForce(ParticleContainer& particles, const double 
 
 void LennardJonesForce::calculateF() {
   if (dynamic_cast<LinkedCellParticleContainer*>(&particles)) {
-    calculateFLinkedCellParallel1();
+    calculateFLinkedCellParallel2();
   } else {
     calculateFDirectSum();
   }
@@ -906,6 +906,83 @@ void LennardJonesForce::calculateFLinkedCellParallel1() {
           for (int dz = -1; dz < 2; dz++)
           for (int dy = 0; dy < 2; dy++){
             if (dy == 0 && (dz == -1 || (dz == 0 && dx <= 0)))
+              continue;
+            int c2x = lx + dx, c2y = ly + dy, c2z = lz + dz;
+            if (c2x < 1 || c2x >= nx - 1 || c2y < 1 || c2y >= ny - 1 || c2z < 1 || c2z >= nz - 1)
+              continue;
+
+            auto& cell2 = lc->cell_at(c2x, c2y, c2z);
+            for (auto& p1 : cell1)
+            for (auto& p2 : cell2) {
+              calcFPeriodicBoundary(p1, p2);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  //code for parallel f calc end
+
+  applyReflectiveBoundaries(lc);
+  applyPeriodicBoundaries(lc);
+}
+
+void LennardJonesForce::calculateFLinkedCellParallel2() {
+
+  auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
+  if (!lc) {
+    throw std::runtime_error("LennardJonesForce::calculateFLinkedCell requires LinkedCellParticleContainer");
+  }
+  lc->handleOutflowBoundaries();
+
+  //code for parallel f calc
+
+  const auto numCells = lc->num_cells();
+  const int nx = numCells[0];
+  const int ny = numCells[1];
+  const int nz = numCells[2];
+
+  for (int px = 0; px < 3; px++)
+  for (int pz = 0; pz < 2; pz++){
+    int cx = -2 + px;
+    int cz = 1 + pz;
+    bool breakCritical = false;
+    #pragma omp parallel
+    {
+
+      bool breakCriticalLocal = false;
+      while (true){
+        int lx, ly, lz;
+        #pragma omp critical
+        {
+          cx += 3;
+          if (cx >= nx - 1){
+            cz += 2; cx = 1 + px;
+            if (cz >= nz - 1){
+              breakCritical = true;
+            }
+          }
+          lx = cx; lz = cz;
+          if (breakCritical) breakCriticalLocal = true;
+        }
+        if (breakCriticalLocal){
+          break;
+        }
+
+        for (int ly = 1; ly < ny - 1; ly++){
+
+          auto& cell1 = lc->cell_at(lx, ly, lz);
+
+          for (int i = 0; i < cell1.size(); ++i)
+          for (int j = i + 1; j < cell1.size(); ++j) {
+            calcFPeriodicBoundary(cell1[i], cell1[j]);
+          }
+
+          for (int dx = -1; dx < 2; dx++)
+          for (int dz = 0; dz < 2; dz++)
+          for (int dy = -1; dy < 2; dy++){
+            if (dz == 0 && (dy == -1 || (dy == 0 && dx <= 0)))
               continue;
             int c2x = lx + dx, c2y = ly + dy, c2z = lz + dz;
             if (c2x < 1 || c2x >= nx - 1 || c2y < 1 || c2y >= ny - 1 || c2z < 1 || c2z >= nz - 1)

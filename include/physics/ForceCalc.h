@@ -156,6 +156,7 @@ class LennardJonesForce final : public ForceCalc {
   void calculateFDirectSum();
   void calculateFLinkedCell();
   void calculateFLinkedCellParallel1();
+  void calculateFLinkedCellParallel2();
 
   void precomputeConstants() override;
 
