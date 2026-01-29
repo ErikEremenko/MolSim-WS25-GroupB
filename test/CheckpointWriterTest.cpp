@@ -58,7 +58,8 @@ class CheckpointWriterTest : public ::testing::Test {
   }
 
   // Helper to create LJ + gravity force config
-  std::vector<ForceConfig> createLJAndGravityForceConfigs(double epsilon = 1.0, double sigma = 1.0, double cutoff = 3.0, double gravity = -9.81) {
+  std::vector<ForceConfig> createLJAndGravityForceConfigs(double epsilon = 1.0, double sigma = 1.0, double cutoff = 3.0,
+                                                          double gravity = -9.81) {
     std::vector<ForceConfig> forceConfigs = createLJForceConfigs(epsilon, sigma, cutoff);
     ForceConfig gravityConfig;
     gravityConfig.forceType = ForceType::GLOBAL_GRAVITY;
@@ -297,7 +298,7 @@ TEST_F(CheckpointWriterTest, RoundTripPreservesData) {
   EXPECT_EQ(config.outputBasename, "roundtrip_test");
   EXPECT_EQ(config.writeFrequency, 50);
   EXPECT_EQ(config.checkpointFrequency, 200);
-  
+
   // Verify forces are correctly loaded
   EXPECT_EQ(config.forceConfigs.size(), 2);
   EXPECT_EQ(config.forceConfigs[0].forceType, ForceType::LENNARD_JONES);

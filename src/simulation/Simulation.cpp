@@ -196,8 +196,8 @@ void Simulation::writeCheckpoint(const int iteration, const double time) const {
 
   outputWriter::CheckpointWriter::writeCheckpoint(
       *particles, outputBasename + "_checkpoint_" + std::to_string(iteration) + ".yaml", iteration, time,
-      outputBasename, writeFrequency, checkpointFrequency, endTime, dt, forceConfigs, domainSize,
-      boundaryTypeStrings, outputDirectory);
+      outputBasename, writeFrequency, checkpointFrequency, endTime, dt, forceConfigs, domainSize, boundaryTypeStrings,
+      outputDirectory);
 }
 
 void Simulation::run() {
