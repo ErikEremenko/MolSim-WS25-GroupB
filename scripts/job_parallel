@@ -1,0 +1,36 @@
+#!/bin/bash
+#SBATCH -J MolSim_Parallel
+#SBATCH --clusters=cm4
+#SBATCH --partition=cm4_tiny
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=112
+#SBATCH --time=00:20:00
+#SBATCH -o ./%x.%j.%N.out
+#SBATCH -e ./%x.%j.%N.err
+#SBATCH --get-user-env
+#SBATCH --export=NONE
+
+# Load modules
+module load slurm_setup
+module load cmake/3.30.0 ninja/1.12.1 gcc/14.2.0
+
+cd "$SLURM_SUBMIT_DIR/build" || exit 1
+
+# Set OpenMP thread count - use all available CPUs
+export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+export OMP_PROC_BIND=close
+export OMP_PLACES=cores
+
+echo "=========================================="
+echo "Running on: $(hostname)"
+echo "CPUs per task: ${SLURM_CPUS_PER_TASK}"
+echo "OMP_NUM_THREADS: ${OMP_NUM_THREADS}"
+echo "=========================================="
+
+# Run the parallel benchmark
+./MolSim ../input/profiling.yaml benchmark info linked
+
+echo "=========================================="
+echo "Benchmark complete"
+echo "=========================================="

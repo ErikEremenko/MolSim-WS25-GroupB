@@ -1,0 +1,32 @@
+#!/bin/bash
+#SBATCH -J MolSim_Serial_CM4
+#SBATCH --clusters=cm4
+#SBATCH --partition=cm4_tiny
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=00:20:00
+#SBATCH -o ./%x.%j.%N.out
+#SBATCH -e ./%x.%j.%N.err
+#SBATCH --get-user-env
+#SBATCH --export=NONE
+
+# Load modules
+module load slurm_setup
+module load cmake/3.30.0 ninja/1.12.1 gcc/14.2.0
+
+cd "$SLURM_SUBMIT_DIR/build" || exit 1
+
+export OMP_NUM_THREADS=1
+
+echo "=========================================="
+echo "Running SERIAL on Sapphire Rapids (cm4_tiny): $(hostname)"
+echo "This tests single-thread performance on the faster partition"
+echo "=========================================="
+
+# Run the serial benchmark on CM4 (Sapphire Rapids)
+./MolSim ../input/profiling.yaml benchmark info linked
+
+echo "=========================================="
+echo "Serial benchmark complete"
+echo "=========================================="
