@@ -185,8 +185,8 @@ class TruncatedLJForce final : public ForceCalc {
  */
 class HarmonicMembraneForce final : public ForceCalc {
  private:
-  double stiffness;     ///< Spring constant k
-  double avgBondLength; ///< Average bond length r0
+  double stiffness;      ///< Spring constant k
+  double avgBondLength;  ///< Average bond length r0
 
  public:
   /**
@@ -209,9 +209,9 @@ class ConstantForce final : public ForceCalc {
  private:
   std::array<double, 3> force;
   double endTime;
-  double& currentTime;  ///< Reference to simulation's current time
+  double& currentTime;                             ///< Reference to simulation's current time
   std::vector<std::pair<int, int>> targetIndices;  ///< x/y indices of target particles
-  int membraneDimY;  ///< Y-dimension of membrane grid for index calculation
+  int membraneDimY;                                ///< Y-dimension of membrane grid for index calculation
 
  public:
   /**
@@ -224,8 +224,7 @@ class ConstantForce final : public ForceCalc {
    * @param targetIndices Vector of (x, y) index pairs identifying which particles to pull
    * @param membraneDimY Y-dimension of the membrane for calculating particle indices
    */
-  ConstantForce(ParticleContainer& particles, double fx, double fy, double fz,
-                double endTime, double& currentTime,
+  ConstantForce(ParticleContainer& particles, double fx, double fy, double fz, double endTime, double& currentTime,
                 std::vector<std::pair<int, int>> targetIndices, int membraneDimY);
 
   void calculateF() override;

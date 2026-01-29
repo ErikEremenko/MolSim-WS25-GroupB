@@ -1,8 +1,8 @@
 #include "physics/ForceCalc.h"
 
-#include <cmath>
 #include <omp.h>
 #include <spdlog/spdlog.h>
+#include <cmath>
 
 #include "physics/LinkedCellParticleContainer.h"
 #include "utils/ArrayUtils.h"
@@ -24,7 +24,7 @@ void ForceCalc::calculateX(ParticleContainer& particles, const double dt) {
 
     // compute all 3 components (SIMD friendly)
     std::array<double, 3> x_new;
-    #pragma omp simd
+#pragma omp simd
     for (int d = 0; d < 3; ++d) {
       x_new[d] = x_curr[d] + dt * v[d] + dt_sq_half * inv_m * F[d];
     }
@@ -43,7 +43,7 @@ void ForceCalc::calculateV(ParticleContainer& particles, const double dt) {
     const double dt_half_inv_m = dt / (2.0 * p.getM());
 
     std::array<double, 3> v_new;
-    #pragma omp simd
+#pragma omp simd
     for (int d = 0; d < 3; ++d) {
       v_new[d] = v_curr[d] + dt_half_inv_m * (F_old[d] + F[d]);
     }
@@ -346,7 +346,7 @@ void LennardJonesForce::applyReflectiveBoundaries(const LinkedCellParticleContai
 void LennardJonesForce::calcFPeriodicBoundary(Particle* p1, Particle* p2) const {
   // Use optimized lookup tables for mixed sigma/epsilon values
   const std::array<double, 3> dist = {p2->getX()[0] - p1->getX()[0], p2->getX()[1] - p1->getX()[1],
-                                p2->getX()[2] - p1->getX()[2]};
+                                      p2->getX()[2] - p1->getX()[2]};
 
   // Use squared distance to avoid sqrt
   double term = dist[0] * dist[0] + dist[1] * dist[1] + dist[2] * dist[2];
@@ -790,7 +790,8 @@ void HarmonicMembraneForce::calculateF() {
   for (auto& p : particles) {
     // Process direct neighbors (bond length = r0)
     for (int neighborID : p.getDirectNeighbors()) {
-      if (neighborID < 0 || neighborID >= static_cast<int>(particles.size())) continue;
+      if (neighborID < 0 || neighborID >= static_cast<int>(particles.size()))
+        continue;
       Particle& neighbor = particles[neighborID];
 
       const auto dist = neighbor.getX() - p.getX();
@@ -805,7 +806,8 @@ void HarmonicMembraneForce::calculateF() {
 
     // Process diagonal neighbors (bond length = sqrt(2) * r0)
     for (int neighborID : p.getDiagonalNeighbors()) {
-      if (neighborID < 0 || neighborID >= static_cast<int>(particles.size())) continue;
+      if (neighborID < 0 || neighborID >= static_cast<int>(particles.size()))
+        continue;
       Particle& neighbor = particles[neighborID];
 
       const auto dist = neighbor.getX() - p.getX();
@@ -820,9 +822,8 @@ void HarmonicMembraneForce::calculateF() {
   }
 }
 
-ConstantForce::ConstantForce(ParticleContainer& particles, double fx, double fy, double fz,
-                             double endTime, double& currentTime,
-                             std::vector<std::pair<int, int>> targetIndices, int membraneDimY)
+ConstantForce::ConstantForce(ParticleContainer& particles, double fx, double fy, double fz, double endTime,
+                             double& currentTime, std::vector<std::pair<int, int>> targetIndices, int membraneDimY)
     : ForceCalc(particles),
       force({fx, fy, fz}),
       endTime(endTime),
@@ -849,8 +850,6 @@ void ConstantForce::calculateF() {
   }
 }
 
-
-
 void LennardJonesForce::calculateFLinkedCellParallel1() {
 
   auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
@@ -859,75 +858,44 @@ void LennardJonesForce::calculateFLinkedCellParallel1() {
   }
   lc->handleOutflowBoundaries();
 
-  //code for parallel f calc
-
   const auto numCells = lc->num_cells();
   const int nx = numCells[0];
   const int ny = numCells[1];
   const int nz = numCells[2];
 
   for (int px = 0; px < 3; px++)
-  for (int py = 0; py < 2; py++){
-    int cx = -2 + px;
-    int cy = 1 + py;
-    bool breakCritical = false;
-    #pragma omp parallel
-    {
+    for (int py = 0; py < 2; py++) {
+#pragma omp parallel for collapse(2) schedule(static)
+      for (int lx = 1 + px; lx < nx - 1; lx += 3)
+        for (int ly = 1 + py; ly < ny - 1; ly += 2) {
+          for (int lz = 1; lz < nz - 1; lz++) {
 
-      bool breakCriticalLocal = false;
-      while (true){
-        int lx, ly, lz;
-        #pragma omp critical
-        {
-          cx += 3;
-          if (cx >= nx - 1){
-            cy += 2; cx = 1 + px;
-            if (cy >= ny - 1){
-              breakCritical = true;
-            }
-          }
-          lx = cx; ly = cy;
-          if (breakCritical) breakCriticalLocal = true;
-        }
-        if (breakCriticalLocal){
-          break;
-        }
+            auto& cell1 = lc->cell_at(lx, ly, lz);
 
-        for (int lz = 1; lz < nz - 1; lz++){
+            for (int i = 0; i < cell1.size(); ++i)
+              for (int j = i + 1; j < cell1.size(); ++j) {
+                calcFPeriodicBoundary(cell1[i], cell1[j]);
+              }
 
-          auto& cell1 = lc->cell_at(lx, ly, lz);
+            for (int dx = -1; dx < 2; dx++)
+              for (int dz = -1; dz < 2; dz++)
+                for (int dy = 0; dy < 2; dy++) {
+                  if (dy == 0 && (dz == -1 || (dz == 0 && dx <= 0)))
+                    continue;
+                  int c2x = lx + dx, c2y = ly + dy, c2z = lz + dz;
+                  if (c2x < 1 || c2x >= nx - 1 || c2y < 1 || c2y >= ny - 1 || c2z < 1 || c2z >= nz - 1)
+                    continue;
 
-          for (int i = 0; i < cell1.size(); ++i)
-          for (int j = i + 1; j < cell1.size(); ++j) {
-            calcFPeriodicBoundary(cell1[i], cell1[j]);
-          }
-
-          for (int dx = -1; dx < 2; dx++)
-          for (int dz = -1; dz < 2; dz++)
-          for (int dy = 0; dy < 2; dy++){
-            if (dy == 0 && (dz == -1 || (dz == 0 && dx <= 0)))
-              continue;
-            int c2x = lx + dx, c2y = ly + dy, c2z = lz + dz;
-            if (c2x < 1 || c2x >= nx - 1 || c2y < 1 || c2y >= ny - 1 || c2z < 1 || c2z >= nz - 1)
-              continue;
-
-            auto& cell2 = lc->cell_at(c2x, c2y, c2z);
-            for (auto& p1 : cell1)
-            for (auto& p2 : cell2) {
-              calcFPeriodicBoundary(p1, p2);
-            }
+                  auto& cell2 = lc->cell_at(c2x, c2y, c2z);
+                  for (auto& p1 : cell1)
+                    for (auto& p2 : cell2) {
+                      calcFPeriodicBoundary(p1, p2);
+                    }
+                }
           }
         }
-      }
     }
-  }
-
-  //code for parallel f calc end
 
   applyReflectiveBoundaries(lc);
   applyPeriodicBoundaries(lc);
 }
-
-
-
-
