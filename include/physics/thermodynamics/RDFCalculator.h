@@ -19,6 +19,7 @@ class RDFCalculator {
   std::array<double, intervalCount> densities{};
 
   void resetParticleCounts();
+
  public:
   explicit RDFCalculator(ParticleContainer& particles, const std::array<double, 3>& domainDims);
   const std::array<double, intervalCount>& calculateDistribution();

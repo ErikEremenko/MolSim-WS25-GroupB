@@ -22,7 +22,7 @@ class ThermodynamicsStatistics {
   static constexpr int updateFrequency = 1000;
 
   ThermodynamicsStatistics(ParticleContainer& particles, Thermostat* thermostat,
-    const std::array<double, 3>& domainDims, const std::string& baseName);
+                           const std::array<double, 3>& domainDims, const std::string& baseName);
 
   void updateStatistics();
 };

@@ -26,5 +26,5 @@ class ThermodynamicsWriter {
      * @param rdfDensities The amount of particles in intervals - the radial distribution function (RDF)
      */
   void write(int simulationIterations, double temperature, double diffusion,
-    const std::array<double, RDFCalculator::intervalCount>& rdfDensities);
+             const std::array<double, RDFCalculator::intervalCount>& rdfDensities);
 };
