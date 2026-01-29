@@ -200,15 +200,48 @@ void LennardJonesForce::calculateFLinkedCell() {
   }
   lc->handleOutflowBoundaries();
 
-  // Use template version to eliminate std::function overhead (~85% overheas on VTune)
+  // Use template version to eliminate std::function overhead (~85% overhead on VTune)
   // Cache lookup table pointers for better optimization
   const double* __restrict__ lut1 = pairLookupTable1.data();
   const double* __restrict__ lut2 = pairLookupTable2.data();
   const int tw = tableWidth;
   const double cutoffSq = cutoffRadiusSq;
 
+  // CRITICAL: Force calculation MUST be directly in the lambda for proper inlining.
+  // Calling a separate function (even with always_inline) prevents compiler optimizations.
   lc->iteratePairsTemplate([lut1, lut2, tw, cutoffSq](Particle& p_i, Particle& p_j) {
-    applyLJPairForceLookup(p_i, p_j, lut1, lut2, tw, cutoffSq);
+    // Get positions (getX() force-inlined)
+    const auto& xi = p_i.getX();
+    const auto& xj = p_j.getX();
+
+    // Compute distance vector and squared distance
+    const double dx = xj[0] - xi[0];
+    const double dy = xj[1] - xi[1];
+    const double dz = xj[2] - xi[2];
+    const double distSq = dx * dx + dy * dy + dz * dz;
+
+    if (distSq > cutoffSq)
+      return;
+
+    // Compute force using lookup tables
+    const double inv_distSq = 1.0 / distSq;
+    const int idx = p_i.getType() * tw + p_j.getType();
+    const double inv_distSq3 = inv_distSq * inv_distSq * inv_distSq;
+    const double term = lut1[idx] * inv_distSq * inv_distSq3 * (lut2[idx] - inv_distSq3);
+
+    const double fx = term * dx;
+    const double fy = term * dy;
+    const double fz = term * dz;
+
+    // Update forces (getF() force-inlined)
+    auto& fi = p_i.getF();
+    auto& fj = p_j.getF();
+    fi[0] += fx;
+    fi[1] += fy;
+    fi[2] += fz;
+    fj[0] -= fx;
+    fj[1] -= fy;
+    fj[2] -= fz;
   });
 
   applyReflectiveBoundaries(lc);
@@ -515,7 +548,77 @@ void SmoothedLJForce::calculateFLinkedCell() {
     throw std::runtime_error("SmoothedLJForce::calculateFLinkedCell requires LinkedCellParticleContainer");
   }
   lc->handleOutflowBoundaries();
-  lc->iteratePairsTemplate([this](Particle& p_i, Particle& p_j) { applySmoothedPairForce(p_i, p_j); });
+
+  // Cache member variables for better optimization (avoid repeated this-> access)
+  const double cutoffSq = cutoffRadiusSq;
+  const double smoothingSq = smoothingRadiusSq;
+  const double smoothingR = smoothingRadius;
+  const double cutoffR = cutoffRadius;
+  const double rcRlCubed = rcMinusRlCubed;
+  const double* __restrict__ eps = pairEpsilon.data();
+  const double* __restrict__ sig6 = pairSigma6.data();
+  const double* __restrict__ sig12 = pairSigma12.data();
+  const int tw = tableWidth;
+
+  // CRITICAL: Force calculation MUST be directly in the lambda for proper inlining.
+  lc->iteratePairsTemplate(
+      [cutoffSq, smoothingSq, smoothingR, cutoffR, rcRlCubed, eps, sig6, sig12, tw](Particle& p_i, Particle& p_j) {
+        const auto& xi = p_i.getX();
+        const auto& xj = p_j.getX();
+
+        const double dx = xj[0] - xi[0];
+        const double dy = xj[1] - xi[1];
+        const double dz = xj[2] - xi[2];
+        const double distSq = dx * dx + dy * dy + dz * dz;
+
+        if (distSq >= cutoffSq) {
+          return;
+        }
+
+        // Use precomputed lookup tables
+        const int idx = p_i.getType() * tw + p_j.getType();
+        const double epsilon_ij = eps[idx];
+        const double sigma6 = sig6[idx];
+        const double sigma12 = sig12[idx];
+
+        const double inv_distSq = 1.0 / distSq;
+        const double inv_distSq3 = inv_distSq * inv_distSq * inv_distSq;
+        const double sigma6_d6 = sigma6 * inv_distSq3;
+        const double sigma12_d12 = sigma12 * inv_distSq3 * inv_distSq3;
+
+        const double U_LJ = 4.0 * epsilon_ij * (sigma12_d12 - sigma6_d6);
+        const double F_LJ_scalar = 24.0 * epsilon_ij * inv_distSq * (sigma6_d6 - 2.0 * sigma12_d12);
+
+        double fx = 0.0;
+        double fy = 0.0;
+        double fz = 0.0;
+
+        if (distSq <= smoothingSq) {
+          fx = F_LJ_scalar * dx;
+          fy = F_LJ_scalar * dy;
+          fz = F_LJ_scalar * dz;
+        } else {
+          const double d = std::sqrt(distSq);
+          const double dMinusRl = d - smoothingR;
+          const double dMinusRl2 = dMinusRl * dMinusRl;
+          const double S = 1.0 - dMinusRl2 * (3.0 * cutoffR - smoothingR - 2.0 * d) / rcRlCubed;
+          const double dS_dd = -6.0 * dMinusRl * (cutoffR - d) / rcRlCubed;
+
+          const double F_total_scalar = S * F_LJ_scalar + U_LJ * dS_dd / d;
+          fx = F_total_scalar * dx;
+          fy = F_total_scalar * dy;
+          fz = F_total_scalar * dz;
+        }
+
+        auto& fi = p_i.getF();
+        auto& fj = p_j.getF();
+        fi[0] += fx;
+        fi[1] += fy;
+        fi[2] += fz;
+        fj[0] -= fx;
+        fj[1] -= fy;
+        fj[2] -= fz;
+      });
 
   // Apply boundary conditions
   applyPeriodicBoundaries(lc);
