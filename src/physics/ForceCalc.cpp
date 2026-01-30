@@ -121,7 +121,7 @@ void LennardJonesForce::calculateF() {
     if (useParallel) {
       if (parallelStrategy == ParallelStrategy::COLORING) {
         calculateFLinkedCellParallel1();
-      }else if (parallelStrategy == ParallelStrategy::MEMORYBASED){
+      } else if (parallelStrategy == ParallelStrategy::MEMORYBASED) {
         calculateFLinkedCellParallel3();
       } else {
         calculateFLinkedCellParallel2();
@@ -1008,8 +1008,6 @@ void SmoothedLJForce::precomputeConstants() {
     }
   }
 
-
-
   SPDLOG_DEBUG("SmoothedLJForce: Precomputed constants for {} unique particle types", uniqueTypes.size());
 }
 
@@ -1340,13 +1338,11 @@ void LennardJonesForce::calculateFLinkedCellParallel2() {
   applyPeriodicBoundariesParallel(lc);
 }
 
-
-void LennardJonesForce::calcFParallel(Particle* p1, Particle* p2,
-                                      std::array<double, 3>& p1f,
+void LennardJonesForce::calcFParallel(Particle* p1, Particle* p2, std::array<double, 3>& p1f,
                                       std::array<double, 3>& p2f) {
   // Use optimized lookup tables for mixed sigma/epsilon values
   const std::array<double, 3> dist = {p2->getX()[0] - p1->getX()[0], p2->getX()[1] - p1->getX()[1],
-                                p2->getX()[2] - p1->getX()[2]};
+                                      p2->getX()[2] - p1->getX()[2]};
 
   // Use squared distance to avoid sqrt
   double term = dist[0] * dist[0] + dist[1] * dist[1] + dist[2] * dist[2];
@@ -1372,19 +1368,16 @@ void LennardJonesForce::calcFParallel(Particle* p1, Particle* p2,
   p2f[0] -= F_vec[0];
   p2f[1] -= F_vec[1];
   p2f[2] -= F_vec[2];
-
 }
 
 void LennardJonesForce::calculateFLinkedCellParallel3() {
-
-
 
   auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
   if (!lc) {
     throw std::runtime_error("LennardJonesForce::calculateFLinkedCell requires LinkedCellParticleContainer");
   }
 
-    static constexpr std::array<std::array<int, 4>, 13> neighborOffsets = {{{-1, -1, 1, 2},
+  static constexpr std::array<std::array<int, 4>, 13> neighborOffsets = {{{-1, -1, 1, 2},
                                                                           {0, -1, 1, 3},
                                                                           {1, -1, 1, 4},
                                                                           {-1, 0, 1, 2},
@@ -1407,79 +1400,75 @@ void LennardJonesForce::calculateFLinkedCellParallel3() {
   const int ny = numCells[1];
   const int nz = numCells[2];
 
-  #pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
   for (int cx = 1; cx < nx - 1; cx++)
-  for (int cz = 1; cz < nz - 1; cz++){
+    for (int cz = 1; cz < nz - 1; cz++) {
 
-    for (int cy = 1; cy < ny - 1; cy++){
-      auto& cell1 = lc->cell_at(cx, cy, cz);
-      int idx = (cz * nx * ny) + (cy * nx) + cx;
-      for (int i = 0; i < 6; i++) {
+      for (int cy = 1; cy < ny - 1; cy++) {
+        auto& cell1 = lc->cell_at(cx, cy, cz);
+        int idx = (cz * nx * ny) + (cy * nx) + cx;
+        for (int i = 0; i < 6; i++) {
 
-        tempForces[i][idx].clear();
-        for (int j = 0; j < cell1.size(); j++){
-          tempForces[i][idx].emplace_back();
+          tempForces[i][idx].clear();
+          for (int j = 0; j < cell1.size(); j++) {
+            tempForces[i][idx].emplace_back();
+          }
         }
       }
     }
 
-  }
-
-  #pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
   for (int cx = 1; cx < nx - 1; cx++)
-  for (int cz = 1; cz < nz - 1; cz++){
+    for (int cz = 1; cz < nz - 1; cz++) {
 
-    for (int cy = 1; cy < ny - 1; cy++){
+      for (int cy = 1; cy < ny - 1; cy++) {
 
-      auto& cell1 = lc->cell_at(cx, cy, cz);
-      const int idx1 = (cz * nx * ny) + (cy * nx) + cx;
-      auto& cell1f = tempForces[0][idx1];
+        auto& cell1 = lc->cell_at(cx, cy, cz);
+        const int idx1 = (cz * nx * ny) + (cy * nx) + cx;
+        auto& cell1f = tempForces[0][idx1];
 
-      for (int i = 0; i < cell1.size(); ++i)
-      for (int j = i + 1; j < cell1.size(); ++j) {
-        calcFParallel(cell1[i], cell1[j], cell1f[i], cell1f[j]);
-      }
-
-
-      for (const auto& off : neighborOffsets){
-
-        int c2x = cx + off[0];
-        int c2y = cy + off[1];
-        int c2z = cz + off[2];
-        if (c2x < 1 || c2x >= nx - 1 || c2y < 1 || c2y >= ny - 1 || c2z < 1 || c2z >= nz - 1)
-          continue;
-
-        const int idx2 = (c2z * nx * ny) + (c2y * nx) + c2x;
-        auto& cell2 = lc->cell_at(c2x, c2y, c2z);
-        auto& cell2f = tempForces[off[3]][idx2];
         for (int i = 0; i < cell1.size(); ++i)
-        for (int j = 0; j < cell2.size(); ++j) {
-          calcFParallel(cell1[i], cell2[j], cell1f[i], cell2f[j]);
+          for (int j = i + 1; j < cell1.size(); ++j) {
+            calcFParallel(cell1[i], cell1[j], cell1f[i], cell1f[j]);
+          }
+
+        for (const auto& off : neighborOffsets) {
+
+          int c2x = cx + off[0];
+          int c2y = cy + off[1];
+          int c2z = cz + off[2];
+          if (c2x < 1 || c2x >= nx - 1 || c2y < 1 || c2y >= ny - 1 || c2z < 1 || c2z >= nz - 1)
+            continue;
+
+          const int idx2 = (c2z * nx * ny) + (c2y * nx) + c2x;
+          auto& cell2 = lc->cell_at(c2x, c2y, c2z);
+          auto& cell2f = tempForces[off[3]][idx2];
+          for (int i = 0; i < cell1.size(); ++i)
+            for (int j = 0; j < cell2.size(); ++j) {
+              calcFParallel(cell1[i], cell2[j], cell1f[i], cell2f[j]);
+            }
         }
       }
     }
 
-  }
-
-  #pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
   for (int cx = 1; cx < nx - 1; cx++)
-  for (int cz = 1; cz < nz - 1; cz++){
+    for (int cz = 1; cz < nz - 1; cz++) {
 
-    for (int cy = 1; cy < ny - 1; cy++){
-      auto& cell = lc->cell_at(cx, cy, cz);
-      int idx = (cz * nx * ny) + (cy * nx) + cx;
-      for (int i = 0; i < 6; i++){
-        auto& cellf = tempForces[i][idx];
-        for (int pi = 0; pi < cell.size(); pi++){
-          Particle* p = cell[pi];
-          p->setF(p->getF()[0] + cellf[pi][0], 0);
-          p->setF(p->getF()[1] + cellf[pi][1], 1);
-          p->setF(p->getF()[2] + cellf[pi][2], 2);
+      for (int cy = 1; cy < ny - 1; cy++) {
+        auto& cell = lc->cell_at(cx, cy, cz);
+        int idx = (cz * nx * ny) + (cy * nx) + cx;
+        for (int i = 0; i < 6; i++) {
+          auto& cellf = tempForces[i][idx];
+          for (int pi = 0; pi < cell.size(); pi++) {
+            Particle* p = cell[pi];
+            p->setF(p->getF()[0] + cellf[pi][0], 0);
+            p->setF(p->getF()[1] + cellf[pi][1], 1);
+            p->setF(p->getF()[2] + cellf[pi][2], 2);
+          }
         }
       }
     }
-
-  }
 
   //code for parallel f calc end
 

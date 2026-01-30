@@ -331,7 +331,7 @@ SimulationConfig YAMLFileReader::getConfig() {
         simConfig.parallelStrategy = ParallelStrategy::TASKBASED;
       } else if (strategyStr == "memorybased" || strategyStr == "MEMORYBASED") {
         simConfig.parallelStrategy = ParallelStrategy::MEMORYBASED;
-      }else {
+      } else {
         SPDLOG_WARN("Unknown parallelization strategy '{}', defaulting to COLORING", strategyStr);
       }
     }

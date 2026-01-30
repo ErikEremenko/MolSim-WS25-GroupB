@@ -196,14 +196,12 @@ class LennardJonesForce final : public ForceCalc {
    */
   void calculateFLinkedCellParallel2();
 
-
   /**
    * @brief Strategy 3: save forces for conflicting cells in different containers
    *  and then add them together for all particles
    */
   void calcFParallel(Particle* p1, Particle* p2, std::array<double, 3>& p1f, std::array<double, 3>& p2f);
   void calculateFLinkedCellParallel3();
-
 
   void precomputeConstants() override;
 
