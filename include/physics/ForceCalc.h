@@ -143,6 +143,10 @@ class LennardJonesForce final : public ForceCalc {
   /// Width of the lookup table (max type + 1)
   int tableWidth;
 
+  /// Containers used for parallelization
+  std::array<std::vector<std::vector<std::array<double, 3>>>, 6> tempForces;
+
+
  public:
   /**
    * @param particles ParticleContainer that stores the particles used by the calculation method
@@ -157,6 +161,8 @@ class LennardJonesForce final : public ForceCalc {
   void calculateFLinkedCell();
   void calculateFLinkedCellParallel1();
   void calculateFLinkedCellParallel2();
+  void calcFParallel(Particle* p1, Particle* p2, std::array<double, 3>& p1f, std::array<double, 3>& p2f);
+  void calculateFLinkedCellParallel3();
 
   void precomputeConstants() override;
 

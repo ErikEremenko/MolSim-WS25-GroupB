@@ -186,6 +186,11 @@ class Particle {
    *  @param val velocity vector as 3 element array
    */
   void setV(const std::array<double, 3>& val) { this->v = val; }
+  /** @brief set component of particle force vector
+   *  @param val value for the component
+   *  @param dim dimension (0=x, 1=y, 2=z)
+   */
+  void setF(double val, int dim) { this->f[dim] = val; }
   /** @brief set force effective on particle
    *  @param val force vector as 3 element array
    */
