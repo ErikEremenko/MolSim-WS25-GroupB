@@ -1163,7 +1163,8 @@ void ConstantForce::calculateF() {
 
 void LennardJonesForce::calculateFLinkedCellParallel1() {
   // Strategy 1: Domain decomposition with static scheduling
-  // - Divides the domain into 6 independent sets of cells
+  // - 2D: 3×2 coloring in X/Y (6 phases)
+  // - 3D: 2×2×2 coloring (8 phases)
   // - Each set can be processed in parallel without race conditions
 
   auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
@@ -1177,38 +1178,75 @@ void LennardJonesForce::calculateFLinkedCellParallel1() {
   const int ny = numCells[1];
   const int nz = numCells[2];
 
-  for (int px = 0; px < 3; px++)
-    for (int py = 0; py < 2; py++) {
+  const bool is2D = (nz <= 3);
+
+  if (is2D) {
+    for (int px = 0; px < 3; px++)
+      for (int py = 0; py < 2; py++) {
 #pragma omp parallel for collapse(2) schedule(static)
-      for (int lx = 1 + px; lx < nx - 1; lx += 3)
-        for (int ly = 1 + py; ly < ny - 1; ly += 2) {
-          for (int lz = 1; lz < nz - 1; lz++) {
+        for (int lx = 1 + px; lx < nx - 1; lx += 3)
+          for (int ly = 1 + py; ly < ny - 1; ly += 2) {
+            for (int lz = 1; lz < nz - 1; lz++) {
 
-            auto& cell1 = lc->cell_at(lx, ly, lz);
+              auto& cell1 = lc->cell_at(lx, ly, lz);
 
-            for (size_t i = 0; i < cell1.size(); ++i)
-              for (size_t j = i + 1; j < cell1.size(); ++j) {
-                calcFPeriodicBoundary(cell1[i], cell1[j]);
-              }
-
-            for (int dx = -1; dx < 2; dx++)
-              for (int dz = -1; dz < 2; dz++)
-                for (int dy = 0; dy < 2; dy++) {
-                  if (dy == 0 && (dz == -1 || (dz == 0 && dx <= 0)))
-                    continue;
-                  int c2x = lx + dx, c2y = ly + dy, c2z = lz + dz;
-                  if (c2x < 1 || c2x >= nx - 1 || c2y < 1 || c2y >= ny - 1 || c2z < 1 || c2z >= nz - 1)
-                    continue;
-
-                  auto& cell2 = lc->cell_at(c2x, c2y, c2z);
-                  for (auto& p1 : cell1)
-                    for (auto& p2 : cell2) {
-                      calcFPeriodicBoundary(p1, p2);
-                    }
+              for (size_t i = 0; i < cell1.size(); ++i)
+                for (size_t j = i + 1; j < cell1.size(); ++j) {
+                  calcFPeriodicBoundary(cell1[i], cell1[j]);
                 }
+
+              for (int dx = -1; dx < 2; dx++)
+                for (int dz = -1; dz < 2; dz++)
+                  for (int dy = 0; dy < 2; dy++) {
+                    if (dy == 0 && (dz == -1 || (dz == 0 && dx <= 0)))
+                      continue;
+                    int c2x = lx + dx, c2y = ly + dy, c2z = lz + dz;
+                    if (c2x < 1 || c2x >= nx - 1 || c2y < 1 || c2y >= ny - 1 || c2z < 1 || c2z >= nz - 1)
+                      continue;
+
+                    auto& cell2 = lc->cell_at(c2x, c2y, c2z);
+                    for (auto& p1 : cell1)
+                      for (auto& p2 : cell2) {
+                        calcFPeriodicBoundary(p1, p2);
+                      }
+                  }
+            }
           }
+      }
+  } else {
+    for (int px = 0; px < 2; px++)
+      for (int py = 0; py < 2; py++)
+        for (int pz = 0; pz < 2; pz++) {
+#pragma omp parallel for collapse(3) schedule(static)
+          for (int lx = 1 + px; lx < nx - 1; lx += 2)
+            for (int ly = 1 + py; ly < ny - 1; ly += 2)
+              for (int lz = 1 + pz; lz < nz - 1; lz += 2) {
+
+                auto& cell1 = lc->cell_at(lx, ly, lz);
+
+                for (size_t i = 0; i < cell1.size(); ++i)
+                  for (size_t j = i + 1; j < cell1.size(); ++j) {
+                    calcFPeriodicBoundary(cell1[i], cell1[j]);
+                  }
+
+                for (int dx = -1; dx < 2; dx++)
+                  for (int dz = -1; dz < 2; dz++)
+                    for (int dy = 0; dy < 2; dy++) {
+                      if (dy == 0 && (dz == -1 || (dz == 0 && dx <= 0)))
+                        continue;
+                      int c2x = lx + dx, c2y = ly + dy, c2z = lz + dz;
+                      if (c2x < 1 || c2x >= nx - 1 || c2y < 1 || c2y >= ny - 1 || c2z < 1 || c2z >= nz - 1)
+                        continue;
+
+                      auto& cell2 = lc->cell_at(c2x, c2y, c2z);
+                      for (auto& p1 : cell1)
+                        for (auto& p2 : cell2) {
+                          calcFPeriodicBoundary(p1, p2);
+                        }
+                    }
+              }
         }
-    }
+  }
 
   applyReflectiveBoundaries(lc);
   applyPeriodicBoundariesParallel(lc);

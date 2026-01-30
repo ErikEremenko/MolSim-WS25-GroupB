@@ -159,11 +159,11 @@ class LennardJonesForce final : public ForceCalc {
   /**
    * @brief Strategy 1: C-coloring (domain decomposition)
    *
-   * 3×2 coloring in X/Y. Same color cells are independent
-   * 6 phases, each using an OpenMP parallel for.
+    * 2D: 3×2 coloring in X/Y (6 phases).
+    * 3D: 2×2×2 coloring (8 phases).
    *
-   * Pros: no atomics, cache-friendly, deterministic.
-   * Cons: 6 barriers, can imbalance on inhomogeneous data.
+  * Pros: no atomics, cache-friendly, deterministic.
+  * Cons: 6–8 barriers, can imbalance on inhomogeneous data.
    */
   void calculateFLinkedCellParallel1();
 
