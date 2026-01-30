@@ -756,6 +756,16 @@ void LennardJonesForce::precomputeConstants() {
     }
   }
 
+  auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
+  if (!lc) {
+    throw std::runtime_error("LennardJonesForce::calculateFLinkedCell requires LinkedCellParticleContainer");
+  }
+
+  int num_cells = lc->num_cells()[0] * lc->num_cells()[1] * lc->num_cells()[2];
+
+  for (int i = 0; i < 6; i++)
+    tempForces[i].assign(num_cells, {});
+
   SPDLOG_DEBUG("Precomputed constants for {} unique particle types ({} pair combinations)", uniqueTypes.size(),
                uniqueTypes.size() * uniqueTypes.size());
 }
@@ -998,16 +1008,6 @@ void SmoothedLJForce::precomputeConstants() {
     }
   }
 
-
-  auto* lc = dynamic_cast<LinkedCellParticleContainer*>(&particles);
-  if (!lc) {
-    throw std::runtime_error("LennardJonesForce::calculateFLinkedCell requires LinkedCellParticleContainer");
-  }
-
-  int num_cells = lc->num_cells()[0] * lc->num_cells()[1] * lc->num_cells()[2];
-
-  for (int i = 0; i < 6; i++)
-    tempForces[i].assign(num_cells, {});
 
 
   SPDLOG_DEBUG("SmoothedLJForce: Precomputed constants for {} unique particle types", uniqueTypes.size());
