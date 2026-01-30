@@ -1,6 +1,6 @@
 output:
   base_name: super_cooling_argon
-  write_frequency: 1000
+  write_frequency: 10
   checkpoint_frequency: 10000
 simulation:
   t_end: 100

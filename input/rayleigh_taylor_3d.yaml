@@ -6,7 +6,7 @@ output:
   checkpoint_frequency: 10000
 
 simulation:
-  t_end: 100.0
+  t_end: 0.5
   delta_t: 0.0005
   dimensions: 3
 

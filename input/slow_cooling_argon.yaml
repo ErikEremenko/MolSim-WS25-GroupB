@@ -1,6 +1,6 @@
 output:
   base_name: slow_cooling_argon
-  write_frequency: 1000
+  write_frequency: 100
   checkpoint_frequency: 10000
 simulation:
   t_end: 250

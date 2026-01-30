@@ -2,7 +2,7 @@
 
 output:
   base_name: "argon_equilibrate_smoothed"
-  write_frequency: 1000
+  write_frequency: 100
   checkpoint_frequency: 10000
 
 simulation:
