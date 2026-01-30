@@ -1,16 +1,14 @@
 output:
-  base_name: "collision2_reflective"
+  base_name: "periodic_boundaries_test"
   write_frequency: 100
 
 simulation:
   t_end: 18.0
   delta_t: 0.0005
-  epsilon: 5.0
-  sigma: 1.0
-  cutoff_radius: 3.0
+  dimensions: 3
 
 domain:
-  size: [20.0, 20.0, 20.0] # z=1 for 2D
+  size: [20.0, 20.0, 20.0]
 
 boundaries:
   x_min: PERIODIC
@@ -19,6 +17,20 @@ boundaries:
   y_max: PERIODIC
   z_min: PERIODIC
   z_max: PERIODIC
+
+forces:
+  - force_type: lennard_jones
+    epsilon: 5.0
+    sigma: 1.0
+    cutoff_radius: 3.0
+
+container:
+  container_type: linked
+  cutoff: 3.0
+
+parallelization:
+  enabled: false
+  strategy: coloring
 
 cuboids:
   - position: [5.0, 5.0, 5.0]

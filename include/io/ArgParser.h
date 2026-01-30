@@ -24,6 +24,7 @@ struct CLIConfig {
   std::optional<SimulationMode> simulationMode;
   std::optional<ContainerType> containerType;
   std::optional<bool> useParallelization;
+  std::optional<ParallelStrategy> parallelStrategy;
 
   // Legacy Parameters
   std::optional<double> tEnd;
@@ -78,6 +79,13 @@ class ArgParser {
    * @return true if P:ON, false if P:OFF.
    */
   static bool parseParallelization(const std::string& parallelStr);
+
+  /**
+   * @brief Parses a string into a ParallelStrategy enum.
+   * @param strategyStr The string representation ("S:COLORING" or "S:TASKBASED").
+   * @return The corresponding ParallelStrategy.
+   */
+  static ParallelStrategy parseParallelStrategy(const std::string& strategyStr);
 
  public:
   ArgParser(int argc, char* argv[]);

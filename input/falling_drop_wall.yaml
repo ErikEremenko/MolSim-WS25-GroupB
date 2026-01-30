@@ -27,6 +27,10 @@ container:
   container_type: linked
   cutoff: 3.0
 
+parallelization:
+  enabled: false
+  strategy: coloring
+
 cuboids: []
 spheres:
   - position: [ 60.0, 25.0, 0.0 ]

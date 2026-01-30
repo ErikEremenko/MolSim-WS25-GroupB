@@ -9,10 +9,11 @@ ArgParser::~ArgParser() = default;
 void ArgParser::printUsage() {
   SPDLOG_INFO("Usage:");
   SPDLOG_INFO(
-      "  YAML mode: ./MolSim filename [file | benchmark] [off | error | debug | trace | info] [linked | direct]");
+      "  YAML mode: ./MolSim filename [file | benchmark] [off | error | debug | trace | info] [linked | direct] [P:ON "
+      "| P:OFF] [S:COLORING | S:TASKBASED]");
   SPDLOG_INFO(
       "  Legacy mode: ./MolSim filename t_end delta_t [file | benchmark] [off | error | debug | trace | info] [P:OFF | "
-      "P:ON]");
+      "P:ON] [S:COLORING | S:TASKBASED]");
 }
 
 LogLevelConfig ArgParser::parseLogLevel(const std::string& logLevelStr) {
@@ -58,6 +59,14 @@ bool ArgParser::parseParallelization(const std::string& parallelStr) {
   throw std::invalid_argument("Invalid parallel option: " + parallelStr);
 }
 
+ParallelStrategy ArgParser::parseParallelStrategy(const std::string& strategyStr) {
+  if (strategyStr == "S:COLORING" || strategyStr == "S:coloring")
+    return ParallelStrategy::COLORING;
+  if (strategyStr == "S:TASKBASED" || strategyStr == "S:taskbased")
+    return ParallelStrategy::TASKBASED;
+  throw std::invalid_argument("Invalid parallel strategy: " + strategyStr);
+}
+
 std::optional<CLIConfig> ArgParser::parse() const {
   if (argc < 2) {
     printUsage();
@@ -96,11 +105,15 @@ std::optional<CLIConfig> ArgParser::parse() const {
       if (args.size() > 5)
         config.useParallelization = parseParallelization(args[5]);
 
+      // Index 6: Strategy (Optional)
+      if (args.size() > 6)
+        config.parallelStrategy = parseParallelStrategy(args[6]);
+
     } else {
       // Legacy mode, full parsing
-      // Requires exactly 7 arguments (program + 6 args)
-      if (argc != 7) {
-        SPDLOG_ERROR("Legacy mode requires exactly 7 arguments.");
+      // Requires 7 or 8 arguments (program + 6 args + optional strategy)
+      if (argc != 7 && argc != 8) {
+        SPDLOG_ERROR("Legacy mode requires 7 arguments (or 8 with strategy).");
         printUsage();
         return std::nullopt;
       }
@@ -111,6 +124,9 @@ std::optional<CLIConfig> ArgParser::parse() const {
       config.simulationMode = parseSimulationMode(args[4]);
       config.logLevel = parseLogLevel(args[5]);
       config.useParallelization = parseParallelization(args[6]);
+
+      if (argc == 8)
+        config.parallelStrategy = parseParallelStrategy(args[7]);
     }
   } catch (const std::exception& e) {
     SPDLOG_ERROR("Argument parsing error: {}", e.what());

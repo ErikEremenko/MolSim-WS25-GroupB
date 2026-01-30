@@ -11,15 +11,15 @@
 /**
  * @class ForceCalc
  * @brief Abstract base class used for implementing different force calculation strategies
- * 
+ *
  * @section perf_requirements Performance Requirements
  * For optimal performance with millions/billions of particle operations:
- * 
+ *
  * @warning **Zero-Distance Checks**: Force calculation methods in derived classes may omit
  * zero-distance checks for performance. Ensure particles are initialized with distinct positions.
  * Overlapping particles will cause division by zero, resulting in NaN/inf values that silently
  * propagate through the simulation.
- * 
+ *
  * @warning **Particle Types**: The LennardJonesForce class requires that particle types
  * uniquely identify (sigma, epsilon) pairs. Use the automatic type assignment in YAMLFileReader
  * or ensure manual type assignments are consistent.
@@ -110,11 +110,11 @@ class GlobalGravityForce final : public ForceCalc {
 /**
  * @class LennardJonesForce
  * @brief Models the Lennard-Jones potential
- * 
+ *
  * @warning This class assumes that each particle type uniquely maps to a (sigma, epsilon) pair.
  * Particles with the same type MUST have identical sigma and epsilon values.
  * Violating this assumption leads to incorrect force calculations!
- * 
+ *
  * @warning For performance, zero-distance checks between particles are NOT performed in
  * calculateFLinkedCell(). Ensure particles are properly initialized with distinct positions.
  * Overlapping particles will cause division by zero and NaN/inf propagation!
@@ -171,7 +171,40 @@ class LennardJonesForce final : public ForceCalc {
   void calculateFDirectSum();
   void calculateFLinkedCell();
 
+  /**
+   * @brief Strategy 1: C-coloring (domain decomposition)
+   *
+    * 2D: 3×2 coloring in X/Y (6 phases).
+    * 3D: 2×2×2 coloring (8 phases).
+   *
+  * Pros: no atomics, cache-friendly, deterministic.
+  * Cons: 6–8 barriers, can imbalance on inhomogeneous data.
+   */
+  void calculateFLinkedCellParallel1();
+
+  /**
+   * @brief Strategy 2: task-based with atomics
+   *
+   * One task per cell, work-stealing balances load.
+   * Atomics protect inter-cell updates.
+   *
+   * Pros: fewer barriers, adapts to inhomogeneous data.
+   * Cons: atomic + task overhead.
+   */
+  void calculateFLinkedCellParallel2();
+
   void precomputeConstants() override;
+
+  /**
+   * @brief Set the parallel strategy for force calculation
+   * @param strategy COLORING or TASKBASED
+   */
+  void setParallelStrategy(ParallelStrategy strategy) { parallelStrategy = strategy; }
+
+  /**
+   * @brief Enable or disable parallelization
+   */
+  void setUseParallel(bool enable) { useParallel = enable; }
 
  private:
   static void applyLJPairForceGlobal(Particle& p_i, Particle& p_j, double sigma6, double epsilon, double cutoffSq);
@@ -217,23 +250,23 @@ class LennardJonesForce final : public ForceCalc {
     fj[2] -= fz;
   }
 
+  ParallelStrategy parallelStrategy = ParallelStrategy::COLORING;
+  bool useParallel = false;
+
   void applyReflectiveBoundaries(const class LinkedCellParticleContainer* lc) const;
   void calcFPeriodicBoundary(Particle* p1, Particle* p2) const;
+  void calcFPeriodicBoundaryAtomic(Particle* p1, const std::array<double, 3>& p2_shifted_pos, Particle* p2) const;
   void applyPeriodicBoundaries(LinkedCellParticleContainer* lc) const;
+  void applyPeriodicBoundariesParallel(LinkedCellParticleContainer* lc) const;
 };
 
 /**
  * @class SmoothedLJForce
  * @brief Smoothed Lennard-Jones potential with continuous force at cutoff
- * 
- * Implements the smoothed LJ potential: U(x_i, x_j) = 4ε · S(x_i, x_j) · [(σ/r)^12 - (σ/r)^6]
- * 
- * The smoothing function S(x_i, x_j) ensures the force goes smoothly to zero at cutoff:
- * - S = 1                                                    for d_ij ≤ r_l
- * - S = 1 - (d - r_l)² · (3r_c - r_l - 2d) / (r_c - r_l)³   for r_l < d_ij < r_c
- * - S = 0                                                    for d_ij ≥ r_c
- * 
- * Uses Lorentz-Berthelot mixing rules for mixed particle types.
+ *
+ * Uses the standard Lennard-Jones force up to the smoothing radius, then
+ * tapers to zero at the cutoff radius. This avoids discontinuities
+ * in the force. Mixed particle types use Lorentz-Berthelot rules.
  */
 class SmoothedLJForce final : public ForceCalc {
  private:
@@ -341,8 +374,7 @@ class SmoothedLJForce final : public ForceCalc {
 
 /**
  * @class TruncatedLJForce
- * @brief Repulsive-only Lennard-Jones potential, truncated at 2^(1/6)* sigma
- * 
+ * @brief Repulsive-only Lennard-Jones potential, truncated at 2^(1/6)·sigma
  * Used for membrane simulations to prevent self-penetration without attraction.
  * Uses Lorentz-Berthelot mixing rules for mixed particle types.
  */
@@ -378,8 +410,7 @@ class HarmonicMembraneForce final : public ForceCalc {
 /**
  * @class ConstantForce
  * @brief Applies a constant force to specific particles (identified by membrane x/y indices)
- * 
- * The force is only applied until a specified end time
+ * The force is only applied until a specified end time ("pulling" membrane particles)
  */
 class ConstantForce final : public ForceCalc {
  private:

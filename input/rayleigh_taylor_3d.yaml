@@ -29,10 +29,15 @@ forces:
 
   - force_type: global_gravity
     g: -12.44
+    axis: 1
 
 container:
   container_type: linked
   cutoff: 3.0
+
+parallelization:
+  enabled: true
+  strategy: coloring
 
 thermostat:
   n_thermostat: 1000

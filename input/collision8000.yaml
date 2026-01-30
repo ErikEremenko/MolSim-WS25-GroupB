@@ -30,6 +30,10 @@ container:
   container_type: linked
   cutoff: 3.0
 
+parallelization:
+  enabled: false
+  strategy: coloring
+
 
 cuboids:
   - position: [10.0, 10.0, 0.0]
