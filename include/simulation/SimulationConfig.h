@@ -107,7 +107,6 @@ enum class ForceType {
   LENNARD_JONES,      ///< Full Lennard-Jones potential
   SMOOTHED_LJ,        ///< Smoothed Lennard-Jones potential with continuous force at cutoff
   TRUNCATED_LJ,       ///< Repulsive-only LJ (truncated at 2^(1/6)*sigma)
-  TRUNCATED_LJ,       ///< Repulsive-only LJ (truncated at 2^(1/6)·sigma)
   GLOBAL_GRAVITY,     ///< Constant gravitational acceleration on all particles
   HARMONIC_MEMBRANE,  ///< Harmonic bonds between membrane neighbors
   CONSTANT_FORCE      ///< Constant force on specific particles (e.g., pulling)
