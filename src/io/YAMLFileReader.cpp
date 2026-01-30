@@ -5,20 +5,20 @@
 
 /**
  * @file YAMLFileReader.cpp
- * 
+ *
  * @section type_assignment Particle Type Assignment
- * 
+ *
  * Each cuboid/sphere in the YAML file is assigned a sequential type ID (0, 1, 2, ...).
  * The type ID is used by LennardJonesForce to look up precomputed interaction parameters
  * (mixed sigma/epsilon via Lorentz-Berthelot rules) in O(1) time.
- * 
+ *
  * @warning CRITICAL REQUIREMENT: All particles with the same type MUST have identical
  * sigma and epsilon values. The force calculation uses lookup tables indexed by particle
  * type pairs, NOT by individual particle sigma/epsilon values.
- * 
+ *
  * Since particles are initialized in groups (cuboids, spheres), this is naturally satisfied
  * when each group has uniform sigma/epsilon. The YAML structure ensures this.
- * 
+ *
  * If you need particles from different cuboids to share the same type (and thus interact
  * as if they had identical sigma/epsilon), you can manually specify the type in the YAML.
  * However, you MUST ensure all particles with that type have the SAME sigma and epsilon.
@@ -329,7 +329,9 @@ SimulationConfig YAMLFileReader::getConfig() {
         simConfig.parallelStrategy = ParallelStrategy::COLORING;
       } else if (strategyStr == "taskbased" || strategyStr == "TASKBASED") {
         simConfig.parallelStrategy = ParallelStrategy::TASKBASED;
-      } else {
+      } else if (strategyStr == "memorybased" || strategyStr == "MEMORYBASED") {
+        simConfig.parallelStrategy = ParallelStrategy::MEMORYBASED;
+      }else {
         SPDLOG_WARN("Unknown parallelization strategy '{}', defaulting to COLORING", strategyStr);
       }
     }

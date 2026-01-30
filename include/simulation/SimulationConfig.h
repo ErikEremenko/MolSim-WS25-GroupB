@@ -100,7 +100,8 @@ enum class ParallelStrategy {
    * Task-based approach: One task per cell, atomics for force updates.
    * Better load balancing via work-stealing.
    */
-  TASKBASED
+  TASKBASED,
+  MEMORYBASED
 };
 
 enum class ForceType {

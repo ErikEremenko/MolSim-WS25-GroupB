@@ -61,10 +61,10 @@ class ForceCalc {
  protected:
   /**
    * @brief Helper template to iterate over periodic boundary pairs and apply a force function
-   * 
+   *
    * This eliminates code duplication between LennardJonesForce and SmoothedLJForce.
    * The ForceFunc callable should have signature: void(Particle* p1, Particle* p2)
-   * 
+   *
    * @tparam ForceFunc Callable type for computing forces between particle pairs
    * @param lc LinkedCellParticleContainer to iterate over
    * @param calcForce Function to calculate and apply force between two particles
@@ -158,6 +158,9 @@ class LennardJonesForce final : public ForceCalc {
   /// Width of the lookup table (max type + 1)
   int tableWidth;
 
+  /// Containers used for parallelization
+  std::array<std::vector<std::vector<std::array<double, 3>>>, 6> tempForces;
+
  public:
   /**
    * @param particles ParticleContainer that stores the particles used by the calculation method
@@ -193,6 +196,15 @@ class LennardJonesForce final : public ForceCalc {
    */
   void calculateFLinkedCellParallel2();
 
+
+  /**
+   * @brief Strategy 3: save forces for conflicting cells in different containers
+   *  and then add them together for all particles
+   */
+  void calcFParallel(Particle* p1, Particle* p2, std::array<double, 3>& p1f, std::array<double, 3>& p2f);
+  void calculateFLinkedCellParallel3();
+
+
   void precomputeConstants() override;
 
   /**
@@ -211,7 +223,7 @@ class LennardJonesForce final : public ForceCalc {
 
   /**
    * @brief Compute and apply LJ pair force using lookup tables (must be defined in header for inlining)
-   * 
+   *
    * This function is critical for performance ~80% of CPU time) and has to be be inlined.
    * Moving the definition to the .cpp file prevents inlining across translation units.
    */
