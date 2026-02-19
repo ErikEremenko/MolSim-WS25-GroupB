@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <cmath>
 
-#include "ForceCalc.h"
-#include "LinkedCellParticleContainer.h"
-#include "ParticleContainer.h"
+#include "physics/ForceCalc.h"
+#include "physics/LinkedCellParticleContainer.h"
+#include "physics/ParticleContainer.h"
 #include "utils/ArrayUtils.h"
 
 class ForceCalcTest : public ::testing::Test {
@@ -16,7 +16,7 @@ TEST_F(ForceCalcTest, ExpectNormError) {
   pc.addParticle(std::array<double, 3>{0.}, std::array<double, 3>{0.}, 0.);
   pc.addParticle(std::array<double, 3>{0.}, std::array<double, 3>{1.}, 0.);
   EXPECT_THROW(GravityForce(pc).calculateF(), std::overflow_error);
-  EXPECT_THROW(LennardJonesForce(pc, 1., 1., INFINITY).calculateF(), std::overflow_error);
+  EXPECT_THROW(LennardJonesForce(pc, 1., 1., INFINITY, 0).calculateF(), std::overflow_error);
 }
 
 // Test the gravitational force between two particles if one particle has zero mass
@@ -88,7 +88,7 @@ TEST_F(ForceCalcTest, LJ_F_TwoBody) {
   pc.addParticle(&p2);
 
   const std::array<double, 3> F = factor * (p1.getX() - p2.getX());
-  LennardJonesForce(pc, 5, 1, INFINITY).calculateF();
+  LennardJonesForce(pc, 5, 1, INFINITY, 0).calculateF();
   for (int i = 0; i < pc.size(); i++) {
     EXPECT_NEAR(pc[0].getF()[i], F[i], 10e-6);
     EXPECT_NEAR(pc[1].getF()[i], -1. * F[i], 10e-6);
@@ -106,10 +106,8 @@ class BoundaryConditionTest : public ::testing::Test {
 
 // Test that outflow boundary removes particles that move outside the domain
 TEST_F(BoundaryConditionTest, OutflowRemovesParticles) {
-  std::array<LinkedCellParticleContainer::BoundaryType, 6> outflowBoundaries = {
-      LinkedCellParticleContainer::BoundaryType::OUTFLOW, LinkedCellParticleContainer::BoundaryType::OUTFLOW,
-      LinkedCellParticleContainer::BoundaryType::OUTFLOW, LinkedCellParticleContainer::BoundaryType::OUTFLOW,
-      LinkedCellParticleContainer::BoundaryType::OUTFLOW, LinkedCellParticleContainer::BoundaryType::OUTFLOW};
+  std::array<BoundaryType, 6> outflowBoundaries = {BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
+                                                   BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
 
   LinkedCellParticleContainer lpc(domainDims, cutoffRadius, outflowBoundaries);
 
@@ -131,17 +129,16 @@ TEST_F(BoundaryConditionTest, OutflowRemovesParticles) {
 
 // Test that reflective boundaries apply repulsive force near walls
 TEST_F(BoundaryConditionTest, ReflectiveAppliesForce) {
-  std::array<LinkedCellParticleContainer::BoundaryType, 6> reflectiveBoundaries = {
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE};
+  std::array<BoundaryType, 6> reflectiveBoundaries = {BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
+                                                      BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
+                                                      BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE};
 
   LinkedCellParticleContainer lpc(domainDims, cutoffRadius, reflectiveBoundaries);
 
   // Add particle close to the left wall (x = 0), repulsionDistance = 2^(1/6) * sigma ~ 1.1225
   lpc.addParticle({0.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
 
-  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius, 0);
   forceCalc.calculateF();
 
   // Particle close to wall should experience repulsive force pushing it away from wall -> positive force in x-direction (away from wall)
@@ -150,10 +147,9 @@ TEST_F(BoundaryConditionTest, ReflectiveAppliesForce) {
 
 // Test mixed boundary conditions
 TEST_F(BoundaryConditionTest, MixedBoundaries) {
-  std::array<LinkedCellParticleContainer::BoundaryType, 6> mixedBoundaries = {
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::OUTFLOW,
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::OUTFLOW,
-      LinkedCellParticleContainer::BoundaryType::OUTFLOW,    LinkedCellParticleContainer::BoundaryType::OUTFLOW};
+  std::array<BoundaryType, 6> mixedBoundaries = {BoundaryType::REFLECTIVE, BoundaryType::OUTFLOW,
+                                                 BoundaryType::REFLECTIVE, BoundaryType::OUTFLOW,
+                                                 BoundaryType::OUTFLOW,    BoundaryType::OUTFLOW};
 
   LinkedCellParticleContainer lpc(domainDims, cutoffRadius, mixedBoundaries);
 
@@ -172,17 +168,16 @@ TEST_F(BoundaryConditionTest, MixedBoundaries) {
 
 // Test that particles far from reflective walls don't experience extra forces
 TEST_F(BoundaryConditionTest, ReflectiveNoForceWhenFar) {
-  std::array<LinkedCellParticleContainer::BoundaryType, 6> reflectiveBoundaries = {
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE};
+  std::array<BoundaryType, 6> reflectiveBoundaries = {BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
+                                                      BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
+                                                      BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE};
 
   LinkedCellParticleContainer lpc(domainDims, cutoffRadius, reflectiveBoundaries);
 
   // Add particle in the center (far from walls)
   lpc.addParticle({5.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
 
-  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius, 0);
   forceCalc.calculateF();
 
   // Single particle in center should have zero force
@@ -197,10 +192,9 @@ class PeriodicBoundaryTest : public ::testing::Test {
   double cutoffRadius = 3.0;
   double epsilon = 5.0;
   double sigma = 1.0;
-  std::array<LinkedCellParticleContainer::BoundaryType, 6> periodicBoundaries = {
-      LinkedCellParticleContainer::BoundaryType::PERIODIC, LinkedCellParticleContainer::BoundaryType::PERIODIC,
-      LinkedCellParticleContainer::BoundaryType::PERIODIC, LinkedCellParticleContainer::BoundaryType::PERIODIC,
-      LinkedCellParticleContainer::BoundaryType::PERIODIC, LinkedCellParticleContainer::BoundaryType::PERIODIC};
+  std::array<BoundaryType, 6> periodicBoundaries = {BoundaryType::PERIODIC, BoundaryType::PERIODIC,
+                                                    BoundaryType::PERIODIC, BoundaryType::PERIODIC,
+                                                    BoundaryType::PERIODIC, BoundaryType::PERIODIC};
 };
 
 // Test that particles outside left boundary (x < 0) wrap to right side
@@ -296,7 +290,7 @@ TEST_F(PeriodicBoundaryTest, CrossBoundaryForceInteraction) {
   lpc.addParticle({0.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
   lpc.addParticle({9.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
 
-  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius, 0);
   forceCalc.calculateF();
 
   // Both particles should experience non-zero forces (periodic interaction)
@@ -330,10 +324,9 @@ TEST_F(PeriodicBoundaryTest, ParticlesInsideDomainUnchanged) {
 
 // Test mixed boundary types: x:periodic, y:reflective, z:outflow
 TEST_F(PeriodicBoundaryTest, MixedBoundaryWithPeriodic) {
-  std::array<LinkedCellParticleContainer::BoundaryType, 6> mixedBoundaries = {
-      LinkedCellParticleContainer::BoundaryType::PERIODIC,   LinkedCellParticleContainer::BoundaryType::PERIODIC,
-      LinkedCellParticleContainer::BoundaryType::REFLECTIVE, LinkedCellParticleContainer::BoundaryType::REFLECTIVE,
-      LinkedCellParticleContainer::BoundaryType::OUTFLOW,    LinkedCellParticleContainer::BoundaryType::OUTFLOW};
+  std::array<BoundaryType, 6> mixedBoundaries = {BoundaryType::PERIODIC,   BoundaryType::PERIODIC,
+                                                 BoundaryType::REFLECTIVE, BoundaryType::REFLECTIVE,
+                                                 BoundaryType::OUTFLOW,    BoundaryType::OUTFLOW};
 
   LinkedCellParticleContainer lpc(domainDims, cutoffRadius, mixedBoundaries);
 
@@ -358,7 +351,7 @@ TEST_F(PeriodicBoundaryTest, SingleParticleNoForce) {
 
   lpc.addParticle({5.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
 
-  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius, 0);
   forceCalc.calculateF();
 
   // Particle should have zero force
@@ -377,7 +370,7 @@ TEST_F(PeriodicBoundaryTest, ParticlesBeyondCutoffNoInteraction) {
   lpc.addParticle({2.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
   lpc.addParticle({6.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
 
-  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius, 0);
   forceCalc.calculateF();
 
   // Particles should experience zero force (beyond cutoff in all directions)

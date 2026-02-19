@@ -24,14 +24,7 @@ include(yamlcpp)
 file(GLOB_RECURSE SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(REMOVE_ITEM SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp") # Exclude main()
 
-add_library(molsim_core ${SRC_FILES}
-        src/io/YAMLFileReader.cpp
-        include/io/YAMLFileReader.h
-        src/LinkedCellParticleContainer.cpp
-        include/LinkedCellParticleContainer.h
-        src/ParticleGenerator.cpp
-        include/ParticleGenerator.h
-)
+add_library(molsim_core ${SRC_FILES})
 target_include_directories(molsim_core
         PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include

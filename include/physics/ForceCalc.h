@@ -1,18 +1,16 @@
-/**
- * @file CalcMethod.h
- *
- */
-
 #pragma once
 
-#include "ParticleContainer.h"
+#include "physics/ParticleContainer.h"
+
 /**
  * @class ForceCalc
- * @brief Virtual class used as a base for different calculation methods for simulation
- *
+ * @brief Abstract base class used for implementing different force calculation strategies
  */
 class ForceCalc {
  protected:
+  /**
+   * @brief Particles to apply the force calculations on
+   */
   ParticleContainer& particles;
 
  public:
@@ -44,7 +42,7 @@ class ForceCalc {
  * @brief Models gravity forces between particles
  */
 class GravityForce final : public ForceCalc {
-public:
+ public:
   using ForceCalc::ForceCalc;
 
   /**
@@ -58,11 +56,11 @@ public:
  * @brief Models the Lennard-Jones potential
  */
 class LennardJonesForce final : public ForceCalc {
-private:
-  const double epsilon, sigma, cutoffRadius, repulsionDistance;
+ private:
+  // TODO: Docstring these members
+  const double epsilon, sigma, cutoffRadius, repulsionDistance, gravity;
 
-
-public:
+ public:
   /**
    *
    * @param particles ParticleContainer that stores the particles used by the calculation method
@@ -70,7 +68,7 @@ public:
    * @param sigma Sigma in the Lennard-Jones potential formula
    * @param cutoffRadius Distance beyond which interactions between the particles are not calculated (ignored)
    */
-  LennardJonesForce(ParticleContainer& particles, double epsilon, double sigma, double cutoffRadius);
+  LennardJonesForce(ParticleContainer& particles, double epsilon, double sigma, double cutoffRadius, double gravity);
 
   /**
   * @brief Calculates the Lennard-Jones forces acting on the particles
@@ -94,8 +92,9 @@ public:
    */
   void applyReflectiveBoundaries(const class LinkedCellParticleContainer* lc) const;
 
+  // TODO: Docstring these methods
   void calcFPeriodicBoundary(Particle* p1, Particle* p2) const;
-  void applyPeriodicBoundaries(class LinkedCellParticleContainer* lc) const;
+  void applyPeriodicBoundaries(LinkedCellParticleContainer* lc) const;
 };
 
 /**
@@ -103,17 +102,18 @@ public:
  * @brief Models the Lennard-Jones potential with parallelization
  */
 class LennardJonesForceParallel final : public ForceCalc {
-private:
+ private:
+  // TODO: Either docstring these or inherit from LennardJonesForce
   const double epsilon, sigma, cutoffRadius;
 
-public:
+ public:
   /**
- *
- * @param particles ParticleContainer that stores the particles used by the calculation method
- * @param epsilon Epsilon in the Lennard-Jones potential formula
- * @param sigma Sigma in the Lennard-Jones potential formula
- * @param cutoffRadius Distance beyond which interactions between the particles are not calculated (ignored)
- */
+   *
+   * @param particles ParticleContainer that stores the particles used by the calculation method
+   * @param epsilon Epsilon in the Lennard-Jones potential formula
+   * @param sigma Sigma in the Lennard-Jones potential formula
+   * @param cutoffRadius Distance beyond which interactions between the particles are not calculated (ignored)
+   */
   LennardJonesForceParallel(ParticleContainer& particles, double epsilon, double sigma, double cutoffRadius);
 
   /**
@@ -121,4 +121,3 @@ public:
   */
   void calculateF() override;
 };
-

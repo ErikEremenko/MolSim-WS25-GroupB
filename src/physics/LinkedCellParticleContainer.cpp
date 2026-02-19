@@ -1,8 +1,7 @@
-#include "../include/LinkedCellParticleContainer.h"
+#include "physics/LinkedCellParticleContainer.h"
 
+#include <spdlog/spdlog.h>
 #include <cmath>
-
-#include "spdlog/fmt/bundled/format.h"
 
 LinkedCellParticleContainer::LinkedCellParticleContainer(const std::array<double, 3>& domain_dims, double cutoff_radius,
                                                          const std::array<BoundaryType, 6>& boundary_types)
@@ -15,13 +14,38 @@ LinkedCellParticleContainer::LinkedCellParticleContainer(const std::array<double
 
 void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m) {
   ParticleContainer::addParticle(x, v, m);
-  Particle& p = (*this)[this->size() - 1];  // the newly added particle
+  Particle& p = (*this)[this->size() - 1];  // The newly added particle
+  const int cdx = getCellIndex(p.getX());
+  cells[cdx].push_back(&p);
+}
+
+void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma,
+                                              double epsilon) {
+  ParticleContainer::addParticle(x, v, m, sigma, epsilon);
+  Particle& p = (*this)[this->size() - 1];  // The newly added particle
+  const int cdx = getCellIndex(p.getX());
+  cells[cdx].push_back(&p);
+}
+
+void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type,
+                                              double sigma, double epsilon) {
+  ParticleContainer::addParticle(x, v, m, type, sigma, epsilon);
+  Particle& p = (*this)[this->size() - 1];  // The newly added particle
   const int cdx = getCellIndex(p.getX());
   cells[cdx].push_back(&p);
 }
 
 void LinkedCellParticleContainer::addParticle(const Particle* p) {
-  addParticle(p->getX(), p->getV(), p->getM());
+  addParticle(p->getX(), p->getV(), p->getM(), p->getSigma(), p->getEpsilon());
+}
+
+void LinkedCellParticleContainer::addParticle(std::array<double, 3> x, std::array<double, 3> v, double m,
+                                              std::array<double, 3> f, std::array<double, 3> oldF, int type,
+                                              double sigma, double epsilon) {
+  ParticleContainer::addParticle(x, v, m, f, oldF, type, sigma, epsilon);
+  Particle& p = (*this)[this->size() - 1];
+  const int cdx = getCellIndex(p.getX());
+  cells[cdx].push_back(&p);
 }
 
 void LinkedCellParticleContainer::updateCells() {
@@ -37,7 +61,7 @@ void LinkedCellParticleContainer::updateCells() {
   }
 }
 
-LinkedCellParticleContainer::CellType LinkedCellParticleContainer::getCellType(size_t cdx) const {
+CellType LinkedCellParticleContainer::getCellType(size_t cdx) const {
   const int nx = numCells[0];
   const int ny = numCells[1];
   const int nz = numCells[2];
@@ -50,12 +74,12 @@ LinkedCellParticleContainer::CellType LinkedCellParticleContainer::getCellType(s
   const int iy = remainder / nx;
   const int ix = remainder % nx;
 
-  // outermost layer in any dimension -> Halo
+  // Outermost layer in any dimension -> Halo
   if (ix == 0 || ix == nx - 1 || iy == 0 || iy == ny - 1 || iz == 0 || iz == nz - 1) {
     return CellType::HALO;
   }
 
-  // next layer  from halo -> Boundary
+  // Next layer  from halo -> Boundary
   if (ix == 1 || ix == nx - 2 || iy == 1 || iy == ny - 2 || iz == 1 || iz == nz - 2) {
     return CellType::BOUNDARY;
   }
@@ -63,9 +87,19 @@ LinkedCellParticleContainer::CellType LinkedCellParticleContainer::getCellType(s
   return CellType::INNER;
 }
 
+std::vector<Particle*>& LinkedCellParticleContainer::cell_at(int cx, int cy, int cz) {
+  if (cx < 0 || cx >= numCells[0] || cy < 0 || cy >= numCells[1] || cz < 0 || cz >= numCells[2]) {
+    throw std::out_of_range("Cell index out of bounds");
+  }
+  const int nx = numCells[0];
+  const int ny = numCells[1];
+  const int idx = (cz * nx * ny) + (cy * nx) + cx;
+  return cells[idx];
+}
+
 void LinkedCellParticleContainer::handleOutflowBoundaries() {
-  handleOutflow();
   handlePeriodicBoundaries();
+  handleOutflow();
   updateCells();
 }
 void LinkedCellParticleContainer::iteratePairs(const std::function<void(Particle&, Particle&)>& pairFunc) const {
@@ -194,6 +228,22 @@ std::vector<size_t> LinkedCellParticleContainer::getNeighborCellIndices(int cdx)
   }
   return neighbors;
 }
+void LinkedCellParticleContainer::handlePeriodicBoundaries() {
+  for (size_t i = 0; i < this->size(); ++i) {
+    Particle& p = (*this)[i];
+    auto x = p.getX();
+
+    for (int d = 0; d < 3; d++)
+      if (boundaryTypes[2 * d] == BoundaryType::PERIODIC && boundaryTypes[2 * d + 1] == BoundaryType::PERIODIC) {
+        if (x[d] < domainOrigin[d])
+          x[d] += domainDims[d];
+        else if (x[d] > domainOrigin[d] + domainDims[d])
+          x[d] -= domainDims[d];
+      }
+    p.setX(x);
+  }
+}
+
 void LinkedCellParticleContainer::handleOutflow() {
   std::vector<size_t> indicesToRemove;
   // Check each particle if it's outside the domain
@@ -221,22 +271,6 @@ void LinkedCellParticleContainer::handleOutflow() {
   // Removing the particles in reverse order to maintain valid indexation
   for (auto idx = indicesToRemove.rbegin(); idx != indicesToRemove.rend(); ++idx) {
     this->removeParticle(*idx);
-  }
-}
-
-void LinkedCellParticleContainer::handlePeriodicBoundaries() {
-  for (size_t i = 0; i < this->size(); ++i) {
-    Particle& p = (*this)[i];
-    auto x = p.getX();
-
-    for (int d = 0; d < 3; d++)
-      if (boundaryTypes[2 * d] == BoundaryType::PERIODIC && boundaryTypes[2 * d + 1] == BoundaryType::PERIODIC) {
-        if (x[d] < domainOrigin[d])
-          x[d] += domainDims[d];
-        else if (x[d] > domainOrigin[d] + domainDims[d])
-          x[d] -= domainDims[d];
-      }
-    p.setX(x);
   }
 }
 

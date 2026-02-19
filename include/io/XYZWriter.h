@@ -10,7 +10,7 @@
 #include <fstream>
 #include <vector>
 
-#include "Particle.h"
+#include "physics/Particle.h"
 
 namespace outputWriter {
 
@@ -30,8 +30,7 @@ class XYZWriter final {
    * @param filename A reference to the string that represents the name of the file being generated.
    * @param iteration Integer number representing the number of the iteration being plotted.
    */
-  static void plotParticles(const std::vector<Particle>& particles,
-                            const std::string& filename, int iteration);
+  static void plotParticles(const std::vector<Particle>& particles, const std::string& filename, int iteration);
 };
 
 }  // namespace outputWriter

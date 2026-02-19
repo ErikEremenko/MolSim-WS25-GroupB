@@ -61,6 +61,16 @@ class Particle {
    *
    */
   int type;
+
+  /**
+   * @brief Lennard-Jones sigma parameter for the particle
+   */
+  double sigma;
+
+  /**
+   * @brief Lennard-Jones epsilon parameter for the particle
+   */
+  double epsilon;
   ///@}
  public:
   /**@name Constructors */
@@ -79,11 +89,11 @@ class Particle {
    * @param type_arg integer value that offers the ability to differentiate particles
    */
   Particle(
-      // for visualization, we need always 3 coordinates
+      // For visualization, we need always 3 coordinates
       // -> in case of 2d, we use only the first and the second
 
-      const std::array<double, 3>& x_arg, const std::array<double, 3>& v_arg,
-      double m_arg, int type_arg = 0);
+      const std::array<double, 3>& x_arg, const std::array<double, 3>& v_arg, double m_arg, int type_arg = 0,
+      double sigma_arg = 1.0, double epsilon_arg = 5.0);
   ///@}
   /**
    * @brief Rule of Five holds
@@ -111,6 +121,10 @@ class Particle {
   [[nodiscard]] double getM() const;
   /** @brief get type of particle */
   [[nodiscard]] int getType() const;
+  /** @brief get Lennard-Jones sigma parameter */
+  [[nodiscard]] double getSigma() const;
+  /** @brief get Lennard-Jones epsilon parameter */
+  [[nodiscard]] double getEpsilon() const;
   ///@}
 
   /** @name Setter methods */
@@ -119,11 +133,11 @@ class Particle {
    *  @param val velocity vector as 3 element array
    */
   void setX(const std::array<double, 3>& val) { this->x = val; }
-  /** @brief set particle position coordinate
-   *  @param val double value of position coordinate
-   *  @param dim dimension of coordinate
+  /** @brief set coordinate of particle position vector
+   *  @param val value for the coordinate
+   *  @param dim dimension (0=x, 1=y, 2=z)
    */
-  void setX(double val, int dim) {  this->x[dim] = val; }
+  void setX(double val, int dim) { this->x[dim] = val; }
   /** @brief set particle velocity vector
    *  @param val velocity vector as 3 element array
    */

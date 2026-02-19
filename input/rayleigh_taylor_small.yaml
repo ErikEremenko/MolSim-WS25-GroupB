@@ -1,0 +1,48 @@
+output:
+  base_name: "rayleigh_taylor_small"
+  write_frequency: 100
+  checkpoint_frequency: 1000
+
+simulation:
+  t_end: 25.0
+  delta_t: 0.0005
+  epsilon: 1.0
+  sigma: 1.0
+  cutoff_radius: 2.5
+  gravity: -12.44
+  dimensions: 2
+
+domain:
+  size: [63.0, 36.0, 1.0]
+
+boundaries:
+  x_min: PERIODIC
+  x_max: PERIODIC
+  y_min: REFLECTIVE
+  y_max: REFLECTIVE
+  z_min: REFLECTIVE
+  z_max: REFLECTIVE
+
+thermostat:
+  n_thermostat: 1000
+  temp_init: 40.0
+
+cuboids:
+  - position: [0.6, 2.0, 0.5]
+    velocity: [0.0, 0.0, 0.0]
+    dimensions: [50, 14, 1]
+    mesh_width: 1.2
+    mass: 1.0
+    mean_velocity: 0.0
+    sigma: 1.0
+    epsilon: 1.0
+
+  - position: [0.6, 19.0, 0.5]
+    velocity: [0.0, 0.0, 0.0]
+    dimensions: [50, 14, 1]
+    mesh_width: 1.2
+    mass: 2.0
+    mean_velocity: 0.0
+    sigma: 0.9412
+    epsilon: 1.0
+spheres: []

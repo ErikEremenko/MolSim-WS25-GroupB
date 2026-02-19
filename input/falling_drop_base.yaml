@@ -1,0 +1,44 @@
+# Falling Drop (Simulation Phase)
+
+output:
+  base_name: "falling_drop"
+  write_frequency: 100
+  checkpoint_frequency: 1000
+
+simulation:
+  t_end: 40.0
+  delta_t: 0.0005
+  epsilon: 1.0
+  sigma: 1.2
+  cutoff_radius: 3.0
+  gravity: -12.44
+  dimensions: 2
+
+domain:
+  size: [303.0, 180.0, 1.0]
+
+boundaries:
+  x_min: REFLECTIVE
+  x_max: REFLECTIVE
+  y_min: REFLECTIVE
+  y_max: REFLECTIVE
+  z_min: REFLECTIVE
+  z_max: REFLECTIVE
+
+# No thermostat
+
+particles:
+
+
+cuboids: []
+
+spheres:
+  - position: [150.0, 150.0, 0.0]
+    velocity: [0.0, 0.0, 0.0]
+    radius_particles: 17 # R=20 / h=1.2 ~= 16.66 -> 17
+    mesh_width: 1.2
+    mass: 1.0
+    mean_velocity: 0.0
+    sigma: 1.2
+    epsilon: 1.0
+    type: 1 # new type for the drop
