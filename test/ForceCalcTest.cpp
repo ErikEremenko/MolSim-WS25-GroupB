@@ -393,9 +393,8 @@ class ParallelForceCalcTest : public ::testing::Test {
   double epsilon = 5.0;
   double sigma = 1.0;
   double cutoffRadius = 3.0;
-  std::array<BoundaryType, 6> outflowBoundaries = {BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
-                                                   BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
-                                                   BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
+  std::array<BoundaryType, 6> outflowBoundaries = {BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
+                                                   BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
 
   static void resetForces(LinkedCellParticleContainer& lpc) {
     for (size_t i = 0; i < lpc.size(); ++i) {
@@ -414,8 +413,8 @@ class ParallelForceCalcTest : public ::testing::Test {
 
   //Helper: compare stored forces with current particle forces
   // Uses a relative tolerance to account for floating-point summation order differences
-  static void compareForces(const LinkedCellParticleContainer& lpc,
-                            const std::vector<std::array<double, 3>>& expected, double relTolerance = 1e-9) {
+  static void compareForces(const LinkedCellParticleContainer& lpc, const std::vector<std::array<double, 3>>& expected,
+                            double relTolerance = 1e-9) {
     ASSERT_EQ(lpc.size(), expected.size());
     for (size_t i = 0; i < lpc.size(); ++i) {
       for (int d = 0; d < 3; ++d) {
@@ -424,8 +423,7 @@ class ParallelForceCalcTest : public ::testing::Test {
         // relative tolerance: scale by the magnitude of the values,
         // minimum floor to handles near-zero values
         const double scale = std::max({std::abs(actual), std::abs(exp), 1.0});
-        EXPECT_NEAR(actual, exp, relTolerance * scale)
-            << "Mismatch at particle " << i << ", dimension " << d;
+        EXPECT_NEAR(actual, exp, relTolerance * scale) << "Mismatch at particle " << i << ", dimension " << d;
       }
     }
   }

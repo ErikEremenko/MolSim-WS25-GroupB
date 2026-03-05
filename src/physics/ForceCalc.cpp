@@ -48,4 +48,3 @@ void ForceCalc::calculateV(ParticleContainer& particles, const double dt) {
 }
 
 void ForceCalc::precomputeConstants() {}
-
