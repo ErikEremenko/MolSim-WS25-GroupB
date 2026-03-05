@@ -41,10 +41,31 @@ class ParticleContainer {  // TODO: Add missing docstrings
    */
   virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v,
                                 double m);  // function called in FileReader
+  /**
+   * @brief Adds a particle with Lennard-Jones parameters to the container.
+   * @param x position vector as a 3 element array
+   * @param v velocity vector as a 3 element array
+   * @param m mass
+   * @param sigma Lennard-Jones sigma parameter
+   * @param epsilon Lennard-Jones epsilon parameter
+   */
   virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma,
                                 double epsilon);
+  /**
+   * @brief Adds a typed particle with Lennard-Jones parameters to the container.
+   * @param x position vector as a 3 element array
+   * @param v velocity vector as a 3 element array
+   * @param m mass
+   * @param type particle type
+   * @param sigma Lennard-Jones sigma parameter
+   * @param epsilon Lennard-Jones epsilon parameter
+   */
   virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type, double sigma,
                                 double epsilon);
+  /**
+   * @brief Adds an existing particle to the container.
+   * @param p pointer to particle to be added
+   */
   virtual Particle* addParticle(const Particle* p);
 
   /**
@@ -66,13 +87,37 @@ class ParticleContainer {  // TODO: Add missing docstrings
   using iterator = std::vector<Particle>::iterator;
   using const_iterator = std::vector<Particle>::const_iterator;
 
-  // Iteration over single particles
+  /**
+   * @brief Returns an iterator to the first particle.
+   */
   iterator begin();
+
+  /**
+   * @brief Returns an iterator to one past the last particle.
+   */
   iterator end();
 
+  /**
+   * @brief Returns a const iterator to the first particle.
+   */
   [[nodiscard]] const_iterator begin() const;
+
+  /**
+   * @brief Returns a const iterator to one past the last particle.
+   */
   [[nodiscard]] const_iterator end() const;
 
+  /**
+   * @brief Returns a mutable reference to the particle at index @p i.
+   * @param i particle index
+   * @return reference to the particle at index @p i
+   */
   Particle& operator[](std::size_t i);
+
+  /**
+   * @brief Returns a const reference to the particle at index @p i.
+   * @param i particle index
+   * @return const reference to the particle at index @p i
+   */
   const Particle& operator[](std::size_t i) const;
 };

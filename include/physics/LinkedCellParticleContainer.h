@@ -183,9 +183,9 @@ class LinkedCellParticleContainer : public ParticleContainer {
   std::array<double, 3> domainDims;                ///< Dimensions of the simulation domain (x, y, z)
   std::array<double, 3> domainOrigin{0., 0., 0.};  ///< Coordinates of the domain origin (bottom-left-front corner)
   double cutoffRadius;                             ///< Cutoff radius for particle-particle interactions
-  std::array<double, 3> cellSize;                  ///< Dimensions of a single cell
+  std::array<double, 3> cellSize{};                ///< Dimensions of a single cell
   CellType cellType;                               ///< Type of the current cell
-  std::array<int, 3> numCells;                     ///< Number of cells in each dimension (including halo layer)
+  std::array<int, 3> numCells{};                   ///< Number of cells in each dimension (including halo layer)
   std::array<BoundaryType, 6> boundaryTypes = {
       BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
       BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};  ///< Boundary conditions for the 6 faces (x-, x+, y-, y+, z-, z+)
