@@ -5,9 +5,6 @@
 #include <cmath>
 #include <cstddef>  // for size_t
 
-// Source - https://stackoverflow.com/a/49778398
-// Posted by Ron, modified by community. See post 'Timeline' for change history
-// Retrieved 2026-01-29, License - CC BY-SA 4.0
 constexpr double pi = 3.14159265358979323846;
 
 RDFCalculator::RDFCalculator(ParticleContainer& particles, const std::array<double, 3>& domainDims)

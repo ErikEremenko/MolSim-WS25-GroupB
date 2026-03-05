@@ -5,7 +5,13 @@
 #include "io/VTKWriter.h"
 #endif
 #include "io/CheckpointWriter.h"
+#include "physics/ConstantForce.h"
+#include "physics/GlobalGravityForce.h"
+#include "physics/HarmonicMembraneForce.h"
+#include "physics/LennardJonesForce.h"
 #include "physics/LinkedCellParticleContainer.h"
+#include "physics/SmoothedLJForce.h"
+#include "physics/TruncatedLJForce.h"
 
 #include <atomic>
 #include <chrono>  // for benchmarking
@@ -209,30 +215,29 @@ void Simulation::writeCheckpoint(const int iteration, const double time) const {
 void Simulation::run() {
   setupSimulation();
 
-  switch (simulationMode) {
-    case SimulationMode::BENCHMARK:
-      SPDLOG_INFO("Simulation loop starting in benchmark mode...");
-      runBenchmark();
-      break;
-    case SimulationMode::FILE_OUTPUT:
-      SPDLOG_INFO("Simulation loop starting in file output mode...");
-      runFileOutput();
-      break;
+  const bool isBenchmark = (simulationMode == SimulationMode::BENCHMARK);
+
+  if (isBenchmark) {
+    SPDLOG_INFO("Simulation loop starting in benchmark mode...");
+    // Set up interrupting signal (CTRL + C)
+    std::signal(SIGINT, sigint_handler);
+    simulationRunning = true;
+  } else {
+    SPDLOG_INFO("Simulation loop starting in file output mode...");
   }
-}
 
-void Simulation::runFileOutput() {
+  using namespace std::chrono;
+  const auto chronoStart = steady_clock::now();
+
   const int thermoFrequency = thermostat ? thermostat->getUpdateFrequency() : 1;
+  long iteration = startIteration;
 
-  // Use member currentTime instead of local variable
-  int iteration = startIteration;
-
-  // For this loop, we assume: current positions, forces and velocities are known
+  // Main simulation loop: current positions, forces and velocities are known
   while (currentTime < endTime) {
     // Calculate the new position of the particles
     ForceCalc::calculateX(*particles, dt);
 
-    // Store the force from the previous time stop for velocity update
+    // Store the force from the previous time step for velocity update
     /* TODO: Optimization idea: introduce a 'first force' flag to ForceCalc to avoid
     * iterating an extra time over the particles, thus eliminating the loop below.
     */
@@ -250,65 +255,7 @@ void Simulation::runFileOutput() {
     ForceCalc::calculateV(*particles, dt);
 
     iteration++;
-    // Update temperature
-    if (thermostat && (iteration % thermoFrequency == 0)) {
-      thermostat->updateTemperature();
-    }
-    // Update thermodynamics statistics
-    if (thermodynamicsStatistics && (iteration % ThermodynamicsStatistics::updateFrequency == 0)) {
-      thermodynamicsStatistics->updateStatistics();
-    }
-    // Write state of particles to VTK
-    if (writeFrequency > 0 && iteration % writeFrequency == 0) {
-      plotParticles(iteration);
-    }
-    // Write state of particles to checkpoint file
-    if (checkpointFrequency > 0 && iteration % checkpointFrequency == 0) {
-      writeCheckpoint(iteration, currentTime);
-    }
 
-    currentTime += dt;
-  }
-}
-
-void Simulation::runBenchmark() {
-  // Set up interrupting signal (CTRL + C)
-  std::signal(SIGINT, sigint_handler);
-  simulationRunning = true;
-
-  using namespace std::chrono;  // used for benchmarking
-
-  // Benchmark begin
-  const auto chronoStart = steady_clock::now();
-
-  const int thermoFrequency = thermostat ? thermostat->getUpdateFrequency() : 1;
-
-  // Use member currentTime instead of local variable
-  long iteration = startIteration;
-
-  // For this loop, we assume: current positions, forces and velocities are known
-  while (currentTime < endTime) {
-    // Calculate the new position of the particles
-    ForceCalc::calculateX(*particles, dt);
-
-    // Store the force from the previous time stop for velocity update
-    /* TODO: Optimization idea: introduce a 'first force' flag to ForceCalc to avoid
-    * iterating an extra time over the particles, thus eliminating the loop below.
-    */
-    for (auto& p : *particles) {
-      p.setOldF(p.getF());
-      p.setF({});
-    }
-
-    // Calculate the forces acting on the particles
-    for (auto& force : forces) {
-      force->calculateF();
-    };
-
-    // Calculate the velocities of the particles
-    ForceCalc::calculateV(*particles, dt);
-
-    iteration++;
     // Update temperature
     if (thermostat && (iteration % thermoFrequency == 0)) {
       thermostat->updateTemperature();
@@ -319,54 +266,69 @@ void Simulation::runBenchmark() {
       thermodynamicsStatistics->updateStatistics();
     }
 
+    // File output (skipped in benchmark mode)
+    if (!isBenchmark) {
+      // Write state of particles to VTK
+      if (writeFrequency > 0 && iteration % writeFrequency == 0) {
+        plotParticles(iteration);
+      }
+      // Write state of particles to checkpoint file
+      if (checkpointFrequency > 0 && iteration % checkpointFrequency == 0) {
+        writeCheckpoint(iteration, currentTime);
+      }
+    }
+
     currentTime += dt;
   }
 
-  const auto chronoEnd = steady_clock::now();
-  const auto elapsed = duration_cast<duration<double>>(chronoEnd - chronoStart).count();
+  if (isBenchmark) {
+    const auto chronoEnd = steady_clock::now();
+    const auto elapsed = duration_cast<duration<double>>(chronoEnd - chronoStart).count();
 
-  std::signal(SIGINT, SIG_DFL);
-  spdlog::set_level(spdlog::level::info);
-  if (!simulationRunning) {
-    SPDLOG_INFO("Simulation stopped early by user (SIGINT).");
-  } else {
-    SPDLOG_INFO("Benchmark finished normally.");
-  }
-  SPDLOG_INFO("Time elapsed: {} s", elapsed);
-  SPDLOG_INFO("Total iterations: {}", iteration);
-  if (iteration > 0) {
-    double timePerIteration = elapsed / static_cast<double>(iteration);
-    SPDLOG_INFO("Mean time per iteration: {:.6f} s", timePerIteration);
-
-    size_t numParticles = particles->size();
-    double mups = (static_cast<double>(iteration) * numParticles) / elapsed;
-    SPDLOG_INFO("Molecule-Updates per Second (MUPS): {:.2f}", mups);
-
-    // Write benchmark results to file
-    std::string outputDir = "build/output";
-    if (std::filesystem::exists("CMakeCache.txt")) {
-      outputDir = "output";  // Assume we are in build/
-    }
-
-    std::filesystem::create_directories(outputDir);
-
-    std::ofstream benchFile(outputDir + "/benchmark.txt", std::ios_base::app);
-    if (benchFile.is_open()) {
-      benchFile << "--------------------------------------------------" << std::endl;
-      benchFile << "Benchmark Run: " << outputBasename << std::endl;
-      benchFile << "Timestamp: " << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) << std::endl;
-      benchFile << "Particles: " << numParticles << std::endl;
-      benchFile << "Time elapsed: " << elapsed << " s" << std::endl;
-      benchFile << "Total iterations: " << iteration << std::endl;
-      benchFile << "Mean time per iteration: " << timePerIteration << " s" << std::endl;
-      benchFile << "MUPS: " << mups << std::endl;
-      benchFile.close();
-      SPDLOG_INFO("Benchmark results written to {}/benchmark.txt", outputDir);
+    std::signal(SIGINT, SIG_DFL);
+    spdlog::set_level(spdlog::level::info);
+    if (!simulationRunning) {
+      SPDLOG_INFO("Simulation stopped early by user (SIGINT).");
     } else {
-      SPDLOG_WARN("Could not open benchmark output file.");
+      SPDLOG_INFO("Benchmark finished normally.");
     }
+    SPDLOG_INFO("Time elapsed: {} s", elapsed);
+    SPDLOG_INFO("Total iterations: {}", iteration);
+    if (iteration > 0) {
+      double timePerIteration = elapsed / static_cast<double>(iteration);
+      SPDLOG_INFO("Mean time per iteration: {:.6f} s", timePerIteration);
+
+      size_t numParticles = particles->size();
+      double mups = (static_cast<double>(iteration) * numParticles) / elapsed;
+      SPDLOG_INFO("Molecule-Updates per Second (MUPS): {:.2f}", mups);
+
+      // Write benchmark results to file
+      std::string outputDir = "build/output";
+      if (std::filesystem::exists("CMakeCache.txt")) {
+        outputDir = "output";  // Assume we are in build/
+      }
+
+      std::filesystem::create_directories(outputDir);
+
+      std::ofstream benchFile(outputDir + "/benchmark.txt", std::ios_base::app);
+      if (benchFile.is_open()) {
+        benchFile << "--------------------------------------------------" << std::endl;
+        benchFile << "Benchmark Run: " << outputBasename << std::endl;
+        benchFile << "Timestamp: " << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now())
+                  << std::endl;
+        benchFile << "Particles: " << numParticles << std::endl;
+        benchFile << "Time elapsed: " << elapsed << " s" << std::endl;
+        benchFile << "Total iterations: " << iteration << std::endl;
+        benchFile << "Mean time per iteration: " << timePerIteration << " s" << std::endl;
+        benchFile << "MUPS: " << mups << std::endl;
+        benchFile.close();
+        SPDLOG_INFO("Benchmark results written to {}/benchmark.txt", outputDir);
+      } else {
+        SPDLOG_WARN("Could not open benchmark output file.");
+      }
+    }
+    spdlog::set_level(spdlog::level::off);
   }
-  spdlog::set_level(spdlog::level::off);
 }
 
 void Simulation::setupSimulation() {

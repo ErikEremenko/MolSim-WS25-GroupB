@@ -123,24 +123,17 @@ class Simulation {
   void writeCheckpoint(int iteration, double time) const;
 
   /**
+   * @name Simulation lifecycle
+   * @{
+   */
+
+  /**
    * @brief Creates/loads the particles in the simulation.
    *
    * Must be implemented by subclasses to define a specific simulation scenario.
-   */
-  virtual void setupSimulation();
-
-  /**
-   * @name Simulation run methods
-   * @{
-   * @brief Runs the simulation in benchmark mode (no file output).
-   */
-  virtual void runFileOutput();
-
-  /**
-   * @brief Runs the simulation in benchmark mode (no file output).
    * @}
    */
-  virtual void runBenchmark();
+  virtual void setupSimulation();
 
  public:
   /**
@@ -156,6 +149,7 @@ class Simulation {
 
   /**
    * @brief The entry-point of the simulation.
+   * Runs setup and the main simulation loop. Can be overridden for testing.
    */
-  void run();
+  virtual void run();
 };

@@ -175,9 +175,13 @@ class Particle {
   /** @brief get accumulated displacement */
   [[nodiscard]] MOLSIM_FORCE_INLINE std::array<double, 3> getDisplacement() const noexcept { return displacement; }
 
-  /** @brief get the list of direct neighbors */
+  /** @brief get the list of direct neighbors (const) */
+  [[nodiscard]] const std::vector<int>& getDirectNeighbors() const;
+  /** @brief get the list of direct neighbors (non-const, for modification) */
   [[nodiscard]] std::vector<int>& getDirectNeighbors();
-  /** @brief get the list of diagonal neighbors */
+  /** @brief get the list of diagonal neighbors (const) */
+  [[nodiscard]] const std::vector<int>& getDiagonalNeighbors() const;
+  /** @brief get the list of diagonal neighbors (non-const, for modification) */
   [[nodiscard]] std::vector<int>& getDiagonalNeighbors();
   ///@}
 

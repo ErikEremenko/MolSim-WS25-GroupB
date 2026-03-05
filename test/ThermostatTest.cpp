@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include "../include/simulation/Simulation.h"
+#include "physics/LennardJonesForce.h"
 #include "physics/ParticleGenerator.h"
 
 // Simulation defines
@@ -39,11 +40,11 @@ class ThermostatTestingSimulation : public Simulation {
   Thermostat& thermostat;
   std::function<void(bool)> temperatureChecker;  // called after updating the temperature
 
- protected:
-  void setupSimulation() override { /* empty override for compilation */ }
-  void runFileOutput() override { /* empty as it will not be called */ }
-  void runBenchmark() override {
-    // No benchmarking, just simulate and regularly apply thermostat
+ public:
+  void run() override {
+    setupSimulation();
+
+    // Custom simulation loop that injects temperature checks
     double current_time = 0;
     int iteration = 0;
     const int thermostatFrequency = thermostat.getUpdateFrequency();
@@ -67,6 +68,9 @@ class ThermostatTestingSimulation : public Simulation {
       current_time += dt;
     }
   }
+
+ protected:
+  void setupSimulation() override { /* empty override for compilation */ }
 
  public:
   ThermostatTestingSimulation(std::unique_ptr<ParticleContainer> particles, Thermostat& thermostat,

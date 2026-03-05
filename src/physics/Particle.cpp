@@ -51,8 +51,16 @@ std::string Particle::toString() const {
   return stream.str();
 }
 
+const std::vector<int>& Particle::getDirectNeighbors() const {
+  return directNeighbors;
+}
+
 std::vector<int>& Particle::getDirectNeighbors() {
   return directNeighbors;
+}
+
+const std::vector<int>& Particle::getDiagonalNeighbors() const {
+  return diagonalNeighbors;
 }
 
 std::vector<int>& Particle::getDiagonalNeighbors() {

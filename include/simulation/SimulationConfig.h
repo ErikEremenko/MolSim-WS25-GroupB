@@ -71,34 +71,28 @@ enum class Parallelization {
  * @enum ParallelStrategy
  * @brief Selects which parallelization strategy to use for force calculation.
  *
- * Two strategies are provided with different tradeoffs:
+ * COLORING:
+ * - 3x2 cell coloring in X/Y
+ * - no atomics, deterministic order
+ * - more barriers, can imbalance on uneven data
  *
- *   Coloring (C-Coloring / Domain Decomposition)
- * - Divides cells into 6 colors using a 3×2 pattern in X/Y dimensions
- * - Cells of the same color can be processed in parallel without race conditions
- * - Pros: No atomics, no locks, cache-friendly memory access
- * - Cons: 6 synchronization barriers per iteration, potential load imbalance
- * - Best suited for Homogeneous particle distributions, moderate thread counts
- *
- *   Taskbased (OpenMP Task Parallelism)
- * - Creates one OpenMP task per cell, uses work-stealing to achieve load balancing
- * - Atomics used for force updates to handle race conditions
- * - Pros: Better load balancing, adapts to inhomogeneous distributions
- * - Cons: Atomic overhead, higher scheduling cost
- * - Best suited for  Inhomogeneous distributions, high thread counts
+ * TASKBASED:
+ * - one OpenMP task per cell
+ * - atomics for shared force updates
+ * - better balancing on uneven data, but higher overhead
  */
 enum class ParallelStrategy {
   /**
    * @var ParallelStrategy::COLORING
-   * C-Coloring approach: 6 colors (3×2 pattern), parallel within each color.
-   * No race conditions, but 6 barriers per iteration.
+   * 3x2 coloring, parallel per color.
+   * No atomics, but more barriers.
    */
   COLORING,
 
   /**
    * @var ParallelStrategy::TASKBASED
-   * Task-based approach: One task per cell, atomics for force updates.
-   * Better load balancing via work-stealing.
+   * Task-based: one task per cell with atomics.
+   * Better balancing on uneven workloads.
    */
   TASKBASED
 };
