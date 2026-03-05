@@ -45,3 +45,5 @@ cmake-build-default
 doxys_documentation
 
 input/falling_drop_equilibration_checkpoint_30000.yaml
+
+*perf*

@@ -3,7 +3,28 @@
 
 #include <spdlog/spdlog.h>
 
-YAMLFileReader::YAMLFileReader(std::string filename) : filename(filename) {
+/**
+ * @file YAMLFileReader.cpp
+ * 
+ * @section type_assignment Particle Type Assignment
+ * 
+ * Each cuboid/sphere in the YAML file is assigned a sequential type ID (0, 1, 2, ...).
+ * The type ID is used by LennardJonesForce to look up precomputed interaction parameters
+ * (mixed sigma/epsilon via Lorentz-Berthelot rules) in O(1) time.
+ * 
+ * @warning CRITICAL REQUIREMENT: All particles with the same type MUST have identical
+ * sigma and epsilon values. The force calculation uses lookup tables indexed by particle
+ * type pairs, NOT by individual particle sigma/epsilon values.
+ * 
+ * Since particles are initialized in groups (cuboids, spheres), this is naturally satisfied
+ * when each group has uniform sigma/epsilon. The YAML structure ensures this.
+ * 
+ * If you need particles from different cuboids to share the same type (and thus interact
+ * as if they had identical sigma/epsilon), you can manually specify the type in the YAML.
+ * However, you MUST ensure all particles with that type have the SAME sigma and epsilon.
+ */
+
+YAMLFileReader::YAMLFileReader(const std::string& filename) {
   try {
     config = YAML::LoadFile(filename);
     checkRequiredKeys();
@@ -35,6 +56,10 @@ void YAMLFileReader::checkRequiredKeys() const {
     SPDLOG_ERROR("YAML file missing required key (boundaries)!");
     exit(-1);
   }
+  if (!config["forces"]) {
+    SPDLOG_ERROR("YAML file missing required key (forces)!");
+    exit(-1);
+  }
 }
 
 // Getters for simulation parameters
@@ -61,30 +86,11 @@ double YAMLFileReader::getDeltaT() const {
   return config["simulation"]["delta_t"].as<double>();
 }
 
-double YAMLFileReader::getEpsilon() const {
-  return config["simulation"]["epsilon"].as<double>();
-}
-
-double YAMLFileReader::getSigma() const {
-  return config["simulation"]["sigma"].as<double>();
-}
-
-double YAMLFileReader::getCutoff() const {
-  return config["simulation"]["cutoff_radius"].as<double>();
-}
-
-double YAMLFileReader::getGravity() const {
-  if (config["simulation"]["gravity"]) {
-    return config["simulation"]["gravity"].as<double>();
-  }
-  return 0.0;  // Default to 0 if not specified
-}
-
-int YAMLFileReader::getDimensions() const {
+std::optional<int> YAMLFileReader::getDimensions() const {
   if (config["simulation"]["dimensions"]) {
     return config["simulation"]["dimensions"].as<int>();
   }
-  return 3;  // Default to 3D
+  return std::nullopt;  // Default to 3D
 }
 
 std::array<double, 3> YAMLFileReader::getDomainSize() const {
@@ -130,14 +136,13 @@ std::optional<ThermostatConfig> YAMLFileReader::getThermostatConfig() const {
   }
 
   // delta_T - optional
-  // Maps to tempDelta in your struct
   if (node["temp_delta"]) {
     thermoConfig.tempDelta = node["temp_delta"].as<double>();
   }
 
-  SPDLOG_INFO("Thermostat configured with frequency={}", thermoConfig.nThermostat);
+  SPDLOG_INFO("Thermostat configured with application frequency={}", thermoConfig.nThermostat);
 
-  return thermoConfig;
+  return std::optional{thermoConfig};
 }
 
 // Checkpoint-related getters
@@ -159,14 +164,38 @@ double YAMLFileReader::getCheckpointTime() const {
   return 0.0;
 }
 
+ForceType YAMLFileReader::getForceType(const std::string& str) {
+  if (str == "lennard_jones")
+    return ForceType::LENNARD_JONES;
+  if (str == "smoothed_lj")
+    return ForceType::SMOOTHED_LJ;
+  if (str == "truncated_lj")
+    return ForceType::TRUNCATED_LJ;
+  if (str == "global_gravity")
+    return ForceType::GLOBAL_GRAVITY;
+  if (str == "harmonic_membrane")
+    return ForceType::HARMONIC_MEMBRANE;
+  if (str == "constant_force")
+    return ForceType::CONSTANT_FORCE;
+  throw std::runtime_error("Unknown force type: " + str);
+}
+
+ContainerType YAMLFileReader::parseContainerType(const std::string& str) {
+  // TODO: This function has a duplicate in YAMLFileReader
+  if (str == "direct")
+    return ContainerType::DIRECT;
+  if (str == "linked")
+    return ContainerType::LINKED;
+  throw std::invalid_argument("Invalid container type: " + str);  // TODO: Add spdlog logging
+}
+
 SimulationConfig YAMLFileReader::getConfig() {
-  // TODO: Some of these parameters are optional but their lack in the YAML file causes errors - fix by using std::optional
   SimulationConfig simConfig;
 
   // Basic simulation parameters
   simConfig.tEnd = getTEnd();
   simConfig.deltaT = getDeltaT();
-  // simConfig.simulationMode = FILE OUTPUT - by default (in the struct), overridden by CLI
+  simConfig.dimensions = getDimensions();
 
   // File output parameters
   simConfig.outputBasename = getOutputBaseName();
@@ -176,14 +205,6 @@ SimulationConfig YAMLFileReader::getConfig() {
   // Checkpoint parameters
   simConfig.startIteration = getCheckpointIteration();
   simConfig.startTime = getCheckpointTime();
-
-  // Force parameters
-  simConfig.epsilon = getEpsilon();
-  simConfig.sigma = getSigma();
-  simConfig.cutoff = getCutoff();
-  simConfig.gravity = getGravity();
-  simConfig.dimensions = getDimensions();
-  // simConfig.useParallelization = FALSE - by default (in the struct), overridden by CLI
 
   // Container and Linked Cell parameters
   simConfig.domainSize = getDomainSize();
@@ -198,23 +219,140 @@ SimulationConfig YAMLFileReader::getConfig() {
   };
 
   std::array<std::string, 6> rawBoundaries = getBoundaryTypesRaw();
-  std::array<BoundaryType, 6> boundariesEnum;
+  std::array<BoundaryType, 6> boundariesEnum{};
   for (int i = 0; i < 6; ++i) {
     boundariesEnum[i] = parseBoundary(rawBoundaries[i]);
   }
   simConfig.boundaryTypes = boundariesEnum;
 
-  // Thermostat
+  // Forces
+  double globalSigma = 1.0;    // fallback value
+  double globalEpsilon = 1.0;  // fallback value
+  for (const auto& node : config["forces"]) {
+    ForceConfig fc;
+    fc.forceType = getForceType(node["force_type"].as<std::string>());
+    switch (fc.forceType) {
+      case ForceType::LENNARD_JONES:
+        fc.epsilon = node["epsilon"].as<double>();
+        fc.sigma = node["sigma"].as<double>();
+        fc.cutoff = node["cutoff_radius"].as<double>();
+        // Global sigma and epsilon will use the values defined here
+        globalSigma = *fc.sigma;
+        globalEpsilon = *fc.epsilon;
+        break;
+
+      case ForceType::SMOOTHED_LJ:
+        fc.epsilon = node["epsilon"].as<double>();
+        fc.sigma = node["sigma"].as<double>();
+        fc.cutoff = node["cutoff_radius"].as<double>();
+        fc.rl = node["smoothing_radius"].as<double>();
+        globalSigma = *fc.sigma;
+        globalEpsilon = *fc.epsilon;
+        SPDLOG_INFO("Smoothed LJ force configured: epsilon={}, sigma={}, r_c={}, r_l={}", *fc.epsilon, *fc.sigma,
+                    *fc.cutoff, *fc.rl);
+        break;
+
+      case ForceType::TRUNCATED_LJ:
+        // Truncated LJ uses per-particle sigma/epsilon (using mixing rules)
+        SPDLOG_INFO("Truncated LJ force configured (repulsive-only)");
+        break;
+
+      case ForceType::GLOBAL_GRAVITY:
+        fc.gravity = node["g"].as<double>();
+        fc.gravityAxis = node["axis"] ? node["axis"].as<int>() : 1;  // Default to y-axis
+        SPDLOG_INFO("Global gravity configured: g={} (axis={})", *fc.gravity, *fc.gravityAxis);
+        break;
+
+      case ForceType::HARMONIC_MEMBRANE:
+        fc.stiffness = node["stiffness"].as<double>();
+        fc.avgBondLength = node["avg_bond_length"].as<double>();
+        SPDLOG_INFO("Harmonic membrane force configured: k={}, r0={}", *fc.stiffness, *fc.avgBondLength);
+        break;
+
+      case ForceType::CONSTANT_FORCE:
+        fc.forceX = node["fx"] ? node["fx"].as<double>() : 0.0;
+        fc.forceY = node["fy"] ? node["fy"].as<double>() : 0.0;
+        fc.forceZ = node["fz"] ? node["fz"].as<double>() : 0.0;
+        fc.endTime = node["end_time"].as<double>();
+        // Parse target indices (list of [x, y] pairs)
+        if (node["target_indices"]) {
+          for (const auto& idx : node["target_indices"]) {
+            int x = idx[0].as<int>();
+            int y = idx[1].as<int>();
+            fc.targetIndices.emplace_back(x, y);
+          }
+        }
+        SPDLOG_INFO("Constant force configured: F=({}, {}, {}), end_time={}, targets={}", *fc.forceX, *fc.forceY,
+                    *fc.forceZ, *fc.endTime, fc.targetIndices.size());
+        break;
+    }
+    simConfig.forceConfigs.push_back(fc);
+  }
+
+  // Container parameters
+  // Auto-infer cutoff from Lennard-Jones force if not specified in container section
+  double inferredCutoff = 3.0;  // fallback value
+  for (const auto& fc : simConfig.forceConfigs) {
+    if (fc.forceType == ForceType::LENNARD_JONES && fc.cutoff.has_value()) {
+      inferredCutoff = *fc.cutoff;
+      break;
+    }
+  }
+
+  const auto& containerNode = config["container"];
+  if (containerNode) {
+    simConfig.containerType = parseContainerType(containerNode["container_type"].as<std::string>());
+    if (simConfig.containerType == ContainerType::LINKED) {
+      if (containerNode["cutoff"]) {
+        simConfig.linkedCellCutoff = containerNode["cutoff"].as<double>();
+      } else {
+        simConfig.linkedCellCutoff = inferredCutoff;
+        SPDLOG_INFO("Container cutoff not specified, using Lennard-Jones cutoff: {}", inferredCutoff);
+      }
+    }
+  } else {
+    // Default: LINKED container with inferred cutoff
+    simConfig.containerType = ContainerType::LINKED;
+    simConfig.linkedCellCutoff = inferredCutoff;
+    SPDLOG_INFO("No container section found, defaulting to LINKED with cutoff={}", inferredCutoff);
+  }
+
+  // Parallelization settings
+  if (config["parallelization"]) {
+    const auto& parallelNode = config["parallelization"];
+    if (parallelNode["enabled"]) {
+      simConfig.useParallelization = parallelNode["enabled"].as<bool>();
+    }
+    if (parallelNode["strategy"]) {
+      std::string strategyStr = parallelNode["strategy"].as<std::string>();
+      if (strategyStr == "coloring" || strategyStr == "COLORING") {
+        simConfig.parallelStrategy = ParallelStrategy::COLORING;
+      } else if (strategyStr == "taskbased" || strategyStr == "TASKBASED") {
+        simConfig.parallelStrategy = ParallelStrategy::TASKBASED;
+      } else {
+        SPDLOG_WARN("Unknown parallelization strategy '{}', defaulting to COLORING", strategyStr);
+      }
+    }
+    SPDLOG_INFO("Parallelization: enabled={}, strategy={}", simConfig.useParallelization,
+                simConfig.parallelStrategy == ParallelStrategy::COLORING ? "COLORING" : "TASKBASED");
+  }
+
+  // Thermostat and thermodynamics
   simConfig.thermostatConfig = getThermostatConfig();
+  if (config["simulation"]["calculate_thermodynamics"]) {
+    simConfig.calculateThermodynamics = config["simulation"]["calculate_thermodynamics"].as<bool>();
+  }
 
   // Particle generation
+  // Each cuboid/sphere gets a sequential type ID (0, 1, 2, ...) unless manually overridden in the YAML file
+  // Type determines which precomputed sigma/epsilon values are used in force calculations
   ParticleGenerator& generatorRaw =
       *simConfig.particleGenerator;  // particle generator owned by config at this point, so it's ok to deref ptr
 
-  const double globalSigma = *simConfig.sigma;
-  const double globalEpsilon = *simConfig.epsilon;
+  // globalSigma/globalEpsilon were already set from LENNARD_JONES force config above
+  int nextTypeId = 0;  // Sequential type counter for cuboids and spheres
 
-  // Parse cuboids
+  // Parse cuboids (each cuboid gets its own type ID)
   const auto& cuboids = config["cuboids"];
   for (std::size_t i = 0; i < cuboids.size(); ++i) {
     const auto& cuboid = cuboids[i];
@@ -231,18 +369,29 @@ SimulationConfig YAMLFileReader::getConfig() {
     const double sigma = cuboid["sigma"] ? cuboid["sigma"].as<double>() : globalSigma;
     const double epsilon = cuboid["epsilon"] ? cuboid["epsilon"].as<double>() : globalEpsilon;
 
-    // Type: explicit or auto-incremented
-    int type = static_cast<int>(i);
+    // Type: sequential assignment (0, 1, 2, ...) or manual override
+    // All particles in this cuboid share the same type, sigma, and epsilon.
+    int type = nextTypeId++;
     if (cuboid["type"]) {
       type = cuboid["type"].as<int>();
     }
 
-    generatorRaw.queueCuboid(pos, vel, dim, h, m, meanV, type, sigma, epsilon);
-    SPDLOG_DEBUG("Loaded cuboid {} with {} particles (sigma={}, epsilon={}, type={}).", i, dim[0] * dim[1] * dim[2],
-                 sigma, epsilon, type);
+    // Check if this is a membrane cuboid
+    bool isMembrane = cuboid["is_membrane"] && cuboid["is_membrane"].as<bool>();
+
+    generatorRaw.queueCuboid(pos, vel, dim, h, m, meanV, type, sigma, epsilon, isMembrane);
+
+    // Store membrane dimensions if this is a membrane
+    if (isMembrane) {
+      simConfig.membraneDimY = dim[1];
+      SPDLOG_INFO("Loaded membrane with dimensions ({}, {}, {}), membraneDimY={}", dim[0], dim[1], dim[2], dim[1]);
+    } else {
+      SPDLOG_DEBUG("Loaded cuboid {} with {} particles (sigma={}, epsilon={}, type={}).", i, dim[0] * dim[1] * dim[2],
+                   sigma, epsilon, type);
+    }
   }
 
-  // Parse spheres
+  // Parse spheres - continue sequential type assignment of cuboids
   const auto& spheres = config["spheres"];
   for (std::size_t i = 0; i < spheres.size(); ++i) {
     const auto& sphere = spheres[i];
@@ -259,8 +408,8 @@ SimulationConfig YAMLFileReader::getConfig() {
     const double sigma = sphere["sigma"] ? sphere["sigma"].as<double>() : globalSigma;
     const double epsilon = sphere["epsilon"] ? sphere["epsilon"].as<double>() : globalEpsilon;
 
-    // Generate a unique type for each sphere, starting after the cuboids
-    int type = static_cast<int>(cuboids.size() + i);
+    // Type: sequential assignment or manual override
+    int type = nextTypeId++;
     if (sphere["type"]) {
       type = sphere["type"].as<int>();
     }
@@ -270,14 +419,14 @@ SimulationConfig YAMLFileReader::getConfig() {
   }
 
   // Checkpoint loading: if "particles" section exists, load individual particles
-  // precedence over cuboid/sphere generation
+  // For checkpoints, type MUST be specified in the YAML (written by CheckpointWriter)
   if (config["particles"] && config["particles"].size() > 0) {
     SPDLOG_INFO("Loading {} particles from checkpoint...", config["particles"].size());
 
     for (const auto& p : config["particles"]) {
       auto x = p["x"].as<std::array<double, 3>>();
       auto v = p["v"].as<std::array<double, 3>>();
-      double m = p["m"].as<double>();
+      auto m = p["m"].as<double>();
 
       // Force vectors (required for proper restart)
       std::array<double, 3> f = {0.0, 0.0, 0.0};
@@ -289,15 +438,12 @@ SimulationConfig YAMLFileReader::getConfig() {
         oldF = p["oldF"].as<std::array<double, 3>>();
       }
 
-      // Type defaults to 0
-      int type = 0;
-      if (p["type"]) {
-        type = p["type"].as<int>();
-      }
-
       // Per-particle sigma/epsilon with fallback to global values
       double sigma = p["sigma"] ? p["sigma"].as<double>() : globalSigma;
       double epsilon = p["epsilon"] ? p["epsilon"].as<double>() : globalEpsilon;
+
+      // Type: must be specified in checkpoint, fallback to 0 if missing
+      int type = p["type"] ? p["type"].as<int>() : 0;
 
       generatorRaw.queueParticle(x, v, m, f, oldF, type, sigma, epsilon);
     }

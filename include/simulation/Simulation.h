@@ -1,10 +1,9 @@
 #pragma once
 
-#include "io/CheckpointWriter.h"  // TODO: Re-implement checkpointing
-#include "io/YAMLFileReader.h"
 #include "physics/ForceCalc.h"
 #include "physics/ParticleGenerator.h"
-#include "physics/Thermostat.h"
+#include "physics/thermodynamics/ThermodynamicsStatistics.h"
+#include "physics/thermodynamics/Thermostat.h"
 #include "simulation/SimulationConfig.h"
 
 #include <memory>
@@ -20,10 +19,11 @@
  *
  * Other classes can inherit from this class to build more specific simulations, but this is strongly discouraged.
  */
-class Simulation {  // TODO: For now, we keep the virtual methods for thermostat testing - make class final!
+class Simulation {
  protected:
   /**
    * @brief Total simulated time.
+   * @note The simulation ends when the internal time counter passes this value.
    */
   double endTime;
 
@@ -33,14 +33,25 @@ class Simulation {  // TODO: For now, we keep the virtual methods for thermostat
   double dt;
 
   /**
-   * @brief Gravitational acceleration applied to particles.
+   * @brief Current simulation time (updated each iteration).
+   * Used by time-dependent forces (e.g., ConstantForce that stops after a certain time).
    */
-  // double gravity; // Moved below
+  double currentTime;
 
+  /**
+   * @brief Start value of the internal time counter, this is usually 0 when starting a new simulation.
+   * @note A checkpoint file will have a starting time greater than 0, e.g. 10.
+   */
   double startTime;
+  /**
+   * @brief Starting iteration number, this is usually 0 when starting a new simulation.
+   * @note A checkpoint file will have a starting iteration greater than 0, e.g. 15000.
+   */
   int startIteration;
 
   // Simulation parameters needed for checkpointing
+  // TODO: Move these to a CheckpointInfo struct, as they are not relevant to this class
+  // TODO: A different idea is to have Simulation own a CheckpointWriter object
   double epsilon;
   double sigma;
   double cutoff;
@@ -48,6 +59,11 @@ class Simulation {  // TODO: For now, we keep the virtual methods for thermostat
   int dimensions;
   std::array<double, 3> domainSize;
   std::array<std::string, 6> boundaryTypeStrings;
+
+  /**
+   * @brief Membrane Y dimension for force target index calculation.
+   */
+  int membraneDimY;
 
   /**
    * @brief Chosen simulation execution mode (benchmark/file output).
@@ -77,19 +93,25 @@ class Simulation {  // TODO: For now, we keep the virtual methods for thermostat
   std::unique_ptr<ParticleContainer> particles;
 
   /**
-   * @brief Strategy defining how forces are computed between particles.
+   * @brief Forces acting on or between the particles.
    */
-  std::unique_ptr<ForceCalc> forceCalc;
+  std::vector<std::unique_ptr<ForceCalc>> forces;
+
+  /**
+   * @brief Original force configurations (needed for checkpoint writing).
+   */
+  std::vector<ForceConfig> forceConfigs;
 
   // Thermostat-related members, TODO: Add docstrings for them
   std::unique_ptr<Thermostat> thermostat;
   bool needToAutoSetTargetTemperature = false;
   std::optional<double> initialTemperature = std::nullopt;
 
+  std::unique_ptr<ThermodynamicsStatistics> thermodynamicsStatistics;
+
   /**
    * @brief Outputs the state of the particles for visualization in ParaView.
    * @param iteration Current simulation step in ticks.
-   * @param outputBaseName Name for the file output
    */
   void plotParticles(int iteration) const;
 
@@ -101,24 +123,17 @@ class Simulation {  // TODO: For now, we keep the virtual methods for thermostat
   void writeCheckpoint(int iteration, double time) const;
 
   /**
+   * @name Simulation lifecycle
+   * @{
+   */
+
+  /**
    * @brief Creates/loads the particles in the simulation.
    *
    * Must be implemented by subclasses to define a specific simulation scenario.
-   */
-  virtual void setupSimulation();
-
-  /**
-   * @name Simulation run methods
-   * @{
-   * @brief Runs the simulation in benchmark mode (no file output).
-   */
-  virtual void runFileOutput();
-
-  /**
-   * @brief Runs the simulation in benchmark mode (no file output).
    * @}
    */
-  virtual void runBenchmark();
+  virtual void setupSimulation();
 
  public:
   /**
@@ -134,6 +149,7 @@ class Simulation {  // TODO: For now, we keep the virtual methods for thermostat
 
   /**
    * @brief The entry-point of the simulation.
+   * Runs setup and the main simulation loop. Can be overridden for testing.
    */
-  void run();
+  virtual void run();
 };

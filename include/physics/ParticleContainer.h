@@ -19,7 +19,7 @@
  * in an easy and efficient manner.
  *
  */
-class ParticleContainer {
+class ParticleContainer {  // TODO: Add missing docstrings
  private:
   /**
    * @brief A set of particles
@@ -39,8 +39,8 @@ class ParticleContainer {
    * @param v velocity vector as a 3 element array
    * @param m mass
    */
-  virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v,
-                           double m);  // function called in FileReader
+  virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v,
+                                double m);  // function called in FileReader
   /**
    * @brief Adds a particle with Lennard-Jones parameters to the container.
    * @param x position vector as a 3 element array
@@ -49,8 +49,8 @@ class ParticleContainer {
    * @param sigma Lennard-Jones sigma parameter
    * @param epsilon Lennard-Jones epsilon parameter
    */
-  virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma, double epsilon);
-
+  virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma,
+                                double epsilon);
   /**
    * @brief Adds a typed particle with Lennard-Jones parameters to the container.
    * @param x position vector as a 3 element array
@@ -60,20 +60,13 @@ class ParticleContainer {
    * @param sigma Lennard-Jones sigma parameter
    * @param epsilon Lennard-Jones epsilon parameter
    */
-  virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type, double sigma,
-                           double epsilon);
-
+  virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type, double sigma,
+                                double epsilon);
   /**
    * @brief Adds an existing particle to the container.
    * @param p pointer to particle to be added
    */
-  virtual void addParticle(const Particle* p);
-
-  /**
-   * @brief Removes the particle at index @p idx from the container.
-   * @param idx index of the particle to remove
-   */
-  virtual void removeParticle(size_t idx);
+  virtual Particle* addParticle(const Particle* p);
 
   /**
    * @brief Adds a particle from checkpoint with complete state to the container
@@ -86,8 +79,10 @@ class ParticleContainer {
    * @param sigma Lennard-Jones sigma parameter
    * @param epsilon Lennard-Jones epsilon parameter
    */
-  virtual void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, std::array<double, 3> f,
-                           std::array<double, 3> oldF, int type, double sigma, double epsilon);
+  virtual Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, std::array<double, 3> f,
+                                std::array<double, 3> oldF, int type, double sigma, double epsilon);
+
+  virtual void removeParticle(size_t idx);
 
   using iterator = std::vector<Particle>::iterator;
   using const_iterator = std::vector<Particle>::const_iterator;

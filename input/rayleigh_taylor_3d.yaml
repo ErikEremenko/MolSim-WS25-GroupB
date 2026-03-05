@@ -1,0 +1,65 @@
+# Rayleigh-Taylor instability in 3D
+
+output:
+  base_name: "rayleigh_taylor_3d"
+  write_frequency: 1000
+  checkpoint_frequency: 10000
+
+simulation:
+  t_end: 0.5
+  delta_t: 0.0005
+  dimensions: 3
+
+domain:
+  size: [60.0, 60.0, 60.0]
+
+boundaries:
+  x_min: PERIODIC
+  x_max: PERIODIC
+  y_min: REFLECTIVE
+  y_max: REFLECTIVE
+  z_min: PERIODIC
+  z_max: PERIODIC
+
+forces:
+  - force_type: lennard_jones
+    epsilon: 1.0
+    sigma: 1.0
+    cutoff_radius: 3.0
+
+  - force_type: global_gravity
+    g: -12.44
+    axis: 1
+
+container:
+  container_type: linked
+  cutoff: 3.0
+
+parallelization:
+  enabled: true
+  strategy: coloring
+
+thermostat:
+  n_thermostat: 1000
+  temp_init: 40.0
+
+cuboids:
+  - position: [0.6, 0.6, 0.6]
+    velocity: [0.0, 0.0, 0.0]
+    dimensions: [50, 20, 50]
+    mesh_width: 1.2
+    mass: 1.0
+    mean_velocity: 0.0
+    sigma: 1.2
+    epsilon: 1.0
+
+  - position: [0.6, 24.6, 0.6]
+    velocity: [0.0, 0.0, 0.0]
+    dimensions: [50, 20, 50]
+    mesh_width: 1.2
+    mass: 2.0
+    mean_velocity: 0.0
+    sigma: 1.1
+    epsilon: 1.0
+
+spheres: []

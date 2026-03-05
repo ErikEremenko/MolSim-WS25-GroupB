@@ -8,10 +8,6 @@ output:
 simulation:
   t_end: 15.0
   delta_t: 0.0005
-  epsilon: 1.0
-  sigma: 1.2
-  cutoff_radius: 3.0 # 2.5 * sigma
-  gravity: -12.44
   dimensions: 2
 
 domain:
@@ -24,6 +20,23 @@ boundaries:
   y_max: REFLECTIVE
   z_min: REFLECTIVE
   z_max: REFLECTIVE
+
+forces:
+  - force_type: lennard_jones
+    epsilon: 1.0
+    sigma: 1.2
+    cutoff_radius: 3.0
+
+  - force_type: global_gravity
+    g: -12.44
+
+container:
+  container_type: linked
+  cutoff: 3.0
+
+parallelization:
+  enabled: false
+  strategy: coloring
 
 thermostat:
   n_thermostat: 1000

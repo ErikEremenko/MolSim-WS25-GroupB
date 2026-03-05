@@ -18,27 +18,33 @@ TEST_F(YAMLFileReaderTest, LoadValidFile) {
 // Test simulation parameters are read correctly
 TEST_F(YAMLFileReaderTest, ReadSimulationParameters) {
   YAMLFileReader reader(inputFilename);
+  auto config = reader.getConfig();
 
-  EXPECT_DOUBLE_EQ(reader.getTEnd(), 20.0);
-  EXPECT_DOUBLE_EQ(reader.getDeltaT(), 0.0005);
-  EXPECT_DOUBLE_EQ(reader.getEpsilon(), 5.0);
-  EXPECT_DOUBLE_EQ(reader.getSigma(), 1.0);
-  EXPECT_DOUBLE_EQ(reader.getCutoff(), 3.0);
+  EXPECT_DOUBLE_EQ(config.tEnd, 20.0);
+  EXPECT_DOUBLE_EQ(config.deltaT, 0.0005);
+  // epsilon, sigma, and cutoff now stored in forceConfigs
+  ASSERT_FALSE(config.forceConfigs.empty());
+  EXPECT_DOUBLE_EQ(*config.forceConfigs[0].epsilon, 5.0);
+  EXPECT_DOUBLE_EQ(*config.forceConfigs[0].sigma, 1.0);
+  EXPECT_DOUBLE_EQ(*config.forceConfigs[0].cutoff, 3.0);
 }
 
 // Test output parameters are read correctly
 TEST_F(YAMLFileReaderTest, ReadOutputParameters) {
   YAMLFileReader reader(inputFilename);
+  auto config = reader.getConfig();
 
-  EXPECT_EQ(reader.getOutputBaseName(), "collision2_reflective");
-  EXPECT_EQ(reader.getWriteFrequency(), 100);
+  EXPECT_EQ(config.outputBasename, "collision2_reflective");
+  EXPECT_EQ(config.writeFrequency, 100);
 }
 
 // Test domain size is read correctly
 TEST_F(YAMLFileReaderTest, ReadDomainSize) {
   YAMLFileReader reader(inputFilename);
+  auto config = reader.getConfig();
 
-  auto domainSize = reader.getDomainSize();
+  ASSERT_TRUE(config.domainSize.has_value());
+  auto domainSize = *config.domainSize;
   EXPECT_DOUBLE_EQ(domainSize[0], 180.0);
   EXPECT_DOUBLE_EQ(domainSize[1], 90.0);
   EXPECT_DOUBLE_EQ(domainSize[2], 1.0);
@@ -47,14 +53,16 @@ TEST_F(YAMLFileReaderTest, ReadDomainSize) {
 // Test boundary types are read correctly
 TEST_F(YAMLFileReaderTest, ReadBoundaryTypes) {
   YAMLFileReader reader(inputFilename);
+  auto config = reader.getConfig();
 
-  auto boundaries = reader.getBoundaryTypesRaw();
-  EXPECT_EQ(boundaries[0], "REFLECTIVE");
-  EXPECT_EQ(boundaries[1], "REFLECTIVE");
-  EXPECT_EQ(boundaries[2], "REFLECTIVE");
-  EXPECT_EQ(boundaries[3], "REFLECTIVE");
-  EXPECT_EQ(boundaries[4], "REFLECTIVE");
-  EXPECT_EQ(boundaries[5], "REFLECTIVE");
+  ASSERT_TRUE(config.boundaryTypes.has_value());
+  auto boundaries = *config.boundaryTypes;
+  EXPECT_EQ(boundaries[0], BoundaryType::REFLECTIVE);
+  EXPECT_EQ(boundaries[1], BoundaryType::REFLECTIVE);
+  EXPECT_EQ(boundaries[2], BoundaryType::REFLECTIVE);
+  EXPECT_EQ(boundaries[3], BoundaryType::REFLECTIVE);
+  EXPECT_EQ(boundaries[4], BoundaryType::REFLECTIVE);
+  EXPECT_EQ(boundaries[5], BoundaryType::REFLECTIVE);
 }
 
 // Test reading particles from cuboids
@@ -73,55 +81,49 @@ TEST_F(YAMLFileReaderTest, ReadCuboidParticles) {
 TEST_F(YAMLFileReaderTest, ReadOutflowBoundaries) {
   std::string outflowFile = project_dir + "/input/collision2_outflow.yaml";
   YAMLFileReader reader(outflowFile);
+  auto config = reader.getConfig();
 
-  auto boundaries = reader.getBoundaryTypesRaw();
-  EXPECT_EQ(boundaries[0], "OUTFLOW");
-  EXPECT_EQ(boundaries[1], "OUTFLOW");
-  EXPECT_EQ(boundaries[2], "OUTFLOW");
-  EXPECT_EQ(boundaries[3], "OUTFLOW");
-  EXPECT_EQ(boundaries[4], "OUTFLOW");
-  EXPECT_EQ(boundaries[5], "OUTFLOW");
+  ASSERT_TRUE(config.boundaryTypes.has_value());
+  auto boundaries = *config.boundaryTypes;
+  EXPECT_EQ(boundaries[0], BoundaryType::OUTFLOW);
+  EXPECT_EQ(boundaries[1], BoundaryType::OUTFLOW);
+  EXPECT_EQ(boundaries[2], BoundaryType::OUTFLOW);
+  EXPECT_EQ(boundaries[3], BoundaryType::OUTFLOW);
+  EXPECT_EQ(boundaries[4], BoundaryType::OUTFLOW);
+  EXPECT_EQ(boundaries[5], BoundaryType::OUTFLOW);
 }
 
 // --- Checkpoint Tests ---
 
 // Test that a non-checkpoint file is correctly identified as such and vice versa
-TEST_F(YAMLFileReaderTest, IsCheckpointReturnsFalseForRegularFile) {
-  YAMLFileReader reader(inputFilename);
-  EXPECT_FALSE(reader.isCheckpoint());
-}
-TEST_F(YAMLFileReaderTest, IsCheckpointReturnsTrueForCheckpointFile) {
-  std::string checkpointFile = project_dir + "/input/test_checkpoint.yaml";
-  YAMLFileReader reader(checkpointFile);
-  EXPECT_TRUE(reader.isCheckpoint());
-}
-
-// Test reading checkpoint metadata (iteration and time)
-TEST_F(YAMLFileReaderTest, ReadCheckpointMetadata) {
-  std::string checkpointFile = project_dir + "/input/test_checkpoint.yaml";
-  YAMLFileReader reader(checkpointFile);
-
-  EXPECT_EQ(reader.getCheckpointIteration(), 500);
-  EXPECT_DOUBLE_EQ(reader.getCheckpointTime(), 0.25);
-}
-
-// Test that regular files return default checkpoint values
+// Tests that regular files return default checkpoint values (now read via getConfig)
 TEST_F(YAMLFileReaderTest, RegularFileReturnsDefaultCheckpointValues) {
   YAMLFileReader reader(inputFilename);
+  auto config = reader.getConfig();
 
   // Regular files should return 0 for checkpoint iteration and time
-  EXPECT_EQ(reader.getCheckpointIteration(), 0);
-  EXPECT_DOUBLE_EQ(reader.getCheckpointTime(), 0.0);
+  EXPECT_EQ(config.startIteration, 0);
+  EXPECT_DOUBLE_EQ(config.startTime, 0.0);
   // Regular file doesn't have checkpoint_frequency, should return 0
-  EXPECT_EQ(reader.getCheckpointFrequency(), 0);
+  EXPECT_EQ(config.checkpointFrequency, 0);
+}
+
+TEST_F(YAMLFileReaderTest, CheckpointFileHasCorrectMetadata) {
+  std::string checkpointFile = project_dir + "/input/test_checkpoint.yaml";
+  YAMLFileReader reader(checkpointFile);
+  auto config = reader.getConfig();
+
+  EXPECT_EQ(config.startIteration, 500);
+  EXPECT_DOUBLE_EQ(config.startTime, 0.25);
 }
 
 // Test reading checkpoint frequency from checkpoint file
 TEST_F(YAMLFileReaderTest, ReadCheckpointFrequency) {
   std::string checkpointFile = project_dir + "/input/test_checkpoint.yaml";
   YAMLFileReader reader(checkpointFile);
+  auto config = reader.getConfig();
 
-  EXPECT_EQ(reader.getCheckpointFrequency(), 200);
+  EXPECT_EQ(config.checkpointFrequency, 200);
 }
 
 // Test reading individual particles from checkpoint file
@@ -232,23 +234,26 @@ TEST_F(YAMLFileReaderTest, CheckpointParticleSigmaEpsilon) {
 TEST_F(YAMLFileReaderTest, CheckpointSimulationParameters) {
   std::string checkpointFile = project_dir + "/input/test_checkpoint.yaml";
   YAMLFileReader reader(checkpointFile);
+  auto config = reader.getConfig();
 
-  EXPECT_DOUBLE_EQ(reader.getTEnd(), 1.0);
-  EXPECT_DOUBLE_EQ(reader.getDeltaT(), 0.0005);
-  EXPECT_EQ(reader.getOutputBaseName(), "test_checkpoint");
-  EXPECT_EQ(reader.getWriteFrequency(), 50);
+  EXPECT_DOUBLE_EQ(config.tEnd, 1.0);
+  EXPECT_DOUBLE_EQ(config.deltaT, 0.0005);
+  EXPECT_EQ(config.outputBasename, "test_checkpoint");
+  EXPECT_EQ(config.writeFrequency, 50);
 }
 
 // Test checkpoint with mixed boundary types
 TEST_F(YAMLFileReaderTest, CheckpointMixedBoundaries) {
   std::string checkpointFile = project_dir + "/input/test_checkpoint.yaml";
   YAMLFileReader reader(checkpointFile);
+  auto config = reader.getConfig();
 
-  auto boundaries = reader.getBoundaryTypesRaw();
-  EXPECT_EQ(boundaries[0], "OUTFLOW");
-  EXPECT_EQ(boundaries[1], "OUTFLOW");
-  EXPECT_EQ(boundaries[2], "REFLECTIVE");
-  EXPECT_EQ(boundaries[3], "REFLECTIVE");
-  EXPECT_EQ(boundaries[4], "OUTFLOW");
-  EXPECT_EQ(boundaries[5], "OUTFLOW");
+  ASSERT_TRUE(config.boundaryTypes.has_value());
+  auto boundaries = *config.boundaryTypes;
+  EXPECT_EQ(boundaries[0], BoundaryType::OUTFLOW);
+  EXPECT_EQ(boundaries[1], BoundaryType::OUTFLOW);
+  EXPECT_EQ(boundaries[2], BoundaryType::REFLECTIVE);
+  EXPECT_EQ(boundaries[3], BoundaryType::REFLECTIVE);
+  EXPECT_EQ(boundaries[4], BoundaryType::OUTFLOW);
+  EXPECT_EQ(boundaries[5], BoundaryType::OUTFLOW);
 }

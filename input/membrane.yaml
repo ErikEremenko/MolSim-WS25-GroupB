@@ -1,0 +1,63 @@
+# Membrane simulation configuration (Assignment 5, Task 1)
+output:
+  base_name: "membrane"
+  write_frequency: 100
+  checkpoint_frequency: 1000
+
+simulation:
+  t_end: 500.0
+  delta_t: 0.01
+
+container:
+  container_type: linked
+  cutoff: 4.0
+
+parallelization:
+  enabled: false
+  strategy: coloring
+
+forces:
+  # Truncated repulsive Lennard-Jones (only repulsive part, truncated at 2^(1/6)*sigma)
+  - force_type: truncated_lj
+
+  - force_type: global_gravity
+    g: -0.001
+    axis: 2  # z-axis for membrane simulation
+
+  # Harmonic potential for membrane bonds
+  - force_type: harmonic_membrane
+    stiffness: 300.0       # k
+    avg_bond_length: 2.2   # r0 = 2.2 (same as mesh width)
+
+  - force_type: constant_force
+    fz: 0.8               # F_z-up = 0.8 (pulling upward along z)
+    end_time: 150.0
+    target_indices:       # Affected particle indices
+      - [17, 24]
+      - [17, 25]
+      - [18, 24]
+      - [18, 25]
+
+domain:
+  size: [148, 148, 148]
+
+boundaries:
+  x_min: OUTFLOW
+  x_max: OUTFLOW
+  y_min: OUTFLOW
+  y_max: OUTFLOW
+  z_min: REFLECTIVE      # Reflecting boundary at z=0 (xy-plane)
+  z_max: OUTFLOW
+
+cuboids:
+  - position: [15.0, 15.0, 1.5]     
+    velocity: [0.0, 0.0, 0.0]       
+    dimensions: [50, 50, 1]          
+    mesh_width: 2.2                  
+    mass: 1.0                        
+    mean_velocity: 0.0
+    epsilon: 1.0                     
+    sigma: 1.0                       
+    is_membrane: true
+
+spheres: []

@@ -10,15 +10,27 @@
 #include <array>
 #include <ostream>
 #include <string>
+#include <vector>
+
+// Force inlining macro for performance-critical getters
+#if defined(__GNUC__) || defined(__clang__)
+#define MOLSIM_FORCE_INLINE __attribute__((always_inline)) inline
+#elif defined(_MSC_VER)
+#define MOLSIM_FORCE_INLINE __forceinline
+#else
+#define MOLSIM_FORCE_INLINE inline
+#endif
 
 /**
  *
  *  @class Particle
- *  @brief A class representing a particle in 3 dimensional space with position, velocity,
+ *  @brief A class representing a particle in 3-dimensional space with position, velocity,
  *  mass, type and force.
  *
  *  A user may use this class to perform a particle simulation in discrete time steps by
  *  updating the particles' position and speed based on their relative positions.
+ *
+ *  @note All getters are force-inlined for performance.
  */
 class Particle {
  private:
@@ -29,48 +41,82 @@ class Particle {
    *
    *  A 3 component vector storing the particle's position
    */
-  std::array<double, 3> x;
+  std::array<double, 3> x{};
+
+  /**
+   * @brief Accumulated displacement of the particle
+   *
+   * This member is to be used for thermodynamical statistics calculations. It should
+   * be reset every time the statistics are updated
+   */
+  std::array<double, 3> displacement{};
 
   /**
    * @brief Current velocity of the particle
    *
    *  A 3 component vector storing the particle's movement direction and speed
    */
-  std::array<double, 3> v;
+  std::array<double, 3> v{};
 
   /**
    * @brief Force effective on the particle
    *
    *  A 3 component vector storing the force vector of the force effective on the particle
    */
-  std::array<double, 3> f;
+  std::array<double, 3> f{};
 
   /**
    * @brief Force vector of the force that was effective on the particle in the previous iteration
    */
-  std::array<double, 3> old_f;
+  std::array<double, 3> old_f{};
 
   /**
    * @brief Mass of the particle
    *
    */
-  double m;
+  double m{};
 
   /**
    * @brief Type of the particle
    *
    */
-  int type;
+  int type{};
 
   /**
    * @brief Lennard-Jones sigma parameter for the particle
    */
-  double sigma;
+  double sigma{};
 
   /**
    * @brief Lennard-Jones epsilon parameter for the particle
    */
-  double epsilon;
+  double epsilon{};
+
+  /**
+   * @brief Unique identifier for the particle
+   * The unique ID for the particle will be assigned by default to the class ID counter.
+   * @note The ID will always match the particle's index in the particle container, e.g. first particle will have ID 0
+   */
+  int id = 0;
+
+  /**
+   * @brief Class variable that keeps track of the created particles indices.
+   * @note This is incremented in the particle constructor, so the value of this member will always match the
+   * number of particles in the simulation.
+   */
+  static int idCounter;
+
+  /**
+   * @brief List storing the IDs of direct neighbors, used in rectangular 2D-membrane simulation.
+   * @note This vector is initialized with reserving space for 4 elements in the constructor.
+   */
+  std::vector<int> directNeighbors;
+
+  /**
+   * @brief List storing the IDs of diagonal neighbors, used in rectangular 2D-membrane simulation.
+   * @note This vector is initialized with reserving space for 4 elements in the constructor.
+   */
+  std::vector<int> diagonalNeighbors;
   ///@}
  public:
   /**@name Constructors */
@@ -104,27 +150,39 @@ class Particle {
   Particle& operator=(Particle&& other) noexcept = default;
   ~Particle() = default;
 
-  /** @name Getter methods */
+  /** @name Getter methods (force-inlined for performance) */
   ///@{
   /** @brief get position of particle */
-  [[nodiscard]] const std::array<double, 3>& getX() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE const std::array<double, 3>& getX() const noexcept { return x; }
   /** @brief get velocity of particle */
-  [[nodiscard]] const std::array<double, 3>& getV() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE const std::array<double, 3>& getV() const noexcept { return v; }
   /** @brief get force effective on particle (const) */
-  [[nodiscard]] const std::array<double, 3>& getF() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE const std::array<double, 3>& getF() const noexcept { return f; }
   /** @brief get force effective on particle */
-  [[nodiscard]] std::array<double, 3>& getF();
+  [[nodiscard]] MOLSIM_FORCE_INLINE std::array<double, 3>& getF() noexcept { return f; }
   /** @brief get old force effective on particle */
-  [[nodiscard]] const std::array<double, 3>& getOldF() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE const std::array<double, 3>& getOldF() const noexcept { return old_f; }
   /** @brief get mass of particle */
-
-  [[nodiscard]] double getM() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE double getM() const noexcept { return m; }
   /** @brief get type of particle */
-  [[nodiscard]] int getType() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE int getType() const noexcept { return type; }
   /** @brief get Lennard-Jones sigma parameter */
-  [[nodiscard]] double getSigma() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE double getSigma() const noexcept { return sigma; }
   /** @brief get Lennard-Jones epsilon parameter */
-  [[nodiscard]] double getEpsilon() const;
+  [[nodiscard]] MOLSIM_FORCE_INLINE double getEpsilon() const noexcept { return epsilon; }
+  /** @brief get unique identifier */
+  [[nodiscard]] MOLSIM_FORCE_INLINE int getID() const noexcept { return id; }
+  /** @brief get accumulated displacement */
+  [[nodiscard]] MOLSIM_FORCE_INLINE std::array<double, 3> getDisplacement() const noexcept { return displacement; }
+
+  /** @brief get the list of direct neighbors (const) */
+  [[nodiscard]] const std::vector<int>& getDirectNeighbors() const;
+  /** @brief get the list of direct neighbors (non-const, for modification) */
+  [[nodiscard]] std::vector<int>& getDirectNeighbors();
+  /** @brief get the list of diagonal neighbors (const) */
+  [[nodiscard]] const std::vector<int>& getDiagonalNeighbors() const;
+  /** @brief get the list of diagonal neighbors (non-const, for modification) */
+  [[nodiscard]] std::vector<int>& getDiagonalNeighbors();
   ///@}
 
   /** @name Setter methods */
@@ -132,7 +190,7 @@ class Particle {
   /** @brief set particle position vector
    *  @param val velocity vector as 3 element array
    */
-  void setX(const std::array<double, 3>& val) { this->x = val; }
+  void setX(const std::array<double, 3>& val);
   /** @brief set coordinate of particle position vector
    *  @param val value for the coordinate
    *  @param dim dimension (0=x, 1=y, 2=z)
@@ -155,7 +213,14 @@ class Particle {
   /** @name Operators + Utilities */
   bool operator==(const Particle& other) const;
 
-  std::string toString() const;
+  [[nodiscard]] std::string toString() const;
+
+  /**
+   * @brief Resets the accumulated displacement of the particle.
+   * This function should be called after a thermodynamics statistics update.
+   * @note The array copying in the function is fine, as direct assignment also leads to the same assembly in -O3.
+   */
+  MOLSIM_FORCE_INLINE void resetDisplacement() { displacement = {0.0, 0.0, 0.0}; };
 };
 
 std::ostream& operator<<(std::ostream& stream, const Particle& p);

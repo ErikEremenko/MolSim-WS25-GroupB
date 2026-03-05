@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
+#include <algorithm>
 #include <cmath>
 
 #include "physics/ForceCalc.h"
+#include "physics/GravityForce.h"
+#include "physics/LennardJonesForce.h"
 #include "physics/LinkedCellParticleContainer.h"
 #include "physics/ParticleContainer.h"
 #include "utils/ArrayUtils.h"
@@ -11,13 +14,8 @@ class ForceCalcTest : public ::testing::Test {
   ParticleContainer pc;
 };
 
-// Test if overflow error is thrown when the calculations are run on particles with the same coords.
-TEST_F(ForceCalcTest, ExpectNormError) {
-  pc.addParticle(std::array<double, 3>{0.}, std::array<double, 3>{0.}, 0.);
-  pc.addParticle(std::array<double, 3>{0.}, std::array<double, 3>{1.}, 0.);
-  EXPECT_THROW(GravityForce(pc).calculateF(), std::overflow_error);
-  EXPECT_THROW(LennardJonesForce(pc, 1., 1., INFINITY, 0).calculateF(), std::overflow_error);
-}
+// Note: Zero-distance error checks were removed for performance optimization.
+// See class documentation for details.
 
 // Test the gravitational force between two particles if one particle has zero mass
 TEST_F(ForceCalcTest, GravityF_ZeroMass) {
@@ -88,7 +86,7 @@ TEST_F(ForceCalcTest, LJ_F_TwoBody) {
   pc.addParticle(&p2);
 
   const std::array<double, 3> F = factor * (p1.getX() - p2.getX());
-  LennardJonesForce(pc, 5, 1, INFINITY, 0).calculateF();
+  LennardJonesForce(pc, 5, 1, INFINITY).calculateF();
   for (int i = 0; i < pc.size(); i++) {
     EXPECT_NEAR(pc[0].getF()[i], F[i], 10e-6);
     EXPECT_NEAR(pc[1].getF()[i], -1. * F[i], 10e-6);
@@ -138,7 +136,8 @@ TEST_F(BoundaryConditionTest, ReflectiveAppliesForce) {
   // Add particle close to the left wall (x = 0), repulsionDistance = 2^(1/6) * sigma ~ 1.1225
   lpc.addParticle({0.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
 
-  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius, 0);
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.precomputeConstants();
   forceCalc.calculateF();
 
   // Particle close to wall should experience repulsive force pushing it away from wall -> positive force in x-direction (away from wall)
@@ -177,7 +176,8 @@ TEST_F(BoundaryConditionTest, ReflectiveNoForceWhenFar) {
   // Add particle in the center (far from walls)
   lpc.addParticle({5.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
 
-  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius, 0);
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.precomputeConstants();
   forceCalc.calculateF();
 
   // Single particle in center should have zero force
@@ -290,7 +290,8 @@ TEST_F(PeriodicBoundaryTest, CrossBoundaryForceInteraction) {
   lpc.addParticle({0.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
   lpc.addParticle({9.5, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
 
-  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius, 0);
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.precomputeConstants();
   forceCalc.calculateF();
 
   // Both particles should experience non-zero forces (periodic interaction)
@@ -351,7 +352,8 @@ TEST_F(PeriodicBoundaryTest, SingleParticleNoForce) {
 
   lpc.addParticle({5.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
 
-  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius, 0);
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.precomputeConstants();
   forceCalc.calculateF();
 
   // Particle should have zero force
@@ -370,7 +372,8 @@ TEST_F(PeriodicBoundaryTest, ParticlesBeyondCutoffNoInteraction) {
   lpc.addParticle({2.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
   lpc.addParticle({6.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
 
-  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius, 0);
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.precomputeConstants();
   forceCalc.calculateF();
 
   // Particles should experience zero force (beyond cutoff in all directions)
@@ -380,4 +383,211 @@ TEST_F(PeriodicBoundaryTest, ParticlesBeyondCutoffNoInteraction) {
   EXPECT_DOUBLE_EQ(lpc[1].getF()[0], 0.0);
   EXPECT_DOUBLE_EQ(lpc[1].getF()[1], 0.0);
   EXPECT_DOUBLE_EQ(lpc[1].getF()[2], 0.0);
+}
+
+// Parallel Force Calculation Tests
+// Verify that parallel strategies produce the same results as serial linked cell
+
+class ParallelForceCalcTest : public ::testing::Test {
+ protected:
+  double epsilon = 5.0;
+  double sigma = 1.0;
+  double cutoffRadius = 3.0;
+  std::array<BoundaryType, 6> outflowBoundaries = {BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
+                                                   BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
+                                                   BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
+
+  static void resetForces(LinkedCellParticleContainer& lpc) {
+    for (size_t i = 0; i < lpc.size(); ++i) {
+      lpc[i].setF({0.0, 0.0, 0.0});
+    }
+  }
+
+  static std::vector<std::array<double, 3>> storeForces(const LinkedCellParticleContainer& lpc) {
+    std::vector<std::array<double, 3>> forces;
+    forces.reserve(lpc.size());
+    for (size_t i = 0; i < lpc.size(); ++i) {
+      forces.push_back(lpc[i].getF());
+    }
+    return forces;
+  }
+
+  //Helper: compare stored forces with current particle forces
+  // Uses a relative tolerance to account for floating-point summation order differences
+  static void compareForces(const LinkedCellParticleContainer& lpc,
+                            const std::vector<std::array<double, 3>>& expected, double relTolerance = 1e-9) {
+    ASSERT_EQ(lpc.size(), expected.size());
+    for (size_t i = 0; i < lpc.size(); ++i) {
+      for (int d = 0; d < 3; ++d) {
+        const double actual = lpc[i].getF()[d];
+        const double exp = expected[i][d];
+        // relative tolerance: scale by the magnitude of the values,
+        // minimum floor to handles near-zero values
+        const double scale = std::max({std::abs(actual), std::abs(exp), 1.0});
+        EXPECT_NEAR(actual, exp, relTolerance * scale)
+            << "Mismatch at particle " << i << ", dimension " << d;
+      }
+    }
+  }
+
+  // Helper: populate a 3D domain with particles spread across multiple cells
+  static void populate3D(LinkedCellParticleContainer& lpc) {
+    // Place particles in a grid pattern to cover many cells
+    // Domain is 12x12x12 with cutoff 3.0 -> at least 4x4x4 inner cells
+    // Grid spacing 2.5 gives positions: 1.0, 3.5, 6.0, 8.5, 11.0
+    for (double x = 1.0; x < 12.0; x += 2.5) {
+      for (double y = 1.0; y < 12.0; y += 2.5) {
+        for (double z = 1.0; z < 12.0; z += 2.5) {
+          lpc.addParticle({x, y, z}, {0.0, 0.0, 0.0}, 1.0);
+        }
+      }
+    }
+    // Add some particles close together within cutoff to create interactions
+    // Positions chosen to not overlap with the grid above
+    lpc.addParticle({2.0, 2.0, 2.0}, {0.0, 0.0, 0.0}, 1.0);
+    lpc.addParticle({2.5, 2.0, 2.0}, {0.0, 0.0, 0.0}, 1.0);
+    lpc.addParticle({2.0, 2.5, 2.0}, {0.0, 0.0, 0.0}, 1.0);
+    lpc.addParticle({2.0, 2.0, 2.5}, {0.0, 0.0, 0.0}, 1.0);
+    lpc.addParticle({5.0, 5.0, 5.0}, {0.0, 0.0, 0.0}, 1.0);
+    lpc.addParticle({5.3, 5.2, 5.1}, {0.0, 0.0, 0.0}, 1.0);
+    lpc.addParticle({7.5, 7.5, 7.5}, {0.0, 0.0, 0.0}, 1.0);
+    lpc.addParticle({7.8, 7.7, 7.6}, {0.0, 0.0, 0.0}, 1.0);
+  }
+
+  // Helper: populates a 2D domain (z dimension has only 1 inner cell, nz <= 3)
+  static void populate2D(LinkedCellParticleContainer& lpc) {
+    for (double x = 1.0; x < 12.0; x += 2.5) {
+      for (double y = 1.0; y < 12.0; y += 2.5) {
+        lpc.addParticle({x, y, 1.5}, {0.0, 0.0, 0.0}, 1.0);
+      }
+    }
+    // Close particles for interactions (avoid grid positions 1.0, 3.5, 6.0, 8.5, 11.0)
+    lpc.addParticle({2.0, 2.0, 1.5}, {0.0, 0.0, 0.0}, 1.0);
+    lpc.addParticle({2.5, 2.0, 1.5}, {0.0, 0.0, 0.0}, 1.0);
+    lpc.addParticle({5.0, 5.0, 1.5}, {0.0, 0.0, 0.0}, 1.0);
+    lpc.addParticle({5.3, 5.2, 1.5}, {0.0, 0.0, 0.0}, 1.0);
+  }
+};
+
+// 3D: Parallel strategy 1 (C08 coloring) matches serial linked cell
+TEST_F(ParallelForceCalcTest, Parallel1_Matches_Serial_3D) {
+  std::array<double, 3> domainDims = {12.0, 12.0, 12.0};
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, outflowBoundaries);
+  populate3D(lpc);
+
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.precomputeConstants();
+
+  // Run serial linked cell
+  resetForces(lpc);
+  forceCalc.calculateFLinkedCell();
+  auto serialForces = storeForces(lpc);
+
+  // Verify serial produced non-trivial forces (sanity check)
+  bool hasNonZero = false;
+  for (const auto& f : serialForces) {
+    if (f[0] != 0.0 || f[1] != 0.0 || f[2] != 0.0) {
+      hasNonZero = true;
+      break;
+    }
+  }
+  ASSERT_TRUE(hasNonZero) << "Serial calculation produced all-zero forces";
+
+  // Run parallel strategy 1 (C08 coloring)
+  resetForces(lpc);
+  forceCalc.calculateFLinkedCellParallel1();
+  compareForces(lpc, serialForces);
+}
+
+// 2D: Parallel strategy 1 (3x2 coloring) matches serial linked cell
+TEST_F(ParallelForceCalcTest, Parallel1_Matches_Serial_2D) {
+  // z-dimension = cutoffRadius -> nz = 3 (2 halo + 1 inner), triggers 2D path
+  std::array<double, 3> domainDims = {12.0, 12.0, cutoffRadius};
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, outflowBoundaries);
+  populate2D(lpc);
+
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.precomputeConstants();
+
+  // Run serial linked cell
+  resetForces(lpc);
+  forceCalc.calculateFLinkedCell();
+  auto serialForces = storeForces(lpc);
+
+  bool hasNonZero = false;
+  for (const auto& f : serialForces) {
+    if (f[0] != 0.0 || f[1] != 0.0 || f[2] != 0.0) {
+      hasNonZero = true;
+      break;
+    }
+  }
+  ASSERT_TRUE(hasNonZero) << "Serial calculation produced all-zero forces";
+
+  // Run parallel strategy 1 (3x2 coloring for 2D)
+  resetForces(lpc);
+  forceCalc.calculateFLinkedCellParallel1();
+  compareForces(lpc, serialForces);
+}
+
+// 3D: Parallel strategy 2 (task-based with atomics) matches serial linked cell
+TEST_F(ParallelForceCalcTest, Parallel2_Matches_Serial_3D) {
+  std::array<double, 3> domainDims = {12.0, 12.0, 12.0};
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, outflowBoundaries);
+  populate3D(lpc);
+
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.precomputeConstants();
+
+  // Run serial linked cell
+  resetForces(lpc);
+  forceCalc.calculateFLinkedCell();
+  auto serialForces = storeForces(lpc);
+
+  bool hasNonZero = false;
+  for (const auto& f : serialForces) {
+    if (f[0] != 0.0 || f[1] != 0.0 || f[2] != 0.0) {
+      hasNonZero = true;
+      break;
+    }
+  }
+  ASSERT_TRUE(hasNonZero) << "Serial calculation produced all-zero forces";
+
+  // Run parallel strategy 2 (task-based with atomics)
+  resetForces(lpc);
+  forceCalc.calculateFLinkedCellParallel2();
+  compareForces(lpc, serialForces);
+}
+
+// 3D with multiple particle types: parallel strategies match serial
+TEST_F(ParallelForceCalcTest, Parallel_Matches_Serial_MultiType) {
+  std::array<double, 3> domainDims = {12.0, 12.0, 12.0};
+  LinkedCellParticleContainer lpc(domainDims, cutoffRadius, outflowBoundaries);
+
+  // Add particles of different types with different sigma/epsilon
+  lpc.addParticle({2.0, 2.0, 2.0}, {0.0, 0.0, 0.0}, 1.0, 0, 1.0, 5.0);
+  lpc.addParticle({2.5, 2.0, 2.0}, {0.0, 0.0, 0.0}, 1.0, 0, 1.0, 5.0);
+  lpc.addParticle({2.0, 2.5, 2.0}, {0.0, 0.0, 0.0}, 1.0, 1, 1.5, 3.0);
+  lpc.addParticle({6.0, 6.0, 6.0}, {0.0, 0.0, 0.0}, 1.0, 1, 1.5, 3.0);
+  lpc.addParticle({6.3, 6.2, 6.1}, {0.0, 0.0, 0.0}, 1.0, 0, 1.0, 5.0);
+  lpc.addParticle({6.0, 6.3, 6.0}, {0.0, 0.0, 0.0}, 1.0, 1, 1.5, 3.0);
+  lpc.addParticle({9.0, 9.0, 9.0}, {0.0, 0.0, 0.0}, 1.0, 0, 1.0, 5.0);
+  lpc.addParticle({9.5, 9.2, 9.1}, {0.0, 0.0, 0.0}, 1.0, 1, 1.5, 3.0);
+
+  LennardJonesForce forceCalc(lpc, epsilon, sigma, cutoffRadius);
+  forceCalc.precomputeConstants();
+
+  // Serial baseline
+  resetForces(lpc);
+  forceCalc.calculateFLinkedCell();
+  auto serialForces = storeForces(lpc);
+
+  // Parallel 1 (C08 coloring)
+  resetForces(lpc);
+  forceCalc.calculateFLinkedCellParallel1();
+  compareForces(lpc, serialForces);
+
+  // Parallel 2 (task-based)
+  resetForces(lpc);
+  forceCalc.calculateFLinkedCellParallel2();
+  compareForces(lpc, serialForces);
 }

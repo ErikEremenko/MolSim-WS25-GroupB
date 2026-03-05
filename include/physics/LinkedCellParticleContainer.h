@@ -53,13 +53,14 @@ class LinkedCellParticleContainer : public ParticleContainer {
 
   using ParticleContainer::addParticle;
   // Override addParticle to place particle in correct cell
-  void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m);
-  void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma, double epsilon);
-  void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type, double sigma,
-                   double epsilon) override;
-  void addParticle(const Particle* p);
-  void addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, std::array<double, 3> f,
-                   std::array<double, 3> oldF, int type, double sigma, double epsilon) override;
+  Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m) override;
+  Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, double sigma,
+                        double epsilon) override;
+  Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, int type, double sigma,
+                        double epsilon) override;
+  Particle* addParticle(const Particle* p) override;
+  Particle* addParticle(std::array<double, 3> x, std::array<double, 3> v, double m, std::array<double, 3> f,
+                        std::array<double, 3> oldF, int type, double sigma, double epsilon) override;
 
   /**
    * @brief Update cell assignments after particle positions change
@@ -72,10 +73,87 @@ class LinkedCellParticleContainer : public ParticleContainer {
   void handleOutflowBoundaries();
 
   /**
-   * @brief Iterate over all distinct particle pairs within cutoff distance
+   * @brief Iterate over all distinct particle pairs within cutoff distance (std::function version)
    * @param pairFunc Function to apply to each pair (p1, p2)
+   * @note This version has overhead from std::function type erasure. Use the template version for performeance-critical code.
    */
   void iteratePairs(const std::function<void(Particle&, Particle&)>& pairFunc) const;
+
+  /**
+   * @brief Iterate over all distinct particle pairs within cutoff distance (template version)
+   * @param pairFunc Function to apply to each pair (p1, p2)
+   * @note This template version is designed to eliminate std::function overhead
+   */
+  template <typename F>
+  void iteratePairsTemplate(F&& pairFunc) const {
+    const int nx = numCells[0];
+    const int ny = numCells[1];
+    const int nz = numCells[2];
+
+    const int layerSize = nx * ny;
+
+    // offsets for 13 forward neighbors
+    static constexpr std::array<std::array<int, 3>, 13> neighborOffsets = {{{1, 0, 0},
+                                                                            {1, 1, 0},
+                                                                            {0, 1, 0},
+                                                                            {-1, 1, 0},
+                                                                            {-1, -1, 1},
+                                                                            {0, -1, 1},
+                                                                            {1, -1, 1},
+                                                                            {-1, 0, 1},
+                                                                            {0, 0, 1},
+                                                                            {1, 0, 1},
+                                                                            {-1, 1, 1},
+                                                                            {0, 1, 1},
+                                                                            {1, 1, 1}}};
+
+    // Compute interactions between particles in the same cell, ignoring halo cells
+    for (size_t cdx = 0; cdx < cells.size(); ++cdx) {
+      if (getCellType(cdx) == CellType::HALO)
+        continue;
+
+      const auto& cell = cells[cdx];
+      const size_t cellSize = cell.size();
+
+      // Intra-cell pairs
+      for (size_t i = 0; i < cellSize; ++i) {
+        Particle* __restrict__ pi = cell[i];
+        for (size_t j = i + 1; j < cellSize; ++j) {
+          pairFunc(*pi, *cell[j]);
+        }
+      }
+
+      // Convert cell index to 3D coordinates
+      const int idx = static_cast<int>(cdx);
+      const int iz = idx / layerSize;
+      const int remainder = idx % layerSize;
+      const int iy = remainder / nx;
+      const int ix = remainder % nx;
+
+      // Compute interactions with forward neighbor cells (avoid double counting)
+      for (const auto& off : neighborOffsets) {
+        const int nix = ix + off[0];
+        const int niy = iy + off[1];
+        const int niz = iz + off[2];
+
+        // If neighbor is out of bounds, skip it
+        if (nix < 0 || nix >= nx || niy < 0 || niy >= ny || niz < 0 || niz >= nz) {
+          continue;
+        }
+
+        // Convert neighbor coordinates back to 1D index
+        const int nIndex = (niz * layerSize) + (niy * nx) + nix;
+        const auto& ncell = cells[static_cast<size_t>(nIndex)];
+
+        // Compute interactions between current cell and neighbor
+        for (Particle* __restrict__ pi : cell) {
+          for (Particle* __restrict__ pj : ncell) {
+            pairFunc(*pi, *pj);
+          }
+        }
+      }
+    }
+  }
 
   /**
    * @brief Iterate over all particles in a cell and its neighbors

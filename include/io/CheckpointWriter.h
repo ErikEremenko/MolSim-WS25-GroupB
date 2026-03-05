@@ -1,7 +1,9 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include "physics/ParticleContainer.h"
+#include "simulation/SimulationConfig.h"
 
 namespace outputWriter {
 
@@ -33,8 +35,8 @@ class CheckpointWriter {
    */
   static void writeCheckpoint(const ParticleContainer& particles, const std::string& filename, int iteration,
                               double currentTime, const std::string& baseName, int writeFrequency,
-                              int checkpointFrequency, double tEnd, double deltaT, double epsilon, double sigma,
-                              double cutoffRadius, double gravity, const std::array<double, 3>& domainSize,
+                              int checkpointFrequency, double tEnd, double deltaT,
+                              const std::vector<ForceConfig>& forceConfigs, const std::array<double, 3>& domainSize,
                               const std::array<std::string, 6>& boundaryTypes,
                               const std::string& outputDirectory = "output/checkpoints");
 };

@@ -11,6 +11,8 @@
 
 #include "utils/ArrayUtils.h"
 
+int Particle::idCounter = 0;
+
 Particle::Particle(int type_arg)
     : x{0.0, 0.0, 0.0},
       v{0.0, 0.0, 0.0},
@@ -19,7 +21,11 @@ Particle::Particle(int type_arg)
       m(0.0),
       type(type_arg),
       sigma(1.0),
-      epsilon(5.0) {}
+      epsilon(5.0),
+      id(idCounter++) {
+  diagonalNeighbors.reserve(4);
+  directNeighbors.reserve(4);
+}
 
 Particle::Particle(const std::array<double, 3>& x_arg, const std::array<double, 3>& v_arg, const double m_arg,
                    const int type_arg, const double sigma_arg, const double epsilon_arg)
@@ -30,47 +36,41 @@ Particle::Particle(const std::array<double, 3>& x_arg, const std::array<double, 
       m(m_arg),
       type(type_arg),
       sigma(sigma_arg),
-      epsilon(epsilon_arg) {}
-
-const std::array<double, 3>& Particle::getX() const {
-  return x;
+      epsilon(epsilon_arg),
+      id(idCounter++) {
+  diagonalNeighbors.reserve(4);
+  directNeighbors.reserve(4);
 }
 
-const std::array<double, 3>& Particle::getV() const {
-  return v;
-}
-
-const std::array<double, 3>& Particle::getF() const {
-  return f;
-}
-std::array<double, 3>& Particle::getF() {
-  return f;
-}
-
-const std::array<double, 3>& Particle::getOldF() const {
-  return old_f;
-}
-
-double Particle::getM() const {
-  return m;
-}
-
-int Particle::getType() const {
-  return type;
-}
-
-double Particle::getSigma() const {
-  return sigma;
-}
-
-double Particle::getEpsilon() const {
-  return epsilon;
-}
+// Most getters are now force-inlined in Particle.h
+// Only non-inlined neighbor getters remain here
 
 std::string Particle::toString() const {
   std::stringstream stream;
   stream << "Particle: X:" << x << " v: " << v << " f: " << f << " old_f: " << old_f << " type: " << type;
   return stream.str();
+}
+
+const std::vector<int>& Particle::getDirectNeighbors() const {
+  return directNeighbors;
+}
+
+std::vector<int>& Particle::getDirectNeighbors() {
+  return directNeighbors;
+}
+
+const std::vector<int>& Particle::getDiagonalNeighbors() const {
+  return diagonalNeighbors;
+}
+
+std::vector<int>& Particle::getDiagonalNeighbors() {
+  return diagonalNeighbors;
+}
+
+void Particle::setX(const std::array<double, 3>& val) {
+  displacement = displacement + x - val;  // update displacement before position
+
+  x = val;
 }
 
 bool Particle::operator==(const Particle& other) const {

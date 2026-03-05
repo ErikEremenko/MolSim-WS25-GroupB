@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include "../include/simulation/Simulation.h"
+#include "physics/LennardJonesForce.h"
 #include "physics/ParticleGenerator.h"
 
 // Simulation defines
@@ -39,21 +40,24 @@ class ThermostatTestingSimulation : public Simulation {
   Thermostat& thermostat;
   std::function<void(bool)> temperatureChecker;  // called after updating the temperature
 
- protected:
-  void setupSimulation() override { /* empty override for compilation */ }
-  void runFileOutput() override { /* empty as it will not be called */ }
-  void runBenchmark() override {
-    // No benchmarking, just simulate and regularly apply thermostat
+ public:
+  void run() override {
+    setupSimulation();
+
+    // Custom simulation loop that injects temperature checks
     double current_time = 0;
     int iteration = 0;
     const int thermostatFrequency = thermostat.getUpdateFrequency();
     while (current_time < endTime) {
-      forceCalc->calculateX(dt);
+      ForceCalc::calculateX(*particles, dt);
       for (auto& p : *particles) {
         p.setOldF(p.getF());
+        p.setF({});
       }
-      forceCalc->calculateF();
-      forceCalc->calculateV(dt);
+      for (const auto& force : forces) {
+        force->calculateF();
+      }
+      ForceCalc::calculateV(*particles, dt);
 
       iteration++;
       if (iteration % thermostatFrequency == 0) {
@@ -65,14 +69,17 @@ class ThermostatTestingSimulation : public Simulation {
     }
   }
 
+ protected:
+  void setupSimulation() override { /* empty override for compilation */ }
+
  public:
   ThermostatTestingSimulation(std::unique_ptr<ParticleContainer> particles, Thermostat& thermostat,
                               std::function<void(bool)> temperatureChecker, SimulationConfig& config)
       : Simulation(config), thermostat(thermostat), temperatureChecker(std::move(temperatureChecker)) {
 
     this->particles = std::move(particles);
-    forceCalc = std::make_unique<LennardJonesForce>(*this->particles, SIM_FORCE_EPSILON, SIM_FORCE_SIGMA,
-                                                    SIM_FORCE_CUTOFF_RADIUS, 0);
+    this->forces.push_back(std::make_unique<LennardJonesForce>(*this->particles, SIM_FORCE_EPSILON, SIM_FORCE_SIGMA,
+                                                               SIM_FORCE_CUTOFF_RADIUS));
   }
   ~ThermostatTestingSimulation() override = default;
 };
@@ -151,14 +158,11 @@ TEST_F(ThermostatTest, HoldingTemperature) {
   config.tEnd = SIM_END_TIME;
   config.deltaT = SIM_DT;
   config.simulationMode = SimulationMode::BENCHMARK;
-  config.domainSize = std::array<double, 3>{100.0, 100.0, 100.0};
-  config.cutoff = SIM_FORCE_CUTOFF_RADIUS;
-  config.epsilon = SIM_FORCE_EPSILON;
-  config.sigma = SIM_FORCE_SIGMA;
+  config.domainSize = std::array<double, 3>{200.0, 100.0, 10.0};
+  config.linkedCellCutoff = SIM_FORCE_CUTOFF_RADIUS;
   config.boundaryTypes =
       std::array<BoundaryType, 6>{BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
                                   BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
-  /* populate other required fields if needed */
 
   ThermostatTestingSimulation simulation(std::move(particles), thermostat, [](bool) {}, config);
   simulation.run();
@@ -197,13 +201,12 @@ TEST_F(ThermostatTest, CoolingDown) {
   config.tEnd = SIM_END_TIME;
   config.deltaT = SIM_DT;
   config.simulationMode = SimulationMode::BENCHMARK;
-  config.domainSize = std::array<double, 3>{100.0, 100.0, 100.0};
-  config.cutoff = SIM_FORCE_CUTOFF_RADIUS;
-  config.epsilon = SIM_FORCE_EPSILON;
-  config.sigma = SIM_FORCE_SIGMA;
+  config.domainSize = std::array<double, 3>{200.0, 100.0, 10.0};
+  config.linkedCellCutoff = SIM_FORCE_CUTOFF_RADIUS;
   config.boundaryTypes =
       std::array<BoundaryType, 6>{BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
                                   BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};
+  // Forces are now configured via forceConfigs, but for this test we add forces directly in the constructor
 
   ThermostatTestingSimulation simulation(std::move(particles), thermostat, heatingChecker, config);
   simulation.run();
@@ -240,10 +243,8 @@ TEST_F(ThermostatTest, HeatingUp) {
   config.tEnd = SIM_END_TIME;
   config.deltaT = SIM_DT;
   config.simulationMode = SimulationMode::BENCHMARK;
-  config.domainSize = std::array<double, 3>{100.0, 100.0, 100.0};
-  config.cutoff = SIM_FORCE_CUTOFF_RADIUS;
-  config.epsilon = SIM_FORCE_EPSILON;
-  config.sigma = SIM_FORCE_SIGMA;
+  config.domainSize = std::array<double, 3>{200.0, 100.0, 10.0};
+  config.linkedCellCutoff = SIM_FORCE_CUTOFF_RADIUS;
   config.boundaryTypes =
       std::array<BoundaryType, 6>{BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW,
                                   BoundaryType::OUTFLOW, BoundaryType::OUTFLOW, BoundaryType::OUTFLOW};

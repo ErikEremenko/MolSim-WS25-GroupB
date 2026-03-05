@@ -10,8 +10,8 @@ namespace outputWriter {
 
 void CheckpointWriter::writeCheckpoint(const ParticleContainer& particles, const std::string& filename, int iteration,
                                        double currentTime, const std::string& baseName, int writeFrequency,
-                                       int checkpointFrequency, double tEnd, double deltaT, double epsilon,
-                                       double sigma, double cutoffRadius, double gravity,
+                                       int checkpointFrequency, double tEnd, double deltaT,
+                                       const std::vector<ForceConfig>& forceConfigs,
                                        const std::array<double, 3>& domainSize,
                                        const std::array<std::string, 6>& boundaryTypes,
                                        const std::string& outputDirectory) {
@@ -46,10 +46,6 @@ void CheckpointWriter::writeCheckpoint(const ParticleContainer& particles, const
   out << YAML::Key << "simulation" << YAML::Value << YAML::BeginMap;
   out << YAML::Key << "t_end" << YAML::Value << tEnd;
   out << YAML::Key << "delta_t" << YAML::Value << deltaT;
-  out << YAML::Key << "epsilon" << YAML::Value << epsilon;
-  out << YAML::Key << "sigma" << YAML::Value << sigma;
-  out << YAML::Key << "cutoff_radius" << YAML::Value << cutoffRadius;
-  out << YAML::Key << "gravity" << YAML::Value << gravity;
   out << YAML::EndMap;
 
   // Domain configuration
@@ -66,6 +62,75 @@ void CheckpointWriter::writeCheckpoint(const ParticleContainer& particles, const
   out << YAML::Key << "y_max" << YAML::Value << boundaryTypes[3];
   out << YAML::Key << "z_min" << YAML::Value << boundaryTypes[4];
   out << YAML::Key << "z_max" << YAML::Value << boundaryTypes[5];
+  out << YAML::EndMap;
+
+  // Forces configuration - write all force types
+  out << YAML::Key << "forces" << YAML::Value << YAML::BeginSeq;
+
+  // Infer cutoff from first LJ-type force for container config
+  double cutoffRadius = 3.0;  // default
+
+  for (const auto& fc : forceConfigs) {
+    out << YAML::BeginMap;
+    switch (fc.forceType) {
+      case ForceType::LENNARD_JONES:
+        out << YAML::Key << "force_type" << YAML::Value << "lennard_jones";
+        out << YAML::Key << "epsilon" << YAML::Value << fc.epsilon.value_or(1.0);
+        out << YAML::Key << "sigma" << YAML::Value << fc.sigma.value_or(1.0);
+        out << YAML::Key << "cutoff_radius" << YAML::Value << fc.cutoff.value_or(3.0);
+        cutoffRadius = fc.cutoff.value_or(3.0);
+        break;
+
+      case ForceType::SMOOTHED_LJ:
+        out << YAML::Key << "force_type" << YAML::Value << "smoothed_lj";
+        out << YAML::Key << "epsilon" << YAML::Value << fc.epsilon.value_or(1.0);
+        out << YAML::Key << "sigma" << YAML::Value << fc.sigma.value_or(1.0);
+        out << YAML::Key << "cutoff_radius" << YAML::Value << fc.cutoff.value_or(3.0);
+        out << YAML::Key << "smoothing_radius" << YAML::Value << fc.rl.value_or(1.8);
+        cutoffRadius = fc.cutoff.value_or(3.0);
+        break;
+
+      case ForceType::TRUNCATED_LJ:
+        out << YAML::Key << "force_type" << YAML::Value << "truncated_lj";
+        break;
+
+      case ForceType::GLOBAL_GRAVITY:
+        out << YAML::Key << "force_type" << YAML::Value << "global_gravity";
+        out << YAML::Key << "g" << YAML::Value << fc.gravity.value_or(0.0);
+        if (fc.gravityAxis.has_value() && fc.gravityAxis.value() != 1) {
+          out << YAML::Key << "axis" << YAML::Value << fc.gravityAxis.value();
+        }
+        break;
+
+      case ForceType::HARMONIC_MEMBRANE:
+        out << YAML::Key << "force_type" << YAML::Value << "harmonic_membrane";
+        out << YAML::Key << "stiffness" << YAML::Value << fc.stiffness.value_or(300.0);
+        out << YAML::Key << "avg_bond_length" << YAML::Value << fc.avgBondLength.value_or(2.2);
+        break;
+
+      case ForceType::CONSTANT_FORCE:
+        out << YAML::Key << "force_type" << YAML::Value << "constant_force";
+        out << YAML::Key << "fx" << YAML::Value << fc.forceX.value_or(0.0);
+        out << YAML::Key << "fy" << YAML::Value << fc.forceY.value_or(0.0);
+        out << YAML::Key << "fz" << YAML::Value << fc.forceZ.value_or(0.0);
+        out << YAML::Key << "end_time" << YAML::Value << fc.endTime.value_or(0.0);
+        if (!fc.targetIndices.empty()) {
+          out << YAML::Key << "target_indices" << YAML::Value << YAML::BeginSeq;
+          for (const auto& [x, y] : fc.targetIndices) {
+            out << YAML::Flow << YAML::BeginSeq << x << y << YAML::EndSeq;
+          }
+          out << YAML::EndSeq;
+        }
+        break;
+    }
+    out << YAML::EndMap;
+  }
+  out << YAML::EndSeq;
+
+  // Container configuration (required by YAMLFileReader for linked cell)
+  out << YAML::Key << "container" << YAML::Value << YAML::BeginMap;
+  out << YAML::Key << "container_type" << YAML::Value << "linked";
+  out << YAML::Key << "cutoff" << YAML::Value << cutoffRadius;
   out << YAML::EndMap;
 
   // Empty cuboids and spheres (not needed for checkpoint, but required by format)
